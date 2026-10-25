@@ -344,6 +344,8 @@ player_nohyper
   swy0 = pcy - 30 : swy1 = pcy - 4
   temp6 = tick & 7
   if temp6 = 0 then swdmg = 3
+  temp6 = tick & 15
+  if temp6 = 0 then gosub sword_hum
   if hyper = 0 then goto player_nosword
   rem Hyper: a wider blade and a beam up the whole screen
   swx0 = pcx - 20 : swx1 = pcx + 20 : swy0 = 24
@@ -360,6 +362,8 @@ player_nosword
   sadd0 = absorbed * 16
   asm
   jsr score_add
+  lda #SFX_ABSORB
+  jsr sfx_play
 end
   absorbed = 0
 player_noabsorb
@@ -376,7 +380,18 @@ player_dead
   gosub respawn
   return
 
+sword_hum
+  asm
+  lda #SFX_SWORD
+  jsr sfx_play
+end
+  return
+
 player_die
+  asm
+  lda #SFX_DIE
+  jsr sfx_play
+end
   temp7 = plx : temp8 = ply : gosub spawn_fx
   temp7 = plx + 4 : temp8 = ply + 8 : gosub spawn_fx
   pdead = 90
@@ -387,6 +402,11 @@ player_die
 
 start_hyper
   hyper = 150 : gauge = 0
+  asm
+  lda #SFX_HYPER
+  jsr sfx_play
+end
+
   asm
   jsr bul_cancel
   sta temp6
@@ -404,8 +424,15 @@ end
 fire_vulcan
   if firecd > 0 then return
   for i = 0 to NS1
-    if shy[i] = 0 then shx[i] = plx + 4 : shy[i] = ply - 6 : firecd = 4 : return
+    if shy[i] = 0 then goto fire_slot
   next
+  return
+fire_slot
+  shx[i] = plx + 4 : shy[i] = ply - 6 : firecd = 4
+  asm
+  lda #SFX_VULCAN
+  jsr sfx_play
+end
   return
 
 gameover_tick
@@ -603,6 +630,10 @@ damage
     if temp1 = 0 then goto damage_next
     ehit[i] = 0
     eflash[i] = 3
+    asm
+    lda #SFX_HIT
+    jsr sfx_play
+end
     if ehp[i] <= temp1 then gosub destroy : goto damage_next
     ehp[i] = ehp[i] - temp1
 damage_next
@@ -612,9 +643,20 @@ damage_next
 destroy
   temp1 = etype[i]
   temp7 = exh[i] : temp8 = eyh[i] : gosub spawn_fx
-  if temp1 <> ET_GUNSHIP then goto destroy_score
+  if temp1 <> ET_GUNSHIP then goto destroy_small
+  asm
+  lda #SFX_BIGBOOM
+  jsr sfx_play
+end
+
   temp7 = exh[i] + 8 : temp8 = eyh[i] + 14 : gosub spawn_fx
   temp7 = exh[i] + 2 : temp8 = eyh[i] + 18 : gosub spawn_fx
+  goto destroy_score
+destroy_small
+  asm
+  lda #SFX_EXPLODE
+  jsr sfx_play
+end
 destroy_score
   etype[i] = 0
   sadd2 = 0 : sadd1 = enemy_score1[temp1] : sadd0 = 0
@@ -755,4 +797,5 @@ end
   inline objects.asm
   inline data.asm
   inline music.asm
+  inline sfx.asm
   inline musicdata.asm

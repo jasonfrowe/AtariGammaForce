@@ -117,6 +117,7 @@ mus_silent
 
 ; ---------------------------------------------------------------------------
 mus_tick
+     jsr sfx_tick            ; the TIA effects tick with the music
      lda mus_on
      bne mus_tick_go
      rts
