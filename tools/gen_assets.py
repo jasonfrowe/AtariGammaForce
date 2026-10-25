@@ -61,7 +61,9 @@ def nearest(rgb):
 # palettes and snapped to the nearest 7800 color.
 BACKGROUND = (18, 54, 112)  # the open sea; edge tiles show it as water too
 PALETTES = [
-    [(10, 30, 70), (40, 90, 152), (200, 230, 255)],      # P0 sea: troughs, crests, foam
+    [(56, 64, 84), (156, 168, 196), (255, 40, 60)],      # P0 boss: steel, light steel, core
+                                                         # (open sea is the background color,
+                                                         # so the sea tiles don't need P0)
     [(52, 56, 72), (96, 104, 124), (160, 168, 188)],     # P1 deck
     [(82, 88, 108), (230, 190, 60), (255, 60, 60)],      # P2 deck detail
     [(48, 70, 150), (156, 168, 196), (235, 245, 255)],   # P3 player
@@ -181,6 +183,25 @@ def build_charset():
 TEXTS = {
     "hudinit": " SCORE 0000000   x3 ",
     "hudover": "GAMEOVER",
+    "hudwarn": "WARNING",
+    "hudclear": "CLEARED!",
+}
+
+
+# Texts shown in the playfield (title, messages), up to 20 characters.
+SCREEN_TEXTS = {
+    "atari": "ATARI",
+    "gamma": "GAMMA FORCE",
+    "push": "PRESS FIRE",
+    "b1": "BUTTON 1  VULCAN",
+    "b2": "BUTTON 2  SWORD",
+    "credit": "2026 JASON ROWE",
+    "demake": "AFTER MEGAGAMMAFORCE",
+    "warning": "WARNING",
+    "boss": "GAMMA CORE",
+    "clear": "STAGE CLEAR",
+    "over": "GAME OVER",
+    "ready": "STAGE 1",
 }
 
 
@@ -215,6 +236,8 @@ HAND_DRAWN = {
     "needle": [_art([".1..", ".1..", ".3..", ".3..", ".3..", ".1.."] + ["...."] * 10)],
 }
 
+BOSS_SLOTS = {1: 1, 2: 1, 3: 1, 4: 1, 5: 2, 6: 2, 7: 1, 8: 2, 9: 3, 10: 3, 11: 3, 12: 1, 13: 1, 14: 2, 15: 2}
+
 SPRITES = [
     # name, file, fw, fh, frames (None = all), slots, preview palette
     ("ship", "player.png", 24, 24, None, PLAYER_SLOTS, 3),
@@ -228,6 +251,16 @@ SPRITES = [
     ("expl", "expl16.png", 16, 16, None, EXPL_SLOTS, 4),
     ("gunship", "enemy32.png", 32, 32, [0, 1], ENEMY_SLOTS, 2),
     ("sword", "sword.png", 48, 32, None, SWORD_SLOTS, 7),
+    # GAMMA CORE, the stage 1 boss. Its 64-line parts are drawn as top and
+    # bottom halves (the plotter does two strips), the right wing mirrored.
+    ("bcoret", "stage1_boss_core.png", 64, 64, None, BOSS_SLOTS, 0, (0, 32)),
+    ("bcoreb", "stage1_boss_core.png", 64, 64, None, BOSS_SLOTS, 0, (32, 64)),
+    ("bwinglt", "stage1_boss_wing.png", 32, 64, None, BOSS_SLOTS, 0, (0, 32)),
+    ("bwinglb", "stage1_boss_wing.png", 32, 64, None, BOSS_SLOTS, 0, (32, 64)),
+    ("bwingrt", "stage1_boss_wing.png", 32, 64, None, BOSS_SLOTS, 0, (0, 32), True),
+    ("bwingrb", "stage1_boss_wing.png", 32, 64, None, BOSS_SLOTS, 0, (32, 64), True),
+    ("bcannon", "stage1_boss_cannon.png", 32, 32, None, BOSS_SLOTS, 0),
+    ("bturret", "stage1_boss_turret.png", 16, 16, None, BOSS_SLOTS, 0),
 ]
 
 
@@ -236,13 +269,20 @@ def build_sprites():
     table = []
     incs = []
     previews = []
-    for name, fn, fw, fh, pick, slots, pal in SPRITES:
+    for entry in SPRITES:
+        name, fn, fw, fh, pick, slots, pal = entry[:7]
+        rows = entry[7] if len(entry) > 7 else None
+        flip = entry[8] if len(entry) > 8 else False
         if fn is None:
             conv = [np.array(f, dtype=np.uint8) for f in HAND_DRAWN[name]]
         else:
             frames = frames_of(MGF / fn, fw, fh)
             if pick is not None:
                 frames = [frames[i] for i in pick]
+            if rows is not None:
+                frames = [f[rows[0]:rows[1]] for f in frames]
+            if flip:
+                frames = [f[:, ::-1] for f in frames]
             conv = [halve(f, slots) for f in frames]
         # Pad to a multiple of 16 lines; small sprites sit at the top.
         h = conv[0].shape[0]
@@ -450,6 +490,18 @@ def main():
     asm.append("; Text strings, as character indices.")
     for label, text in TEXTS.items():
         asm.append(f"{label} .byte " + ",".join(str(char_index(ch, font_base)) for ch in text) + f" ; {text!r}")
+    asm.append("; Playfield texts for pf_text: TXT_ numbers index these.")
+    for i, (label, text) in enumerate(SCREEN_TEXTS.items()):
+        asm.append(f"txt_{label} .byte " + ",".join(str(char_index(ch, font_base)) for ch in text) + f" ; {text!r}")
+        consts.append(f"  const TXT_{label.upper()} = {i}")
+    names = list(SCREEN_TEXTS)
+    asm.append("txtlo .byte " + ",".join(f"<txt_{n}" for n in names[:8]))
+    for i in range(8, len(names), 8):
+        asm.append("  .byte " + ",".join(f"<txt_{n}" for n in names[i:i + 8]))
+    asm.append("txthi .byte " + ",".join(f">txt_{n}" for n in names[:8]))
+    for i in range(8, len(names), 8):
+        asm.append("  .byte " + ",".join(f">txt_{n}" for n in names[i:i + 8]))
+    asm.append("txtlen .byte " + ",".join(str(len(SCREEN_TEXTS[n])) for n in names))
     asm.append("")
     asm.append("; P0C1..P7C3, in register order")
     asm.append("palettedata")

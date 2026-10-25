@@ -30,19 +30,19 @@ obj         = $C3
 
 ; ---------------------------------------------------------------------------
 ; Multiply: ob1 * ob6 -> A (high), ob1 (low). Unsigned.
-mul8
+ob_mul8
      lda #0
      ldx #8
      lsr ob1
-mul8_loop
-     bcc mul8_skip
+ob_mul8_loop
+     bcc ob_mul8_skip
      clc
      adc ob6
-mul8_skip
+ob_mul8_skip
      ror
      ror ob1
      dex
-     bne mul8_loop
+     bne ob_mul8_loop
      rts
 
 ; A (signed) * fspd -> A = product >> 8 (vel8) or >> 7 (vel7), signed.
@@ -71,7 +71,7 @@ ob_smul_pos
      sta ob1
      lda fspd
      sta ob6
-     jmp mul8
+     jmp ob_mul8
 
 ; ang_vel: velx, vely for angle fang, speed fspd (<= 127). x is halved,
 ; since 160A pixels are twice as wide as a line is tall.
@@ -460,6 +460,10 @@ en_update_loop
      lda eyh,x
      adc ob2
      sta eyh,x
+     lda etype,x
+     cmp #ET_PART
+     bcs en_update_next      ; boss parts: placed by the boss code, never culled
+     lda eyh,x
      cmp #250
      bcs en_update_kill
      cmp #4
@@ -616,7 +620,7 @@ en_draw
      lsr
      lsr
      sta ob8                 ; animation step: a new frame every 8 ticks
-     ldx #NE-1
+     ldx #0                  ; first to last: later slots draw on top
 en_draw_loop
      lda etype,x
      bne en_draw_live
@@ -639,18 +643,27 @@ en_draw_color
 en_draw_pal
      ora imgnegw,y
      sta sp_pw
-     ; frame: (step & (frames-1)) * width, frames 1, 2 or 4, width 2 or 4
+     ; frame: boss parts choose theirs (eframe); others animate,
+     ; (step & (frames-1)); offset = frame * width
+     lda etype,x
+     cmp #ET_PART
+     bcc en_draw_anim
+     lda eframe,x
+     jmp en_draw_frame
+en_draw_anim
      lda imgframes,y
      sec
      sbc #1
      and ob8
+en_draw_frame
      sta ob1
-     lda imgw,y
-     cmp #4
-     lda ob1
-     asl
-     bcc en_draw_w2
-     asl
+     lda #0
+     clc
+en_draw_mul
+     dec ob1
+     bmi en_draw_w2
+     adc imgw,y
+     jmp en_draw_mul
 en_draw_w2
      sta ob2                 ; frame offset
      clc
@@ -693,8 +706,9 @@ en_draw_h
 en_draw_done1
      ldx obi
 en_draw_next
-     dex
-     bmi en_draw_out
+     inx
+     cpx #NE
+     bcs en_draw_out
      jmp en_draw_loop
 en_draw_out
      rts

@@ -5,9 +5,11 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 A7800=${A7800:-$ROOT/../../a7800/mame64}
 SCRIPT=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
 OUT=${2:-$ROOT/build/play}
+ROMFILE=${ROM:-$ROOT/build/gammaforce.a78}
+ROMFILE=$(cd "$(dirname "$ROMFILE")" && pwd)/$(basename "$ROMFILE")
 rm -rf "$OUT"; mkdir -p "$OUT"; OUT=$(cd "$OUT" && pwd)
 cd "$(dirname "$A7800")"
-PLAY_SCRIPT="$SCRIPT" PLAY_OUT="$OUT/play.txt" "$A7800" a7800 -cart "${ROM:-$ROOT/build/gammaforce.a78}" \
+PLAY_SCRIPT="$SCRIPT" PLAY_OUT="$OUT/play.txt" "$A7800" a7800 -cart "$ROMFILE" \
   -video none -sound none -nothrottle -seconds_to_run 600 -snapshot_directory "$OUT" \
   -autoboot_script "$ROOT/tools/emu/play.lua" -skip_gameinfo > "$OUT/emu.log" 2>&1
 cat "$OUT/play.txt"

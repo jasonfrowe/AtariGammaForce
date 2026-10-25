@@ -21,14 +21,14 @@
   incbasic gen/consts.bas
 
   rem ---- sizes ----
-  const NE = 8
+  const NE = 12
   const NB = 16
   const NS = 6
   const NX = 6
   const NSP = 3
   rem 7800basic drops arithmetic in a for loop's limit ("to NE1" runs to
   rem NE), so loops use these.
-  const NE1 = 7
+  const NE1 = 11
   const NB1 = 15
   const NS1 = 5
   const NX1 = 5
@@ -36,12 +36,22 @@
 
   rem Uncomment to time the main loop's sections (tools/profile.py).
   rem const PROFILE = 1
+  rem Testing: start at the boss, and/or never get hit.
+  rem const BOSSTEST = 1
+  rem const CHEAT = 1
 
   rem ---- enemy types (as in MegaGammaForce's enemies.h) ----
   const ET_DART = 1
   const ET_SAUCER = 2
   const ET_DRONE = 3
   const ET_GUNSHIP = 4
+  rem boss parts: types from ET_PART up are placed by the boss code
+  const ET_PART = 10
+  const ET_PCANNON = 10
+  const ET_PWING = 11
+  const ET_PARMOR = 12
+  const ET_PCORE = 13
+  const ET_PTURRET = 14
 
   rem ---- bullet kinds: odd = pink (the sword absorbs them) ----
   const BK_PINK = 1
@@ -111,23 +121,27 @@
   dim overt = $233D
   dim bothheld = $233E
 
-  rem ---- enemies (NE) ----
-  dim etype = $2400
-  dim ecol = $2408
-  dim ehp = $2410
-  dim exl = $2418
-  dim exh = $2420
-  dim eyl = $2428
-  dim eyh = $2430
-  dim evx = $2438
-  dim evy = $2440
-  dim etimer = $2448
-  dim estate = $2450
-  dim eparam = $2458
-  dim ehit = $2460
-  dim eflash = $2468
-  dim ebase = $2470
-  dim eimg = $2478
+  rem ---- enemies (NE slots; arrays 16 apart) ----
+  dim etype = $2600
+  dim ecol = $2610
+  dim ehp = $2620
+  dim exl = $2630
+  dim exh = $2640
+  dim eyl = $2650
+  dim eyh = $2660
+  dim evx = $2670
+  dim evy = $2680
+  dim etimer = $2690
+  dim estate = $26A0
+  dim eparam = $26B0
+  dim ehit = $26C0
+  dim eflash = $26D0
+  dim ebase = $26E0
+  dim eimg = $26F0
+  dim ewamp = $2700
+  dim ewstep = $2710
+  dim ewang = $2720
+  dim eframe = $2730
 
   rem ---- enemy bullets (NB) ----
   dim bkind = $2480
@@ -138,9 +152,19 @@
   dim bvx = $24D0
   dim bvy = $24E0
   dim shcount = $233F
-  dim ewamp = $2560
-  dim ewstep = $2568
-  dim ewang = $2570
+  dim bstate = $2344
+  dim btl = $2345
+  dim bth = $2346
+  dim bx = $2347
+  dim by = $2348
+  dim bcorehp = $2349
+  dim bspin = $234A
+  dim bparts = $234B
+  dim bmsg = $234C
+  dim tzone = $2342
+  dim tpal = $2343
+  dim pfspeed = $2233
+  dim pfstartrow = $223C
   dim bvxh = $2540
   dim bvyh = $2550
 
@@ -169,17 +193,76 @@
 end
 
   rem ======================================================================
+  rem  Title screen: the sea stands still under the title
+  rem ======================================================================
+title
+  asm
+  lda #0
+  sta pfspeed
+  jsr pf_reset
+end
+  for i = 0 to NE1 : etype[i] = 0 : next
+  for i = 0 to NB1 : bkind[i] = 0 : next
+  for i = 0 to NS1 : shy[i] = 0 : next
+  for i = 0 to NX1 : xt[i] = 0 : next
+  temp9 = 30
+title_loop
+  asm
+  jsr pf_frame
+end
+  tick = tick + 1
+  tpal = 3
+  tzone = 3 : temp1 = TXT_ATARI : gosub text
+  tzone = 4 : temp1 = TXT_GAMMA : gosub text
+  tpal = 7
+  temp2 = tick & 32
+  if temp2 then tzone = 7 : temp1 = TXT_PUSH : gosub text
+  tpal = 3
+  tzone = 9 : temp1 = TXT_B1 : gosub text
+  tzone = 10 : temp1 = TXT_B2 : gosub text
+  tpal = 6
+  tzone = 12 : temp1 = TXT_DEMAKE : gosub text
+  tzone = 13 : temp1 = TXT_CREDIT : gosub text
+  asm
+  jsr pf_drawscreen
+end
+  rem Start on a fresh press of either button (released first)
+  temp3 = 0
+  if joy0fire0 then temp3 = 1
+  if joy0fire1 then temp3 = 1
+  if temp3 = 0 && temp9 > 0 then temp9 = temp9 - 1
+  if temp3 = 0 then goto title_loop
+  if temp9 > 0 then goto title_loop
+  asm
+  lda #160
+  sta pfspeed
+  ifconst BOSSTEST
+  lda #186
+  sta pfstartrow
+  endif
+  jsr pf_reset
+  lda #SONG_STAGE1
+  jsr mus_play
+end
+
+  rem ======================================================================
 newgame
   for i = 0 to 3 : score_bcd[i] = 0 : next
   lives = 3 : gauge = 0 : hyper = 0
   chlevel = 0 : chcount = 0 : chcolor = 255
-  vdmg = 3 : wn = 0 : overt = 0
+  vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0
   for i = 0 to NE1 : etype[i] = 0 : next
   for i = 0 to NB1 : bkind[i] = 0 : next
   for i = 0 to NS1 : shy[i] = 0 : next
   for i = 0 to NX1 : xt[i] = 0 : next
   for i = 0 to NSP1 : spcount[i] = 0 : next
   phit = 0 : absorbed = 0
+  asm
+  ifconst BOSSTEST
+  lda #WAVES
+  sta wn
+  endif
+end
   gosub respawn
 
   rem ======================================================================
@@ -205,6 +288,7 @@ end
   endif
 end
   gosub waves
+  gosub boss
   gosub spawners
   asm
   ifconst PROFILE
@@ -281,11 +365,20 @@ end
   endif
 end
 
+  if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
   asm
   jsr pf_drawscreen
 end
-  if overt = 1 then goto newgame
+  if overt = 1 then goto title
   goto main
+
+  rem Show text temp1 in zone tzone, palette tpal (asm/engine.asm pf_text)
+text
+  asm
+  lda temp1
+  jsr pf_text
+end
+  return
 
   rem ======================================================================
   rem  Player
@@ -369,6 +462,12 @@ end
 player_noabsorb
 
   if inv = 0 && hyper = 0 then plvuln = 1
+  asm
+  ifconst CHEAT
+  lda #0
+  sta phit
+  endif
+end
   if phit then phit = 0 : gosub player_die
   return
 
@@ -376,7 +475,7 @@ player_dead
   phit = 0
   pdead = pdead - 1
   if pdead > 0 then return
-  if lives = 0 then overt = 240 : return
+  if lives = 0 then overt = 240 : pfspeed = 0 : return
   gosub respawn
   return
 
@@ -503,6 +602,7 @@ think
   for i = 0 to NE1
     temp1 = etype[i]
     if temp1 = 0 then goto think_next
+    if temp1 >= ET_PART then goto think_next
     temp2 = (i ^ tick) & 1
     if temp2 then goto think_next
     etimer[i] = etimer[i] + 2
@@ -629,6 +729,7 @@ damage
     temp1 = ehit[i]
     if temp1 = 0 then goto damage_next
     ehit[i] = 0
+    if etype[i] >= ET_PART then gosub part_damage : goto damage_next
     eflash[i] = 3
     asm
     lda #SFX_HIT
@@ -728,6 +829,261 @@ draw_ship
 end
   return
 
+
+  rem ======================================================================
+  rem  GAMMA CORE, the stage 1 boss (MegaGammaForce's boss1.c, thinned).
+  rem  Eleven enemy slots: cannon, two wings (a hittable top half and an
+  rem  armor bottom half each), the core (two halves sharing bcorehp), and
+  rem  four turrets on the wings. bstate: 0 none, 1 warning, 2 entering,
+  rem  3 fighting, 4 exploding, 5 stage clear.
+  rem ======================================================================
+boss
+  if bstate = 0 then goto boss_wait
+  if bstate = 1 then goto boss_warning
+  if bstate = 2 then goto boss_enter
+  if bstate = 3 then goto boss_fight
+  if bstate = 4 then goto boss_dying
+  goto boss_clear
+
+  rem After the last wave, once the sky is clear and the fortress is behind
+boss_wait
+  if wn < WAVES then return
+  if spos_hi < 12 then return
+  for k = 0 to NE1
+    if etype[k] then return
+  next
+  bstate = 1 : btl = 0 : bth = 0
+  asm
+  lda #SONG_BOSS
+  jsr mus_play
+end
+  return
+
+boss_warning
+  btl = btl + 1
+  bmsg = 1
+  if btl < 180 then return
+  bmsg = 0
+  rem build the boss above the screen
+  bx = 80 : by = 0 : bspin = 0 : bcorehp = 225 : bparts = 0
+  for k = 0 to 10
+    etype[k] = boss_type[k] : eimg[k] = boss_img[k] : ehp[k] = boss_hp[k]
+    ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
+    evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0
+  next
+  gosub boss_place
+  bstate = 2 : btl = 0 : bth = 0
+  return
+
+boss_enter
+  by = by + 1
+  gosub boss_place
+  if by < 89 then return
+  bstate = 3
+  return
+
+boss_fight
+  btl = btl + 1
+  if btl = 0 then bth = bth + 1
+  rem sway: x = 80 + 17 sin(t/2), y = 89 + 6 sin(t/4)
+  wang = btl / 2 + 192 : wamp = 17
+  asm
+  jsr weave
+end
+  bx = 80 + woff
+  wang = btl / 4 + 192 : wamp = 6
+  asm
+  jsr weave
+end
+  by = 89 + woff
+  gosub boss_place
+  rem 90 seconds and it escapes
+  if bth >= 21 then bstate = 4 : btl = 200 : return
+  if plvuln = 0 then return
+  gosub boss_attack
+  return
+
+  rem Part k's position from the boss centre (bx, by): offset tables in
+  rem MegaGammaForce pixels halved across (sprites are half width here)
+boss_place
+  for k = 0 to 10
+    if etype[k] = 0 then goto boss_place_next
+    exh[k] = bx + boss_dx[k]
+    eyh[k] = by + boss_dy[k]
+boss_place_next
+  next
+  rem the cannon glows before it fires
+  eframe[0] = 0
+  temp1 = btl & 255
+  if temp1 >= 96 && temp1 < 128 then eframe[0] = (tick / 4) & 1
+  rem turrets turn to face the player (8 directions)
+  for k = 7 to 10
+    if etype[k] = 0 then goto boss_turret_next
+    fx = exh[k] + 4 : fy = eyh[k] + 8
+    gosub aim
+    eframe[k] = (fang - 48) / 32 & 7
+boss_turret_next
+  next
+  return
+
+boss_attack
+  rem turrets: aimed blue shots, staggered
+  for k = 7 to 10
+    if etype[k] = 0 then goto boss_att_next
+    temp1 = (btl + k * 17) & 63
+    if temp1 then goto boss_att_next
+    fx = exh[k] + 4 : fy = eyh[k] + 12
+    gosub aim
+    fkind = BK_BLUE : fspd = 52
+    asm
+    jsr bul_fire
+end
+boss_att_next
+  next
+  rem wings: pink fans, alternating sides
+  temp1 = btl & 127
+  if temp1 = 0 && etype[1] then fx = exh[1] + 8 : fy = eyh[1] + 56 : fang = 72 : gosub boss_fan
+  if temp1 = 64 && etype[3] then fx = exh[3] + 8 : fy = eyh[3] + 56 : fang = 56 : gosub boss_fan
+  rem cannon: three big pink orbs at the player. Absorb them!
+  temp1 = btl & 255
+  if temp1 = 128 && etype[0] then gosub boss_cannon
+  rem core: spirals once a wing is gone, time drags on, or it is hurt
+  temp2 = 0
+  if etype[1] = 0 then temp2 = 1
+  if etype[3] = 0 then temp2 = temp2 + 1
+  temp3 = 0
+  if bcorehp < 112 then temp3 = 1
+  if temp2 = 0 && temp3 = 0 && bth < 6 then return
+  temp1 = btl & 7
+  if temp3 then temp1 = btl & 3
+  if temp1 then return
+  fx = bx + 2 : fy = by + 4 : fang = bspin : fspd = 42
+  fkind = BK_PINK
+  temp1 = btl & 16
+  if temp1 then fkind = BK_BLUE
+  asm
+  jsr bul_fire
+end
+  if temp2 = 2 then fang = bspin + 128 : asm
+  jsr bul_fire
+end
+  bspin = bspin + 11
+  return
+
+boss_fan
+  fkind = BK_PINK : fspd = 49 : fcount = 3 : fstep = 12
+  asm
+  jsr bul_fan
+end
+  return
+
+boss_cannon
+  fx = exh[0] + 8 : fy = eyh[0] + 28
+  gosub aim
+  fkind = 3 : fspd = 38 : fcount = 3 : fstep = 18
+  asm
+  jsr bul_fan
+  lda #SFX_HIT
+  jsr sfx_play
+end
+  return
+
+  rem Damage temp1 to boss part i
+part_damage
+  temp2 = etype[i]
+  if temp2 = ET_PARMOR then return
+  if bstate <> 3 then return
+  eflash[i] = 3
+  if temp2 = ET_PCORE then goto part_core
+  if ehp[i] > temp1 then ehp[i] = ehp[i] - temp1 : return
+  rem a part is destroyed: 2,000 points
+  temp7 = exh[i] : temp8 = eyh[i] : gosub spawn_fx
+  etype[i] = 0 : bparts = bparts + 1
+  sadd2 = 0 : sadd1 = $20 : sadd0 = 0
+  asm
+  jsr score_add
+  lda #SFX_BIGBOOM
+  jsr sfx_play
+end
+  rem a wing takes its armor and its turrets with it
+  if i = 1 then etype[2] = 0 : etype[7] = 0 : etype[8] = 0
+  if i = 3 then etype[4] = 0 : etype[9] = 0 : etype[10] = 0
+  return
+part_core
+  eflash[5] = 3 : eflash[6] = 3
+  rem the core is armored: half damage
+  temp1 = temp1 / 2 + 1
+  if bcorehp > temp1 then bcorehp = bcorehp - temp1 : return
+  bcorehp = 0
+  rem the core: 10,000, and 20,000 more for taking every other part first
+  sadd2 = $01 : sadd1 = 0 : sadd0 = 0
+  asm
+  jsr score_add
+end
+  temp3 = 0
+  for k = 0 to 4
+    if etype[k] = ET_PCANNON || etype[k] = ET_PWING then temp3 = 1
+  next
+  if temp3 = 0 then sadd2 = $02 : sadd1 = 0 : sadd0 = 0 : gosub boss_bonus
+  bstate = 4 : btl = 0
+  return
+boss_bonus
+  asm
+  jsr score_add
+end
+  return
+
+  rem Explosions all over it, then gone
+boss_dying
+  btl = btl + 1
+  temp1 = btl & 7
+  if temp1 = 0 then gosub boss_boom
+  if btl < 240 then gosub boss_place : return
+  for k = 0 to 10 : etype[k] = 0 : next
+  bstate = 5 : btl = 0
+  return
+boss_boom
+  temp7 = bx - 20 + (rand & 31) : temp8 = by - 24 + (rand & 31)
+  gosub spawn_fx
+  asm
+  lda #SFX_BIGBOOM
+  jsr sfx_play
+end
+  return
+
+  rem STAGE CLEAR in the HUD, then round again from the start
+boss_clear
+  btl = btl + 1
+  bmsg = 2
+  if btl < 240 then return
+  bmsg = 0 : bstate = 0 : wn = 0
+  asm
+  lda #0
+  sta pfstartrow
+  jsr pf_reset
+  lda #SONG_STAGE1
+  jsr mus_play
+end
+  return
+
+  rem ---- boss parts: type, image, hit points, offset from the centre ----
+  data boss_type
+  ET_PCANNON, ET_PWING, ET_PARMOR, ET_PWING, ET_PARMOR, ET_PCORE, ET_PCORE, ET_PTURRET, ET_PTURRET, ET_PTURRET, ET_PTURRET
+end
+  data boss_img
+  IMG_BCANNON, IMG_BWINGLT, IMG_BWINGLB, IMG_BWINGRT, IMG_BWINGRB, IMG_BCORET, IMG_BCOREB, IMG_BTURRET, IMG_BTURRET, IMG_BTURRET, IMG_BTURRET
+end
+  data boss_hp
+  150, 180, 255, 180, 255, 255, 255, 60, 60, 60, 60
+end
+  rem top-left x and y of each part relative to (bx, by), two's complement
+  data boss_dx
+  248, 224, 224, 16, 16, 240, 240, 228, 228, 20, 20
+end
+  data boss_dy
+  28, 220, 252, 220, 252, 224, 0, 232, 254, 232, 254
+end
+
   rem ======================================================================
   rem  HUD: score (0-6), chain (8-10), sword gauge (12-16), lives (18-19)
   rem ======================================================================
@@ -747,6 +1103,8 @@ hud_tens
   hudtext[10] = FONTBASE + temp1 * 2
   hudtext[11] = CH_SPACE
   if overt > 0 then goto hud_over
+  if bmsg = 1 then goto hud_warning
+  if bmsg = 2 then goto hud_clear
   if gauge >= GAUGE_MAX then goto hud_hyper
   temp3 = gauge / 8
   for k = 0 to 4
@@ -766,6 +1124,22 @@ hud_lives
   hudtext[17] = CH_SPACE
   hudtext[18] = CH_X
   hudtext[19] = FONTBASE + lives * 2
+  return
+hud_warning
+  temp6 = tick & 16
+  for k = 0 to 6
+    temp5 = 12 + k
+    temp4 = hudwarn[k]
+    if temp6 then temp4 = CH_SPACE
+    hudtext[temp5] = temp4
+  next
+  hudtext[19] = CH_SPACE
+  return
+hud_clear
+  for k = 0 to 7
+    temp5 = 12 + k
+    hudtext[temp5] = hudclear[k]
+  next
   return
 hud_over
   for k = 0 to 7

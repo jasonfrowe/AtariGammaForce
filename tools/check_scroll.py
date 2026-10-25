@@ -54,10 +54,10 @@ def main():
     pals = [ga.tile_palette(t) for t in tiles_src]
     tiles = [ga.halve(t, ga.TILE_SLOTS[p], prefer_solid=False) for t, p in zip(tiles_src, pals)]
     ok = True
-    for i, line in enumerate((d / "probe.txt").read_text().split("\n")):
-        if not line.strip():
-            continue
-        frame, spos = (int(v) for v in line.split()[:2])
+    # play.sh log: "<frame> 2231 <lo> <hi>" per screenshot, in order
+    probes = [l.split() for l in (d / "play.txt").read_text().split("\n") if l.split()[1:2] == ["2231"]]
+    for i, p in enumerate(probes):
+        frame, spos = int(p[0]), int(p[2], 16) + 256 * int(p[3], 16)
         shot = np.array(Image.open(d / "a7800" / f"{i:04d}.png").convert("RGB"))[:, ::2, :]  # 160 wide
         # The probe reads the engine at the end of a frame, when the game has
         # already advanced the scroll for the next one, so the picture shows

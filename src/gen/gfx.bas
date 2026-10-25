@@ -15,3 +15,18 @@
   incgraphic gfx/gunship1.png 160A 0 1 2 3
   incgraphic gfx/sword0.png 160A 0 1 2 3
   incgraphic gfx/sword1.png 160A 0 1 2 3
+  incgraphic gfx/bcoret0.png 160A 0 1 2 3
+  incgraphic gfx/bcoret1.png 160A 0 1 2 3
+  incgraphic gfx/bcoreb0.png 160A 0 1 2 3
+  incgraphic gfx/bcoreb1.png 160A 0 1 2 3
+  incgraphic gfx/bwinglt0.png 160A 0 1 2 3
+  incgraphic gfx/bwinglt1.png 160A 0 1 2 3
+  incgraphic gfx/bwinglb0.png 160A 0 1 2 3
+  incgraphic gfx/bwinglb1.png 160A 0 1 2 3
+  incgraphic gfx/bwingrt0.png 160A 0 1 2 3
+  incgraphic gfx/bwingrt1.png 160A 0 1 2 3
+  incgraphic gfx/bwingrb0.png 160A 0 1 2 3
+  incgraphic gfx/bwingrb1.png 160A 0 1 2 3
+  incgraphic gfx/bcannon0.png 160A 0 1 2 3
+  incgraphic gfx/bcannon1.png 160A 0 1 2 3
+  incgraphic gfx/bturret.png 160A 0 1 2 3

@@ -60,6 +60,7 @@ pfrow14     = $2236 ; map row shown in zone 14
 pfz14back   = $2237 ; zone 14 buffer (0/1) being built this frame
 pfz14row    = $2238 ; [2] row each zone 14 buffer holds ($FF: none)
 pfz14bg     = $223A ; [2] background bytes in each zone 14 buffer
+pfstartrow  = $223C ; map row pf_reset starts at (0 = the beginning)
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
 
 RINGN       = 14
@@ -135,50 +136,10 @@ pf_init_hudobj
      sta dlend
      sta dlendsave
 
-     ; Scroll state. At position 0, zone k (1-13) shows row 14-k and zone
-     ; 14 shows row 0. Row r lives in ring buffer r mod 14, so rows 1-14 go
-     ; into buffers 1-13 and 0 (row 14 being the spare).
-     lda #0
-     sta spos_f
-     sta spos_lo
-     sta spos_hi
-     sta pfsparedirty
-     sta pfrow14
-     sta pfz14back
-     lda #$FF
-     sta pfz14row
-     sta pfz14row+1
-     lda #160
-     sta pfspeed
-     ldy #14
-pf_init_rows
-     tya
-     cmp #RINGN
-     bcc pf_init_rows1
-     lda #0
-pf_init_rows1
-     tax
-     sty pft4
-     jsr pf_buildrow
-     ldy pft4
-     dey
-     bne pf_init_rows
-     lda #15
-     sta pfnextrow
-     lda #13
-     sta pfhead
-     jsr pf_mapzones
-     lda #15
-     sta pfs
-     lda #0
-     sta pfshift
-     jsr pf_zone14
-     jsr pf_restore
-
      ; The DLL. 7800basic built 3 blank entries, the HUD (zone 0), some
      ; zone entries we replace, and then 5 non-visible entries carrying its
      ; NMIs. Move those 5 down past our 14 playfield entries (copying from
-     ; the end, since they move up in memory), then fill the playfield.
+     ; the end, since they move up in memory). pf_reset fills the playfield.
      jsr waitforvblankstart
      ldx #14
 pf_init_dll
@@ -191,6 +152,60 @@ pf_init_dll
      dec DLLMEM
      lda #(DLLNONVIS-DLLMEM)
      sta overscanDLLstart
+     lda #0
+     sta pfspeed
+     sta pfstartrow
+
+; ---------------------------------------------------------------------------
+; pf_reset: back to the start of the map (keeps pfspeed).
+pf_reset
+     ; Scroll state, starting with map row pfstartrow (R) in zone 14. Zone
+     ; k (1-13) shows row R+14-k; rows R+1..R+14 go into ring buffers 0-13
+     ; in order, so zone 1 has buffer 12 and the spare (row R+14) is 13.
+     lda #0
+     sta spos_f
+     sta pfsparedirty
+     sta pfz14back
+     lda pfstartrow
+     sta pfrow14
+     sta spos_lo             ; spos = R * 16
+     lda #0
+     sta spos_hi
+     ldx #4
+pf_reset_x16
+     asl spos_lo
+     rol spos_hi
+     dex
+     bne pf_reset_x16
+     lda #$FF
+     sta pfz14row
+     sta pfz14row+1
+     ldx #0
+pf_init_rows
+     stx pft4
+     txa
+     sec                     ; row R + buffer + 1
+     adc pfstartrow
+     tay
+     jsr pf_buildrow
+     ldx pft4
+     inx
+     cpx #RINGN
+     bne pf_init_rows
+     lda pfstartrow
+     clc
+     adc #15
+     sta pfnextrow
+     lda #12
+     sta pfhead
+     jsr pf_mapzones
+     lda #15
+     sta pfs
+     lda #0
+     sta pfshift
+     jsr pf_zone14
+     jsr pf_restore
+     jsr waitforvblankstart
      jsr pf_terminate
      jmp pf_commit
 
@@ -552,6 +567,63 @@ pf_object_put
      iny
      sty dlend,x
 pf_object_full
+     rts
+
+; ---------------------------------------------------------------------------
+; pf_text: text string A (TXT_ number) centred in zone tzone (1-13), in
+; palette tpal. A character object, so it stays put only while the scroll
+; is still (the title and other screens).
+pf_text
+     tay
+     ldx tzone
+     lda zonelo,x
+     sta pfp
+     lda zonehi,x
+     sta pfp+1
+     lda txtlen,y
+     sta pft1
+     asl                     ; x = (160 - 8 * len) / 2 = 80 - 4 * len
+     asl
+     sta pft2
+     lda #80
+     sec
+     sbc pft2
+     sta pft2
+     lda txtlo,y
+     sta pft3
+     lda txthi,y
+     sta pft4
+     ldy dlend,x
+     cpy #PFCAP-1
+     bcs pf_text_full
+     lda pft3
+     sta (pfp),y
+     iny
+     lda #$60                ; 5-byte header, character mode
+     sta (pfp),y
+     iny
+     lda pft4
+     sta (pfp),y
+     iny
+     lda tpal
+     asl
+     asl
+     asl
+     asl
+     asl
+     sta pft3
+     lda #0
+     sec
+     sbc pft1
+     and #31
+     ora pft3
+     sta (pfp),y
+     iny
+     lda pft2
+     sta (pfp),y
+     iny
+     sty dlend,x
+pf_text_full
      rts
 
 ; ---------------------------------------------------------------------------
