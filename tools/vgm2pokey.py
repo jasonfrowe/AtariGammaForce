@@ -23,6 +23,8 @@ Data format, per song (see src/asm/music.asm, which plays it):
              envelope number byte
     $80-$BF  wait 1-64 frames
     $C0      rest (silence)
+    $C1 a a n  play the n bytes at address a (an earlier phrase of the same
+             voice, never itself containing a $C1), then carry on here
     $FF      end of song: start over
   envelopes: volume per frame (0-15), $FF = hold the last value. Shared by
   all voices of a song and deduplicated, so repeated notes cost 2 bytes.
@@ -269,6 +271,57 @@ def encode_drums(hits):
     return out
 
 
+def boundaries(st):
+    """Positions where commands start (a note takes 2 bytes)."""
+    b, i = set(), 0
+    while i < len(st):
+        b.add(i)
+        i += 2 if st[i] < 0x80 else 1
+    b.add(len(st))
+    return b
+
+
+def compress(st, min_len=6):
+    """Replace repeated phrases with $C1 calls to their first occurrence.
+
+    Returns a list of tokens: ints (literal bytes) and ("call", out_offset, n).
+    A phrase is only ever copied from literal bytes, so calls never nest."""
+    bset = boundaries(st)
+    out = []
+    lits = []  # (orig_start, orig_end, out_start) of literal runs
+    pos = 0
+    while pos < len(st):
+        best_n, best_out = 0, 0
+        for ls, le, os_ in lits:
+            for s0 in range(ls, le):
+                if s0 not in bset:
+                    continue
+                n = 0
+                while pos + n < len(st) and s0 + n < le and st[s0 + n] == st[pos + n] and n < 255:
+                    n += 1
+                while n > 0 and (pos + n) not in bset:
+                    n -= 1
+                if n > best_n:
+                    best_n, best_out = n, os_ + (s0 - ls)
+        if best_n >= min_len:
+            out.append(("call", best_out, best_n))
+            pos += best_n
+        else:
+            n = 2 if st[pos] < 0x80 else 1
+            if lits and lits[-1][1] == pos:
+                ls, le, os_ = lits[-1]
+                lits[-1] = (ls, pos + n, os_)
+            else:
+                lits.append((pos, pos + n, len_tokens(out)))
+            out += st[pos:pos + n]
+            pos += n
+    return out
+
+
+def len_tokens(tokens):
+    return sum(4 if isinstance(t, tuple) else 1 for t in tokens)
+
+
 def convert(path):
     ev, frames = parse_vgm(path)
     sim = simulate(ev, frames)
@@ -337,12 +390,29 @@ def main():
         envs = sorted(song.envs.items(), key=lambda kv: kv[1])
         if len(envs) > 256:
             raise SystemExit(f"{path}: {len(envs)} envelopes, more than a byte can number")
-        size = sum(len(s) for s in song.streams) + sum(len(e) + 1 for e, _ in envs) + 2 * len(envs)
+        packed = [compress(st) for st in song.streams]
+        size = sum(len_tokens(p) + 1 for p in packed) + sum(len(e) + 1 for e, _ in envs) + 2 * len(envs)
         total += size
         lines.append(f"; {song.name}: {frames} frames ({frames / 60:.0f} s), {len(envs)} envelopes, "
                      f"{size} bytes")
-        for v, s in enumerate(song.streams):
-            lines += asm_bytes(f"mus_{nm}_v{v}", s + [0xFF])
+        for v, p in enumerate(packed):
+            label = f"mus_{nm}_v{v}"
+            lines.append(label)
+            row = []
+            for t in p + [0xFF]:
+                if isinstance(t, tuple):
+                    if row:
+                        lines.append("  .byte " + ",".join(f"${b:02X}" for b in row))
+                        row = []
+                    _, off, n = t
+                    lines.append(f"  .byte $C1,<({label}+{off}),>({label}+{off}),{n}")
+                else:
+                    row.append(t)
+                    if len(row) == 16:
+                        lines.append("  .byte " + ",".join(f"${b:02X}" for b in row))
+                        row = []
+            if row:
+                lines.append("  .byte " + ",".join(f"${b:02X}" for b in row))
         for e, k in envs:
             lines += asm_bytes(f"mus_{nm}_e{k}", list(e) + [0xFF], per=32)
         # dasm allows 32 operators a line, so 8 addresses per .byte.
@@ -351,7 +421,8 @@ def main():
             for i in range(0, len(envs), 8):
                 lines.append("  .byte " + ",".join(f"{op}mus_{nm}_e{k}" for _, k in envs[i:i + 8]))
         lines.append("")
-        print(f"{song.name}: {frames / 60:.0f} s, streams {[len(s) for s in song.streams]}, "
+        print(f"{song.name}: {frames / 60:.0f} s, streams {[len(s) for s in song.streams]} -> "
+              f"{[len_tokens(p) for p in packed]}, "
               f"{len(envs)} envelopes, {size} bytes")
 
     lines.append("; Song table: voice 0-2 stream addresses, envelope tables.")

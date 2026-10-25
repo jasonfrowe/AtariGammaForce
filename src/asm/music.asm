@@ -35,6 +35,11 @@ mus_wait    = $2268 ; [3] frames until the next command
 mus_envlo   = $226B ; [3] envelope (voice 2: drum macro) position
 mus_envhi   = $226E ; [3]
 mus_note    = $2271 ; [3]
+mus_incall  = $2280 ; [3] nonzero while playing a $C1 phrase
+mus_retlo   = $2283 ; [3] where to carry on after it
+mus_rethi   = $2286 ; [3]
+mus_endlo   = $2289 ; [3] the address just past the phrase
+mus_endhi   = $228C ; [3]
 
 ; ---------------------------------------------------------------------------
 ; mus_play: start song A from the top.
@@ -58,6 +63,7 @@ mus_play_v
      jsr mus_restart
      lda #0
      sta mus_wait,x
+     sta mus_incall,x
      sta mus_note,x
      dex
      bpl mus_play_v
@@ -83,6 +89,8 @@ mus_silence
 
 ; Voice X back to the start of its stream, silent.
 mus_restart
+     lda #0
+     sta mus_incall,x
      ldy mus_song
      cpx #1
      beq mus_restart1
@@ -134,12 +142,29 @@ mus_tick_read
      lda mus_ptrhi,x
      sta musp+1
 mus_tick_cmd
+     lda mus_incall,x        ; at the end of a called phrase: back to the caller
+     beq mus_tick_cmd1
+     lda musp
+     cmp mus_endlo,x
+     bne mus_tick_cmd1
+     lda musp+1
+     cmp mus_endhi,x
+     bne mus_tick_cmd1
+     lda #0
+     sta mus_incall,x
+     lda mus_retlo,x
+     sta musp
+     lda mus_rethi,x
+     sta musp+1
+mus_tick_cmd1
      ldy #0
      lda (musp),y
      cmp #$FF
      beq mus_tick_end
      cmp #$C0
      beq mus_tick_rest
+     cmp #$C1
+     beq mus_tick_call
      bcs mus_tick_skip1      ; unknown command: ignore it
      cmp #$80
      bcs mus_tick_wait
@@ -179,6 +204,34 @@ mus_tick_adv
 mus_tick_end
      jsr mus_restart         ; loop the song
      jmp mus_tick_read
+mus_tick_call
+     ; $C1 lo hi n: play n bytes at hi:lo, then carry on after these 4
+     clc
+     lda musp
+     adc #4
+     sta mus_retlo,x
+     lda musp+1
+     adc #0
+     sta mus_rethi,x
+     ldy #3
+     lda (musp),y            ; n
+     sta mus_endlo,x
+     ldy #1
+     lda (musp),y
+     pha
+     clc
+     adc mus_endlo,x
+     sta mus_endlo,x
+     iny
+     lda (musp),y
+     sta musp+1
+     adc #0
+     sta mus_endhi,x
+     pla
+     sta musp
+     lda #1
+     sta mus_incall,x
+     jmp mus_tick_cmd1
 mus_tick_wait
      and #$3F                ; $80+n waits n+1 frames, this one included
      sta mus_wait,x

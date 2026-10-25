@@ -5,7 +5,9 @@
   rem  the object loops (asm/objects.asm) and the music (asm/music.asm).
   rem ======================================================================
 
-  set romsize 48k
+  rem 144K SuperGame: bank 1 fixed at $4000 (the game), banks 2-8 switched
+  rem in at $8000 (one per stage), the last bank fixed at $C000 (graphics).
+  set romsize 144k
   set zoneheight 16
   set screenheight 224
   displaymode 160A
@@ -183,9 +185,13 @@
   dim sptimer = $2524
   dim spparam = $2527
 
-  incbasic gen/gfx.bas
-
   characterset charset
+  rem Switch stage 1's bank (bank 2) in at $8000. 7800basic only allows
+  rem loadrombank in the last bank; the hotspot value is the bank - 2.
+  asm
+  lda #0
+  sta $8000
+end
   asm
   jsr pf_init
   lda #SONG_STAGE1
@@ -1172,4 +1178,16 @@ end
   inline data.asm
   inline music.asm
   inline sfx.asm
+
+  rem ======================================================================
+  rem  Bank 2: stage 1 (map, waves, music). Switched in for the whole stage.
+  rem ======================================================================
+  bank 2
+  inline stage1.asm
   inline musicdata.asm
+
+  rem ======================================================================
+  rem  The last bank: graphics (MARIA reads them from here at any time)
+  rem ======================================================================
+  bank 9
+  incbasic gen/gfx.bas
