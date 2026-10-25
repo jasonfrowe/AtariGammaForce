@@ -45,6 +45,7 @@ pft3        = $B2
 pft4        = $B3
 pfhead      = $B4   ; ring buffer shown in zone 1
 sp_h        = $C4   ; pf_plot argument: lines used in the strip (1-16)
+pft5        = $C5   ; pf_object's scratch
 
 ; ---- RAM: $2200-$223F belongs to the engine --------------------------------
 zonelo      = $2200 ; [15] DL address of zone k, k = 1..14
@@ -61,6 +62,8 @@ pfz14back   = $2237 ; zone 14 buffer (0/1) being built this frame
 pfz14row    = $2238 ; [2] row each zone 14 buffer holds ($FF: none)
 pfz14bg     = $223A ; [2] background bytes in each zone 14 buffer
 pfstartrow  = $223C ; map row pf_reset starts at (0 = the beginning)
+zonebuf     = $2290 ; [15] which DL buffer zone k uses (0-13 ring, 14-15 zone 14)
+oldend      = $22A0 ; [16] each buffer's object count as last terminated
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
 
 RINGN       = 14
@@ -249,6 +252,8 @@ pf_mapzones_loop
      sta zonehi,x
      lda bgsize,y
      sta dlendsave,x
+     tya
+     sta zonebuf,x
      dey
      bpl pf_mapzones_next
      ldy #RINGN-1
@@ -273,6 +278,9 @@ pf_restore_loop
 ; (rebuilt if it holds another row) pointing 15-s pages up.
 pf_zone14
      ldx pfz14back
+     txa
+     ora #14
+     sta zonebuf+14
      lda z14lo,x
      sta pfq
      sta zonelo+14
@@ -548,22 +556,56 @@ pf_object
      clc
      adc pfshift             ; zone 14 shows its row's top lines
      sta pft3
+     jmp pf_object_full
+     lda pft3
+     clc
+     adc pfshift             ; zone 14 shows its row's top lines
+     sta pft3
      jmp pf_object_put
 pf_object_ring
      cpy #PFCAP
      bcs pf_object_full
 pf_object_put
+     ; MARIA rereads a DL every line, and this one may be on screen now, so
+     ; the list must stay valid after every single store. Past the end it
+     ; had last frame there is no terminator to stop MARIA running into old
+     ; bytes, so one goes after the new object first; and the palette|width
+     ; byte, which is what makes an object exist, goes in last.
+     sty pft4
+     lda zonebuf,x
+     tay
+     lda oldend,y
+     ldy pft4
+     cmp pft4
+     beq pf_object_term      ; appending at the old end...
+     bcs pf_object_body      ; ...or before it: old objects follow
+pf_object_term
+     iny
+     iny
+     iny
+     iny
+     iny
+     lda #0
+     sta (pfp),y             ; the next object's palette|width: end of list
+     ldy pft4
+pf_object_body
+     iny
+     iny
+     iny
+     lda sp_x
+     sta (pfp),y
+     dey
+     lda pft3
+     sta (pfp),y
+     dey
+     dey
      lda sp_lo
      sta (pfp),y
      iny
      lda sp_pw
      sta (pfp),y
      iny
-     lda pft3
-     sta (pfp),y
      iny
-     lda sp_x
-     sta (pfp),y
      iny
      sty dlend,x
 pf_object_full
@@ -664,7 +706,10 @@ pf_terminate_loop
      sta pfp
      lda zonehi,x
      sta pfp+1
-     ldy dlend,x
+     ldy zonebuf,x
+     lda dlend,x
+     sta oldend,y            ; what MARIA will show of this buffer
+     tay
      iny
      lda #0
      sta (pfp),y

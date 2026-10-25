@@ -441,7 +441,20 @@ en_update
      ldx #NE-1
 en_update_loop
      lda etype,x
-     beq en_update_next
+     bne en_update_live
+     jmp en_update_next
+en_update_live
+     cmp #ET_TURRET
+     bne en_update_air
+     ; ground turrets ride the map: their line follows the scroll exactly
+     lda spos_lo
+     clc
+     adc eparam,x
+     sta eyh,x
+     cmp #250
+     bcs en_update_kill
+     jmp en_update_next
+en_update_air
      lda evx,x
      jsr ob_x8
      clc
@@ -493,7 +506,9 @@ en_update_kill
      sta etype,x
 en_update_next
      dex
-     bpl en_update_loop
+     bmi en_update_done
+     jmp en_update_loop
+en_update_done
      rts
 
 ; Shots, sword and ship against enemies. Adds damage to ehit; sets phit.
@@ -646,8 +661,11 @@ en_draw_pal
      ; frame: boss parts choose theirs (eframe); others animate,
      ; (step & (frames-1)); offset = frame * width
      lda etype,x
+     cmp #ET_TURRET
+     beq en_draw_set
      cmp #ET_PART
      bcc en_draw_anim
+en_draw_set
      lda eframe,x
      jmp en_draw_frame
 en_draw_anim

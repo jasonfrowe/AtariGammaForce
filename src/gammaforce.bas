@@ -47,6 +47,7 @@
   const ET_SAUCER = 2
   const ET_DRONE = 3
   const ET_GUNSHIP = 4
+  const ET_TURRET = 5
   rem boss parts: types from ET_PART up are placed by the boss code
   const ET_PART = 10
   const ET_PCANNON = 10
@@ -154,6 +155,8 @@
   dim bvx = $24D0
   dim bvy = $24E0
   dim shcount = $233F
+  dim gn = $234D
+  dim gcolor = $234E
   dim bstate = $2344
   dim btl = $2345
   dim bth = $2346
@@ -256,7 +259,7 @@ newgame
   for i = 0 to 3 : score_bcd[i] = 0 : next
   lives = 3 : gauge = 0 : hyper = 0
   chlevel = 0 : chcount = 0 : chcolor = 255
-  vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0
+  vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0 : gn = 0 : gcolor = 0
   for i = 0 to NE1 : etype[i] = 0 : next
   for i = 0 to NB1 : bkind[i] = 0 : next
   for i = 0 to NS1 : shy[i] = 0 : next
@@ -294,6 +297,7 @@ end
   endif
 end
   gosub waves
+  gosub ground
   gosub boss
   gosub spawners
   asm
@@ -479,9 +483,10 @@ end
 
 player_dead
   phit = 0
+  if overt > 0 then return
   pdead = pdead - 1
   if pdead > 0 then return
-  if lives = 0 then overt = 240 : pfspeed = 0 : return
+  if lives = 0 then overt = 240 : pfspeed = 0 : pdead = 255 : return
   gosub respawn
   return
 
@@ -617,6 +622,7 @@ think
     if temp1 = ET_SAUCER then gosub think_saucer
     if temp1 = ET_DRONE then gosub think_drone
     if temp1 = ET_GUNSHIP then gosub think_gunship
+    if temp1 = ET_TURRET then gosub think_turret
 think_next
   next
   return
@@ -835,6 +841,53 @@ draw_ship
 end
   return
 
+
+
+  rem ======================================================================
+  rem  Ground turrets: one on each big hatch of the fortress deck, spawned
+  rem  as its row scrolls in (at most 4 at a time), riding the map
+  rem ======================================================================
+ground
+  if gn >= GROUNDS then return
+  temp1 = gn
+  if spos_hi < gth[temp1] then return
+  if spos_hi > gth[temp1] then goto ground_go
+  if spos_lo < gtl[temp1] then return
+ground_go
+  gn = gn + 1
+  temp2 = 0
+  for k = 0 to NE1
+    if etype[k] = ET_TURRET then temp2 = temp2 + 1
+  next
+  if temp2 >= 4 then return
+  for k = 0 to NE1
+    if etype[k] = 0 then goto ground_slot
+  next
+  return
+ground_slot
+  etype[k] = ET_TURRET : eimg[k] = IMG_TURRET : ehp[k] = 8
+  exh[k] = gtx[temp1] : eparam[k] = gtbase[temp1]
+  eyh[k] = spos_lo + gtbase[temp1]
+  ecol[k] = 4 + gcolor : gcolor = gcolor + 1
+  if gcolor > 2 then gcolor = 0
+  etimer[k] = k * 26 : estate[k] = 0 : ehit[k] = 0 : eflash[k] = 0
+  evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0 : eframe[k] = 0
+  return
+
+  rem Turns to face the player; a blue shot every so often
+think_turret
+  if eyh[i] < 40 then return
+  if eyh[i] > 210 then return
+  gosub aim
+  eframe[i] = (fang - 48) / 32 & 7
+  temp2 = etimer[i] & 127
+  if temp2 then return
+  if plvuln = 0 then return
+  fkind = BK_BLUE : fspd = 49
+  asm
+  jsr bul_fire
+end
+  return
 
   rem ======================================================================
   rem  GAMMA CORE, the stage 1 boss (MegaGammaForce's boss1.c, thinned).
@@ -1062,7 +1115,7 @@ boss_clear
   btl = btl + 1
   bmsg = 2
   if btl < 240 then return
-  bmsg = 0 : bstate = 0 : wn = 0
+  bmsg = 0 : bstate = 0 : wn = 0 : gn = 0
   asm
   lda #0
   sta pfstartrow
@@ -1163,13 +1216,13 @@ end
 
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----
   data enemy_hp
-  0, 2, 4, 10, 60
+  0, 2, 4, 10, 60, 8
 end
   data enemy_score1
-  0, $01, $02, $03, $20
+  0, $01, $02, $03, $20, $03
 end
   data enemy_img
-  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP
+  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP, IMG_TURRET
 end
 
   rem Assembly files are copied flat into the build directory (tools/build.sh).

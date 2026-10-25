@@ -61,7 +61,7 @@ def main():
     # we store it in stage order (row 0 is where the stage starts, at the
     # bottom of the screen) because that is the order the 7800 reads it.
     tiles.COLS = COLS
-    tl, ids, top_first, _hatches = tiles.stage1()
+    tl, ids, top_first, hatches = tiles.stage1()
     stage_order = top_first[::-1].copy()
     save_indexed(OUT / "stage1_tiles.png", tl, palettes.TILES)
     (OUT / "stage1_map.bin").write_bytes(stage_order.astype(np.uint8).tobytes())
@@ -70,6 +70,9 @@ def main():
         "rows": int(stage_order.shape[0]),
         "loop_rows": tiles.LOOP_ROWS,
         "tile_ids": {k: int(v) for k, v in ids.items()},
+        # Ground turrets sit on the big hatches (stages.py): centre y in
+        # pixels up from the bottom of the map, centre x in 16-px tiles.
+        "ground": sorted([[(r + 1) * 16, (c + 1)] for r, c in hatches]),
         "note": "map is stage order: row 0 = start of stage (bottom of screen)",
     }
     (OUT / "stage1.json").write_text(json.dumps(meta, indent=1) + "\n")
