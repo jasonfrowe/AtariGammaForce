@@ -8,7 +8,8 @@ piece. Written in [7800basic](https://github.com/7800-devtools/7800basic)
 with an assembly display engine for smooth vertical scrolling.
 
 **Status:** early. The scroll engine works (pixel-exact against the map in
-every fine scroll position); the ship flies and shoots over stage 1. See
+every fine scroll position); the ship flies and shoots over stage 1 to
+MegaGammaForce's stage 1 music, converted to POKEY. See
 [docs/DESIGN.md](docs/DESIGN.md) for the plan and
 [docs/ENGINE.md](docs/ENGINE.md) for how the scrolling works.
 
@@ -45,6 +46,8 @@ a7800 a7800 -cart build/gammaforce.a78
 |---|---|
 | `src/gammaforce.bas` | The game (7800basic) |
 | `src/asm/engine.asm` | Scroll engine and sprite plotter |
+| `src/asm/music.asm` | POKEY music player |
+| `tools/vgm2pokey.py` | MegaGammaForce's OPL2 VGM music to POKEY data |
 | `src/gfx/`, `src/gen/` | Generated graphics and data (committed; made by `tools/gen_assets.py`) |
 | `assets/mgf/` | Source art snapshotted from MegaGammaForce (`tools/import_mgf.py`) |
 | `tools/7800basic/` | 7800basic v0.41, with one small patch (see ENGINE.md) |

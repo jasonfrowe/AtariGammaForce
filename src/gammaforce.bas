@@ -10,6 +10,7 @@
   displaymode 160A
   set doublewide on
   set 7800header 'name Atari Gamma Force'
+  set pokeysupport $450
 
   rem The scroll engine owns the playfield zones; 7800basic only manages
   rem zone 0 (the HUD), which gets $1880-$18FF. See docs/ENGINE.md.
@@ -46,6 +47,8 @@
   characterset charset
   asm
   jsr pf_init
+  lda #SONG_STAGE1
+  jsr mus_play
 end
 
   shipx = 74 : shipy = 200
@@ -114,6 +117,14 @@ fire_vulcan
   next
   return
 
+  rem Runs every frame from 7800basic's NMI, off screen.
+userinterrupt
+  asm
+  jmp mus_tick
+end
+
   rem Assembly files are copied flat into the build directory (tools/build.sh).
   inline engine.asm
   inline data.asm
+  inline music.asm
+  inline musicdata.asm

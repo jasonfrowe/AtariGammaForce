@@ -296,11 +296,10 @@ def build_stage(t_pals):
         idx = [2 * int(t) for t in m[r]]
         lines.append(f"s1r{r} .byte " + ",".join(str(v) for v in idx))
         runs = row_runs([t_pals[int(t)] for t in m[r]])
-        objs = []
-        for start, n, p in runs:
-            objs.append(f"<(s1r{r}+{start}),$60,>(s1r{r}+{start}),{(p << 5) | ((-n) & 31)},{start * TILE_W}")
         max_bytes = max(max_bytes, 5 * len(runs))
-        obj_lines.append(f"s1o{r} .byte {5 * len(runs)}," + ",".join(objs))
+        obj_lines.append(f"s1o{r} .byte {5 * len(runs)}")
+        for start, n, p in runs:  # one object a line: dasm allows 32 operators a line
+            obj_lines.append(f"  .byte <(s1r{r}+{start}),$60,>(s1r{r}+{start}),{(p << 5) | ((-n) & 31)},{start * TILE_W}")
     lines.append("")
     lines.append("; Row r's background objects: a length byte, then the 5-byte headers.")
     lines += obj_lines
