@@ -83,6 +83,13 @@ def main():
         if src.exists():
             shutil.copy2(src, OUT / f"stage1_{name}")
 
+    # Stage 1's air waves (waves.py), as they are; gen_assets.py scales them.
+    import waves  # noqa: E402  (MegaGammaForce's)
+    (OUT / "stage1_waves.json").write_text(json.dumps(
+        {"fields": ["at", "type", "color", "x", "dx", "count", "gap", "param"],
+         "units": "MegaGammaForce: x in its 192 px playfield, y in its 240 lines, at in scroll pixels",
+         "waves": waves.S1_WAVES}, indent=1) + "\n")
+
     # The palettes the sheets were drawn with, for the converters.
     pals = {k: v for k, v in vars(palettes).items() if k.isupper() and isinstance(v, list)}
     (OUT / "palettes.json").write_text(json.dumps(pals) + "\n")

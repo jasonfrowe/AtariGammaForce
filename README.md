@@ -7,19 +7,22 @@ Sword; a color chain; weapons that level up; bosses taken apart piece by
 piece. Written in [7800basic](https://github.com/7800-devtools/7800basic)
 with an assembly display engine for smooth vertical scrolling.
 
-**Status:** early. The scroll engine works (pixel-exact against the map in
-every fine scroll position); the ship flies and shoots over stage 1 to
-MegaGammaForce's stage 1 music, converted to POKEY. See
+**Status:** early but playable. Stage 1 scrolls (pixel-exact against the
+map in every fine scroll position) to MegaGammaForce's stage 1 music,
+converted to POKEY. Its 32 enemy waves fly in with their original
+behaviors and bullet patterns; the Vulcan, the Radiant Sword (absorbing
+pink bullets), the Hyper Sword, the color chain, score and lives work. No
+boss, title screen or sound effects yet. See
 [docs/DESIGN.md](docs/DESIGN.md) for the plan and
 [docs/ENGINE.md](docs/ENGINE.md) for how the scrolling works.
 
-## Controls (planned)
+## Controls
 
 | | |
 |---|---|
 | Joystick | Move |
-| Button 1 (left) | Vulcan: hold to fire |
-| Button 2 (right) | Radiant Sword: cuts, and absorbs pink bullets |
+| Button 1 | Vulcan: hold to fire (also the button of a one-button stick) |
+| Button 2 | Radiant Sword: cuts, and absorbs pink bullets |
 | Both, gauge full | Hyper Sword |
 | Pause | Pause |
 
@@ -50,8 +53,11 @@ a7800 a7800 -cart build/gammaforce.a78
 | `tools/vgm2pokey.py` | MegaGammaForce's OPL2 VGM music to POKEY data |
 | `src/gfx/`, `src/gen/` | Generated graphics and data (committed; made by `tools/gen_assets.py`) |
 | `assets/mgf/` | Source art snapshotted from MegaGammaForce (`tools/import_mgf.py`) |
-| `tools/7800basic/` | 7800basic v0.41, with one small patch (see ENGINE.md) |
+| `src/asm/objects.asm` | Enemy bullets, enemy movement, hit tests, score |
+| `tools/7800basic/` | 7800basic v0.41 (stock) |
 | `tools/test_scroll.sh` | Headless engine regression test |
+| `tools/play.sh` | Headless scripted play (inputs, screenshots, memory peeks) |
+| `tests/` | Play scripts (`stage1_fps.txt` measures the frame rate with `tools/fps.py`) |
 | `docs/reference/` | Local copy of the 7800basic guide |
 
 Regenerating the art needs Python with Pillow and numpy:

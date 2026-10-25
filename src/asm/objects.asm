@@ -1,0 +1,837 @@
+; ===========================================================================
+; Objects: the per-object loops that are too slow in BASIC.
+;
+;   bul_fire / bul_fan  enemy bullets from (fx, fy) at angle fang, speed fspd
+;   aim_player          aimang = angle from (fx, fy) to the player
+;   ang_vel             velx/vely for angle fang at speed fspd
+;   weave               woff = cos(wang) * wamp / 128 (signed)
+;   bul_update          move, absorb (sword), hit the player, draw
+;   en_update           move enemies by their velocity, drop the ones that
+;                       leave the screen
+;   en_hits             player shots, the sword and the ship against enemies
+;   en_draw             draw enemies (flashing white when hit)
+;   score_add           score += sadd (BCD)
+;   hud_score           write the score into the HUD
+;
+; Positions are 8.8 fixed point: x in 160A pixels, y in playfield lines
+; plus 32. Velocities are signed bytes in 1/32 pixel per frame. Angles are
+; 256 per turn, 0 = right, 64 = down. All arrays are dimmed in BASIC.
+; ===========================================================================
+
+ob1         = $BB   ; zero page scratch (7800basic's tracker block)
+ob2         = $BC
+ob3         = $BD
+ob5         = $BE
+ob6         = $BF
+ob7         = $C0
+ob8         = $C1
+obi         = $C2
+obj         = $C3
+
+; ---------------------------------------------------------------------------
+; Multiply: ob1 * ob6 -> A (high), ob1 (low). Unsigned.
+mul8
+     lda #0
+     ldx #8
+     lsr ob1
+mul8_loop
+     bcc mul8_skip
+     clc
+     adc ob6
+mul8_skip
+     ror
+     ror ob1
+     dex
+     bne mul8_loop
+     rts
+
+; A (signed) * fspd -> A = product >> 8 (vel8) or >> 7 (vel7), signed.
+ob_vel8
+     jsr ob_smul
+     jmp ob_sign
+ob_vel7
+     jsr ob_smul
+     asl ob1
+     rol
+ob_sign
+     bit ob5
+     bpl ob_sign_done
+     eor #$FF
+     clc
+     adc #1
+ob_sign_done
+     rts
+ob_smul
+     sta ob5
+     bpl ob_smul_pos
+     eor #$FF
+     clc
+     adc #1
+ob_smul_pos
+     sta ob1
+     lda fspd
+     sta ob6
+     jmp mul8
+
+; ang_vel: velx, vely for angle fang, speed fspd (<= 127). x is halved,
+; since 160A pixels are twice as wide as a line is tall.
+ang_vel
+     lda fang
+     sec
+     sbc #64
+     tay
+     lda cos8,y              ; sin(a) = cos(a - 64)
+     jsr ob_vel7
+     sta vely
+     ldy fang
+     lda cos8,y
+     jsr ob_vel8
+     sta velx
+     rts
+
+; weave: woff = cos(wang) * wamp >> 7, signed.
+weave
+     lda wamp
+     sta fspd
+     ldy wang
+     lda cos8,y
+     jsr ob_vel7
+     sta woff
+     rts
+
+; ---------------------------------------------------------------------------
+; Enemy bullets.
+
+bul_fire
+     ldx #NB-1
+bul_fire_find
+     lda bkind,x
+     beq bul_fire_slot
+     dex
+     bpl bul_fire_find
+     rts                     ; all in use: the bullet is never fired
+bul_fire_slot
+     stx obi
+     lda fkind
+     sta bkind,x
+     lda fx
+     sta bxh,x
+     lda fy
+     sta byh,x
+     lda #$80
+     sta bxl,x
+     sta byl,x
+     jsr ang_vel
+     lda velx                ; store velocities x8 as 16 bits (1/256 px),
+     jsr ob_x8               ; so moving a bullet is two plain adds
+     ldx obi
+     lda ob1
+     sta bvx,x
+     lda ob2
+     sta bvxh,x
+     lda vely
+     jsr ob_x8
+     ldx obi
+     lda ob1
+     sta bvy,x
+     lda ob2
+     sta bvyh,x
+     rts
+
+; fcount bullets, fstep apart, centred on fang.
+bul_fan
+     lda fang
+     sta ob7
+     lda #0
+     ldx fcount
+bul_fan_off
+     dex
+     beq bul_fan_off2
+     clc
+     adc fstep
+     jmp bul_fan_off
+bul_fan_off2
+     lsr
+     sta ob8
+     lda fang
+     sec
+     sbc ob8
+     sta fang
+     lda fcount
+     sta obj
+bul_fan_loop
+     jsr bul_fire
+     lda fang
+     clc
+     adc fstep
+     sta fang
+     dec obj
+     bne bul_fan_loop
+     lda ob7
+     sta fang
+     rts
+
+; aimang = angle from (fx, fy) to the player's centre (pcx, pcy).
+aim_player
+     lda #0
+     sta ob7                 ; bit 0: dx < 0, bit 1: dy < 0
+     lda pcx
+     sec
+     sbc fx
+     bcs aim_dxpos
+     eor #$FF
+     adc #1
+     inc ob7
+aim_dxpos
+     sta ob2                 ; |dx|, in 160A pixels (each two lines wide)
+     lda pcy
+     sec
+     sbc fy
+     bcs aim_dypos
+     eor #$FF
+     adc #1
+     pha
+     lda ob7
+     ora #2
+     sta ob7
+     pla
+aim_dypos
+     lsr                     ; |dy| / 2 matches |dx| in visible distance
+     sta ob3
+     ora ob2
+     bne aim_go
+     lda #64                 ; on top of the player: straight down
+     sta aimang
+     rts
+aim_go
+     lda ob3
+     cmp ob2
+     bcs aim_steep
+     sta ob1                 ; shallow: q = atan(dy/dx)
+     jsr aim_ratio
+     tay
+     lda atan32,y
+     jmp aim_quadrant
+aim_steep
+     lda ob2                 ; steep: q = 64 - atan(dx/dy)
+     sta ob1
+     lda ob3
+     sta ob2
+     jsr aim_ratio
+     tay
+     lda #64
+     sec
+     sbc atan32,y
+aim_quadrant
+     sta ob8                 ; q, 0-64
+     lda ob7
+     beq aim_q0
+     cmp #1
+     beq aim_q1
+     cmp #3
+     beq aim_q3
+     lda #0                  ; dx >= 0, dy < 0: -q
+     sec
+     sbc ob8
+     sta aimang
+     rts
+aim_q0
+     lda ob8
+     sta aimang
+     rts
+aim_q1
+     lda #128                ; dx < 0, dy >= 0: 128 - q
+     sec
+     sbc ob8
+     sta aimang
+     rts
+aim_q3
+     lda #128                ; dx < 0, dy < 0: 128 + q
+     clc
+     adc ob8
+     sta aimang
+     rts
+
+; A = 32 * ob1 / ob2, for ob1 <= ob2 (result 0-32).
+aim_ratio
+     lda ob1
+     cmp ob2
+     bcc aim_ratio_go
+     lda #32
+     rts
+aim_ratio_go
+     lda #0
+     sta ob3
+     ldx #5
+aim_ratio_loop
+     asl ob1
+     bcs aim_ratio_sub
+     lda ob1
+     cmp ob2
+     bcc aim_ratio_no
+aim_ratio_sub
+     lda ob1
+     sec
+     sbc ob2
+     sta ob1
+     sec
+     rol ob3
+     jmp aim_ratio_next
+aim_ratio_no
+     clc
+     rol ob3
+aim_ratio_next
+     dex
+     bne aim_ratio_loop
+     lda ob3
+     rts
+
+; v (signed, A) * 8 -> ob1 (low), ob2 (high), sign extended.
+ob_x8
+     sta ob1
+     ldy #0
+     cmp #$80
+     bcc ob_x8_pos
+     ldy #$FF
+ob_x8_pos
+     sty ob2
+     asl ob1
+     rol ob2
+     asl ob1
+     rol ob2
+     asl ob1
+     rol ob2
+     rts
+
+; Move, absorb, collide and draw every enemy bullet.
+bul_update
+     lda #$FF                ; palette 7, 1 byte wide: the same for all
+     sta sp_pw
+     ldx #NB-1
+bul_update_loop
+     lda bkind,x
+     bne bul_update_live
+     jmp bul_update_next
+bul_update_live
+     clc
+     lda bxl,x
+     adc bvx,x
+     sta bxl,x
+     lda bxh,x
+     adc bvxh,x
+     sta bxh,x
+     clc
+     lda byl,x
+     adc bvy,x
+     sta byl,x
+     lda byh,x
+     adc bvyh,x
+     sta byh,x
+     ; off screen?
+     lda bxh,x
+     cmp #2
+     bcc bul_update_off
+     cmp #158
+     bcs bul_update_off
+     lda byh,x
+     cmp #24
+     bcc bul_update_off
+     cmp #244
+     bcc bul_update_on
+bul_update_off
+     jmp bul_update_kill
+bul_update_on
+     ; the sword absorbs pink bullets (odd kinds)
+     lda swon
+     beq bul_update_hit
+     lda bkind,x
+     and #1
+     beq bul_update_hit
+     lda bxh,x
+     cmp swx0
+     bcc bul_update_hit
+     cmp swx1
+     bcs bul_update_hit
+     lda byh,x
+     cmp swy0
+     bcc bul_update_hit
+     cmp swy1
+     bcs bul_update_hit
+     inc absorbed
+     jmp bul_update_kill
+bul_update_hit
+     lda plvuln
+     beq bul_update_draw
+     lda bxh,x
+     sec
+     sbc pcx
+     bcs bul_update_hx
+     eor #$FF
+     adc #1
+bul_update_hx
+     cmp #3
+     bcs bul_update_draw
+     lda byh,x
+     sec
+     sbc pcy
+     bcs bul_update_hy
+     eor #$FF
+     adc #1
+bul_update_hy
+     cmp #4
+     bcs bul_update_draw
+     lda #1
+     sta phit
+     jmp bul_update_kill
+bul_update_draw
+     ldy bkind,x
+     lda bul_imglo-1,y
+     sta sp_lo
+     lda bul_imghi-1,y
+     sta sp_hi
+     lda bul_h-1,y
+     sta sp_h
+     lda bxh,x
+     sec
+     sbc #2
+     sta sp_x
+     lda byh,x
+     sbc #4                  ; (no borrow above: carry still set)
+     sta sp_y
+     stx obi
+     jsr pf_plot
+     ldx obi
+     jmp bul_update_next
+bul_update_kill
+     lda #0
+     sta bkind,x
+bul_update_next
+     dex
+     bmi bul_update_done
+     jmp bul_update_loop
+bul_update_done
+     rts
+
+; Images for bullet kinds 1-5: pink, blue, big pink, big blue, needle.
+bul_imglo .byte <pinkbullet, <bluebullet, <pinkbullet, <bluebullet, <needle
+bul_imghi .byte >pinkbullet, >bluebullet, >pinkbullet, >bluebullet, >needle
+bul_h     .byte 8, 8, 8, 8, 6
+
+; Every bullet becomes 20 points (the Hyper Sword). Returns A = how many.
+bul_cancel
+     lda #0
+     sta obj
+     ldx #NB-1
+bul_cancel_loop
+     lda bkind,x
+     beq bul_cancel_next
+     lda #0
+     sta bkind,x
+     inc obj
+bul_cancel_next
+     dex
+     bpl bul_cancel_loop
+     lda obj
+     rts
+
+; ---------------------------------------------------------------------------
+; Enemies.
+
+en_update
+     ldx #NE-1
+en_update_loop
+     lda etype,x
+     beq en_update_next
+     lda evx,x
+     jsr ob_x8
+     clc
+     lda exl,x
+     adc ob1
+     sta exl,x
+     lda exh,x
+     adc ob2
+     sta exh,x
+     lda evy,x
+     jsr ob_x8
+     clc
+     lda eyl,x
+     adc ob1
+     sta eyl,x
+     lda eyh,x
+     adc ob2
+     sta eyh,x
+     cmp #250
+     bcs en_update_kill
+     cmp #4
+     bcc en_update_kill
+     ; weaving: x = base + cos(angle) * amplitude / 128, angle stepping
+     lda ewamp,x
+     beq en_update_xcheck
+     sta fspd
+     lda ewang,x
+     clc
+     adc ewstep,x
+     sta ewang,x
+     tay
+     lda cos8,y
+     stx obi
+     jsr ob_vel7
+     ldx obi
+     clc
+     adc ebase,x
+     sta exh,x
+en_update_xcheck
+     lda exh,x
+     cmp #160
+     bcc en_update_next
+en_update_kill
+     lda #0
+     sta etype,x
+en_update_next
+     dex
+     bpl en_update_loop
+     rts
+
+; Shots, sword and ship against enemies. Adds damage to ehit; sets phit.
+; An enemy's box is its image: imgw*4 pixels wide, 16 lines (32 for
+; 2-strip images), less a pixel or two all round.
+en_hits
+     ldx #NE-1
+en_hits_loop
+     lda etype,x
+     bne en_hits_live
+     jmp en_hits_next
+en_hits_live
+     ; box: ob2 = right edge, ob3 = bottom edge
+     ldy eimg,x
+     lda imgw,y
+     asl
+     asl
+     clc
+     adc exh,x
+     sec
+     sbc #1
+     sta ob2
+     lda imgstrips,y
+     lsr                     ; 1 strip: 0, 2 strips: 1
+     lda #14
+     bcc en_hits_h
+     lda #30
+en_hits_h
+     clc
+     adc eyh,x
+     sta ob3
+     ; Vulcan: every live shot inside the box. Each enemy is checked every
+     ; other frame: a shot moves 12 lines in two, and the overlap window
+     ; (enemy 16 + shot 12 lines) is wider, so none slip through.
+     lda shcount
+     beq en_hits_sword
+     txa
+     eor tick
+     lsr
+     bcs en_hits_sword
+     ldy #NS-1
+en_hits_shot
+     lda shy,y
+     beq en_hits_shotnext
+     lda shx,y               ; shot spans x..x+3
+     clc
+     adc #3
+     cmp exh,x
+     bcc en_hits_shotnext
+     lda shx,y
+     cmp ob2
+     bcs en_hits_shotnext
+     lda shy,y               ; and y..y+11
+     clc
+     adc #11
+     cmp eyh,x
+     bcc en_hits_shotnext
+     lda shy,y
+     cmp ob3
+     bcs en_hits_shotnext
+     lda ehit,x
+     clc
+     adc vdmg
+     sta ehit,x
+     lda #0
+     sta shy,y
+en_hits_shotnext
+     dey
+     bpl en_hits_shot
+en_hits_sword
+     ; Sword
+     lda swdmg
+     beq en_hits_ship
+     lda swx1
+     cmp exh,x
+     bcc en_hits_ship
+     lda swx0
+     cmp ob2
+     bcs en_hits_ship
+     lda swy1
+     cmp eyh,x
+     bcc en_hits_ship
+     lda swy0
+     cmp ob3
+     bcs en_hits_ship
+     lda ehit,x
+     clc
+     adc swdmg
+     sta ehit,x
+en_hits_ship
+     ; Ship: its centre inside the box shrunk by 2
+     lda plvuln
+     beq en_hits_next
+     lda pcx
+     sec
+     sbc #2
+     cmp exh,x
+     bcc en_hits_next
+     clc
+     adc #4
+     cmp ob2
+     bcs en_hits_next
+     lda pcy
+     sec
+     sbc #2
+     cmp eyh,x
+     bcc en_hits_next
+     clc
+     adc #4
+     cmp ob3
+     bcs en_hits_next
+     lda #1
+     sta phit
+en_hits_next
+     dex
+     bmi en_hits_done
+     jmp en_hits_loop
+en_hits_done
+     rts
+
+en_draw
+     lda tick
+     lsr
+     lsr
+     lsr
+     sta ob8                 ; animation step: a new frame every 8 ticks
+     ldx #NE-1
+en_draw_loop
+     lda etype,x
+     bne en_draw_live
+     jmp en_draw_next
+en_draw_live
+     ldy eimg,x
+     ; palette | width: white (palette 3) while flashing
+     lda eflash,x
+     beq en_draw_color
+     dec eflash,x
+     lda #3<<5
+     bne en_draw_pal
+en_draw_color
+     lda ecol,x
+     asl
+     asl
+     asl
+     asl
+     asl
+en_draw_pal
+     ora imgnegw,y
+     sta sp_pw
+     ; frame: (step & (frames-1)) * width, frames 1, 2 or 4, width 2 or 4
+     lda imgframes,y
+     sec
+     sbc #1
+     and ob8
+     sta ob1
+     lda imgw,y
+     cmp #4
+     lda ob1
+     asl
+     bcc en_draw_w2
+     asl
+en_draw_w2
+     sta ob2                 ; frame offset
+     clc
+     adc imglo,y
+     sta sp_lo
+     lda imghi,y
+     sta sp_hi
+     lda exh,x
+     sta sp_x
+     lda eyh,x
+     sta sp_y
+     lda imgstrips,y
+     cmp #2
+     lda imgh,y
+     bcc en_draw_h
+     lda #16
+en_draw_h
+     sta sp_h
+     stx obi
+     sty obj
+     jsr pf_plot
+     ldy obj
+     lda imgstrips,y
+     cmp #2
+     bcc en_draw_done1
+     lda imglo2,y            ; the second strip, 16 lines down
+     clc
+     adc ob2
+     sta sp_lo
+     lda imghi2,y
+     sta sp_hi
+     lda imgh,y
+     sta sp_h
+     lda sp_y
+     clc
+     adc #16
+     bcs en_draw_done1
+     sta sp_y
+     jsr pf_plot
+en_draw_done1
+     ldx obi
+en_draw_next
+     dex
+     bmi en_draw_out
+     jmp en_draw_loop
+en_draw_out
+     rts
+
+; ---------------------------------------------------------------------------
+; Score: 4 BCD bytes, score_bcd (most significant) to score_bcd+3.
+
+score_add
+     sed
+     clc
+     lda score_bcd+3
+     adc sadd0
+     sta score_bcd+3
+     lda score_bcd+2
+     adc sadd1
+     sta score_bcd+2
+     lda score_bcd+1
+     adc sadd2
+     sta score_bcd+1
+     lda score_bcd
+     adc #0
+     sta score_bcd
+     cld
+     lda #0
+     sta sadd0
+     sta sadd1
+     sta sadd2
+     rts
+
+; Score into hudtext columns 0-6 (7 digits: the 8th, always 0, is dropped).
+hud_score
+     ldx #0
+     ldy #0
+hud_score_loop
+     lda score_bcd,y
+     and #$0F                ; first byte: skip its high digit
+     cpx #0
+     beq hud_score_low
+     lda score_bcd,y
+     lsr
+     lsr
+     lsr
+     lsr
+     jsr hud_digit
+     lda score_bcd,y
+     and #$0F
+hud_score_low
+     jsr hud_digit
+     iny
+     cpy #4
+     bne hud_score_loop
+     rts
+hud_digit
+     asl
+     clc
+     adc #FONTBASE
+     cpx #7
+     bcs hud_digit_done
+     sta hudtext,x
+     inx
+hud_digit_done
+     rts
+
+; ---------------------------------------------------------------------------
+; Player shots: move up 6 lines, drop off the top, draw.
+sh_update
+     lda #0
+     sta shcount
+     lda #<vulcan
+     sta sp_lo
+     lda #>vulcan
+     sta sp_hi
+     lda #(3<<5)|31          ; palette 3, 1 byte wide
+     sta sp_pw
+     lda #12
+     sta sp_h
+     ldx #NS-1
+sh_update_loop
+     lda shy,x
+     beq sh_update_next
+     sec
+     sbc #6
+     cmp #32
+     bcs sh_update_live
+     lda #0
+     sta shy,x
+     beq sh_update_next
+sh_update_live
+     sta shy,x
+     sta sp_y
+     inc shcount
+     lda shx,x
+     sta sp_x
+     stx obi
+     jsr pf_plot
+     ldx obi
+sh_update_next
+     dex
+     bpl sh_update_loop
+     rts
+
+; Explosions: xt counts 1-23 (4 frames a picture), then frees the slot.
+fx_update
+     lda #<expl
+     sta pft4                ; (pf_plot leaves pft4 alone)
+     lda #>expl
+     sta sp_hi
+     lda #(4<<5)|30          ; palette 4, 2 bytes wide
+     sta sp_pw
+     lda #16
+     sta sp_h
+     ldx #NX-1
+fx_update_loop
+     lda xt,x
+     beq fx_update_next
+     clc
+     adc #1
+     cmp #24
+     bcc fx_update_live
+     lda #0
+     sta xt,x
+     beq fx_update_next
+fx_update_live
+     sta xt,x
+     and #$FC                ; picture = xt/4, 2 bytes each: (xt/4)*2
+     lsr
+     clc
+     adc pft4
+     sta sp_lo
+     lda xx,x
+     sta sp_x
+     lda xy,x
+     sta sp_y
+     stx obi
+     jsr pf_plot
+     ldx obi
+fx_update_next
+     dex
+     bpl fx_update_loop
+     rts

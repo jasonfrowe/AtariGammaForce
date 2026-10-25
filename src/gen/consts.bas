@@ -12,4 +12,15 @@
   const IMG_NEEDLE = 6
   const IMG_BLUEBULLET = 7
   const IMG_EXPL = 8
-  const IMG_SWORD = 9
+  const IMG_GUNSHIP = 9
+  const IMG_SWORD = 10
+  const WAVES = 32
+  const CH_SPACE = 80
+  const CH_X = 128
+  const CH_I = 98
+  const CH_H = 96
+  const CH_Y = 130
+  const CH_P = 112
+  const CH_E = 90
+  const CH_R = 116
+  const CH_C = 86

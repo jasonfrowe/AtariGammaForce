@@ -36,7 +36,10 @@ def expected_lines(spos, tiles, pals, m):
             t = int(m[r, c])
             cols = [ga.rgb_of(ga.BG_CODE)] + [ga.rgb_of(x) for x in ga.PAL_CODES[pals[t]]]
             for x in range(8):
-                out[L, c * 8 + x] = cols[tiles[t][line, x]]
+                if ga.SKIP_SEA and t in ga.SEA_TILES:
+                    out[L, c * 8 + x] = ga.rgb_of(ga.BG_CODE)  # open sea: background
+                else:
+                    out[L, c * 8 + x] = cols[tiles[t][line, x]]
     return out
 
 
@@ -58,9 +61,9 @@ def main():
         shot = np.array(Image.open(d / "a7800" / f"{i:04d}.png").convert("RGB"))[:, ::2, :]  # 160 wide
         # The probe reads the engine at the end of a frame, when the game has
         # already advanced the scroll for the next one, so the picture shows
-        # either this position or the one before it.
+        # this position or an earlier one (more than one when frames lag).
         results = []
-        for pos in (spos, spos - 1):
+        for pos in (spos, spos - 1, spos - 2, spos - 3):
             exp = expected_lines(pos, tiles, pals, m)
             bad = [L for L in range(209) if np.any(shot[TOP + L] != exp[L], axis=1).mean() > 0.5]
             results.append((len(bad), pos, bad))

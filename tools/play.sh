@@ -1,0 +1,14 @@
+#!/bin/sh
+# Run the game headless with a scripted input file (see tools/emu/play.lua).
+#   tools/play.sh script.txt [out_dir]    -> out_dir/a7800/NNNN.png, out_dir/play.txt
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+A7800=${A7800:-$ROOT/../../a7800/mame64}
+SCRIPT=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
+OUT=${2:-$ROOT/build/play}
+rm -rf "$OUT"; mkdir -p "$OUT"; OUT=$(cd "$OUT" && pwd)
+cd "$(dirname "$A7800")"
+PLAY_SCRIPT="$SCRIPT" PLAY_OUT="$OUT/play.txt" "$A7800" a7800 -cart "${ROM:-$ROOT/build/gammaforce.a78}" \
+  -video none -sound none -nothrottle -seconds_to_run 600 -snapshot_directory "$OUT" \
+  -autoboot_script "$ROOT/tools/emu/play.lua" -skip_gameinfo > "$OUT/emu.log" 2>&1
+cat "$OUT/play.txt"
+ls "$OUT/a7800" 2>/dev/null | tr '\n' ' '; echo

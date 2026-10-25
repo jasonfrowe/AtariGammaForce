@@ -9,13 +9,6 @@ DEBUGDRAW     = $C1
 
      ;NMI and IRQ handlers
 NMI
- ifconst PFDLI
-     ; AtariGammaForce patch: a mid-screen DLI for the scroll engine. It
-     ; fires between NMI 1 and NMI 2, so it is flagged at NMI 1 and handled
-     ; here without touching 7800basic's interrupt bookkeeping.
-     bit pfdliflag
-     bmi pfdlihandler
- endif ; PFDLI
      ;VISIBLEOVER is 255 while the screen is drawn, and 0 right after the visible screen is done.
      pha ; save A
      cld
@@ -44,10 +37,6 @@ skipbottomroutine
      endif
      jmp NMIexit
 carryontopscreenroutine
- ifconst PFDLI
-     lda pfdlienable ; AtariGammaForce patch: arm the scroll DLI
-     sta pfdliflag
- endif ; PFDLI
      ifconst .topscreenroutine
          lda interrupthold
          beq skiptoproutine
@@ -159,17 +148,6 @@ skipdoublebufferminimumframeindexadjust
      endif
      
      jmp NMIexit
-
- ifconst PFDLI
-pfdlihandler ; AtariGammaForce patch: zone 14 reads its background shifted up
-     pha
-     lda pfdlicharbase
-     sta CHARBASE
-     lda #0
-     sta pfdliflag
-     pla
-     rti
- endif ; PFDLI
 
 IRQ     ; the only source of non-nmi interrupt should be the BRK opcode.
      ifnconst BREAKPROTECTOFF

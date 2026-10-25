@@ -29,6 +29,7 @@ reads every character on screen from the one block CHARBASE points at.
 """
 
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -151,10 +152,15 @@ def tile_palette(tile):
 def build_charset():
     tiles = frames_of(MGF / "stage1_tiles.png", 16, 16)
     t_slots, t_pals = [], []
-    for t in tiles:
+    for k, t in enumerate(tiles):
         p = tile_palette(t)
         t_pals.append(p)
-        t_slots.append(halve(t, TILE_SLOTS[p], prefer_solid=False))
+        if SKIP_SEA and k in SEA_TILES:
+            # Open sea is the background color. Its tiles stay in the set as
+            # blanks, so a sea tile caught inside a run of deck draws as sea.
+            t_slots.append(np.zeros((TILE_H, TILE_W), dtype=np.uint8))
+        else:
+            t_slots.append(halve(t, TILE_SLOTS[p], prefer_solid=False))
 
     # Font: Astrowing's 8-pixel glyphs (7 lines tall), placed on lines 4-10.
     font = np.array(Image.open(ASSETS / "font_astrowing.png"))
@@ -174,6 +180,7 @@ def build_charset():
 
 TEXTS = {
     "hudinit": " SCORE 0000000   x3 ",
+    "hudover": "GAMEOVER",
 }
 
 
@@ -219,6 +226,7 @@ SPRITES = [
     ("needle", None, 4, 16, None, None, 7),
     ("bluebullet", "bullet8.png", 8, 8, [0, 1], BLUE_SLOTS, 7),
     ("expl", "expl16.png", 16, 16, None, EXPL_SLOTS, 4),
+    ("gunship", "enemy32.png", 32, 32, [0, 1], ENEMY_SLOTS, 2),
     ("sword", "sword.png", 48, 32, None, SWORD_SLOTS, 7),
 ]
 
@@ -250,7 +258,9 @@ def build_sprites():
             sheet = np.concatenate([c[s * 16:(s + 1) * 16] for c in conv], axis=1)
             save_160a(GFX / f"{label}.png", sheet, PAL_CODES[pal])
             incs.append(label)
-        table.append((name, w // 4, strips, len(conv)))
+        used = max((int(np.nonzero(c.any(axis=1))[0].max()) + 1) if c.any() else 1 for c in conv)
+        last_h = used - 16 * (strips - 1)  # lines used in the last strip
+        table.append((name, w // 4, strips, len(conv), max(1, last_h)))
         previews.append(preview(np.concatenate(conv, axis=1), PAL_CODES[pal], bg=(40, 0, 40)))
     return table, incs, previews
 
@@ -261,6 +271,8 @@ def build_sprites():
 # object per run of tiles that share a palette.
 
 MAX_RUNS = 6
+SKIP_SEA = True
+SEA_TILES = {0, 1, 2, 3}  # MegaGammaForce stage 1 sea0-sea3
 
 
 def row_runs(pals):
@@ -296,14 +308,33 @@ def build_stage(t_pals):
         idx = [2 * int(t) for t in m[r]]
         lines.append(f"s1r{r} .byte " + ",".join(str(v) for v in idx))
         runs = row_runs([t_pals[int(t)] for t in m[r]])
+        if SKIP_SEA:  # open sea is the background color: no objects
+            runs = [rn for rn in runs if not all(int(m[r, c]) in SEA_TILES for c in range(rn[0], rn[0] + rn[1]))]
         max_bytes = max(max_bytes, 5 * len(runs))
         obj_lines.append(f"s1o{r} .byte {5 * len(runs)}")
+        if not runs:
+            continue
         for start, n, p in runs:  # one object a line: dasm allows 32 operators a line
             obj_lines.append(f"  .byte <(s1r{r}+{start}),$60,>(s1r{r}+{start}),{(p << 5) | ((-n) & 31)},{start * TILE_W}")
     lines.append("")
     lines.append("; Row r's background objects: a length byte, then the 5-byte headers.")
     lines += obj_lines
     lines.append("")
+    lines.append("; Direct-mode palette|width byte for each character (zone 14 draws its")
+    lines.append("; tiles as one 2-byte-wide object each), indexed by character number.")
+    pw = []
+    for c in range(2 * len(t_pals)):
+        pw.append((t_pals[c // 2] << 5) | ((-2) & 31))
+    lines.append("tilepw .byte " + ",".join(str(v) for v in pw))
+    lines.append("")
+    lines.append("; Row r's characters (for zone 14's direct-mode tiles).")
+    lines.append("s1charlo")
+    for r in range(0, rows, 8):
+        lines.append("  .byte " + ",".join(f"<s1r{k}" for k in range(r, min(rows, r + 8))))
+    lines.append("s1charhi")
+    for r in range(0, rows, 8):
+        lines.append("  .byte " + ",".join(f">s1r{k}" for k in range(r, min(rows, r + 8))))
+    lines.append(f"SEATILES = {len(SEA_TILES)} ; characters below 2*SEATILES are open sea")
     lines.append("s1rowlo")
     for r in range(0, rows, 8):
         lines.append("  .byte " + ",".join(f"<s1o{k}" for k in range(r, min(rows, r + 8))))
@@ -327,6 +358,70 @@ def map_preview(m, t_slots, t_pals, rows=48):
             img.paste(tile, (c * 32, y))
         y += 32
     return img
+
+
+def bcd3(v):
+    d = f"{v:06d}"
+    return [int(d[0:2], 16), int(d[2:4], 16), int(d[4:6], 16)]
+
+
+def chain_table():
+    """The chain bonus for chain levels 0-41 as 3 BCD bytes (MegaGammaForce's
+    score.c: 100, 200, 500, then 250 more a step, up to 10,000)."""
+    vals = []
+    for lv in range(42):
+        vals.append(lv * 100 if lv <= 2 else (10000 if lv >= 41 else 500 + (lv - 3) * 250))
+    b = [bcd3(v) for v in vals]
+    lines = ["", "; Chain bonus by chain level (0-41), BCD, high byte first."]
+    for k, name in enumerate(("chainb2", "chainb1", "chainb0")):
+        lines.append(name)
+        for i in range(0, 42, 14):
+            lines.append("  .byte " + ",".join(f"${x[k]:02X}" for x in b[i:i + 14]))
+    return lines
+
+
+# MegaGammaForce coordinates to ours: its playfield is 192 x 240, ours is
+# 160 x 209 (y stored + 32).
+ENEMY_TYPES = {"ET_DART": 1, "ET_SAUCER": 2, "ET_DRONE": 3, "ET_GUNSHIP": 4}
+ENEMY_WIDTH = {"ET_GUNSHIP": 16}
+COLOR_PAL = {"COL_RED": 4, "COL_BLUE": 5, "COL_YELLOW": 6, "COL_GRAY": 2}
+
+
+def wave_table(consts):
+    data = json.loads((MGF / "stage1_waves.json").read_text())["waves"]
+    data = [w for w in data if w[1] in ENEMY_TYPES]
+    cols = {k: [] for k in ("watl", "wath", "wtype", "wpal", "wx", "wdx", "wcount", "wgap", "wparam")}
+    for at, typ, color, x, dx, count, gap, param in data:
+        w = ENEMY_WIDTH.get(typ, 8)
+        cols["watl"].append(at & 255)
+        cols["wath"].append(at >> 8)
+        cols["wtype"].append(ENEMY_TYPES[typ])
+        cols["wpal"].append(COLOR_PAL[color])
+        cols["wx"].append(max(0, min(159 - w, round(x * 160 / 192) - w // 2)))
+        cols["wdx"].append(round(dx * 160 / 192) & 255)
+        cols["wcount"].append(count)
+        cols["wgap"].append(gap)
+        if typ == "ET_SAUCER":  # weave half-width in pixels
+            cols["wparam"].append(round(param * 160 / 192))
+        else:  # the line where it stops or dives: MGF centre y -> our top + 32
+            cols["wparam"].append(round(param * 209 / 240) + 32 - (16 if typ == "ET_GUNSHIP" else 8))
+    consts.append(f"  const WAVES = {len(data)}")
+    lines = ["", "; Stage 1 waves (MegaGammaForce waves.py, scaled). One array per field."]
+    for name, vals in cols.items():
+        lines.append(f"{name} .byte " + ",".join(str(v) for v in vals))
+    return lines
+
+
+def trig_tables():
+    """cos8: cos of angle a (256 per turn) x 127, signed. atan32[t]: the
+    angle (256 per turn) of a slope t/32, t = 0..32."""
+    cos8 = [round(127 * math.cos(2 * math.pi * a / 256)) & 255 for a in range(256)]
+    atan32 = [round(math.atan(t / 32) * 128 / math.pi) for t in range(33)]
+    lines = ["", "; Trig: angles are 256 per turn, 0 = right, 64 = down.", "cos8"]
+    for i in range(0, 256, 16):
+        lines.append("  .byte " + ",".join(str(v) for v in cos8[i:i + 16]))
+    lines.append("atan32 .byte " + ",".join(str(v) for v in atan32))
+    return lines
 
 
 def main():
@@ -364,8 +459,9 @@ def main():
     asm.append("; Sprite images. IMG_x = image number; imglo/imghi = graphics of the")
     asm.append("; first strip of frame 0; imgw = width in bytes; imgstrips = 16-line strips;")
     asm.append("; imgframes = frame count. Frame f of strip s is at (strip label) + f*w.")
-    lo, hi, lo2, hi2, w, st, fr = [], [], [], [], [], [], []
-    for i, (name, wb, strips, frames) in enumerate(table):
+    lo, hi, lo2, hi2, w, st, fr, hh = [], [], [], [], [], [], [], []
+    for i, (name, wb, strips, frames, last_h) in enumerate(table):
+        hh.append(str(last_h))
         assert strips <= 2, f"{name}: the plotter draws at most 2 strips"
         consts.append(f"  const IMG_{name.upper()} = {i}")
         first = f"{name}0" if strips > 1 else name
@@ -380,7 +476,18 @@ def main():
     asm += ["imglo .byte " + ",".join(lo), "imghi .byte " + ",".join(hi),
             "imglo2 .byte " + ",".join(lo2), "imghi2 .byte " + ",".join(hi2),
             "imgw .byte " + ",".join(w), "imgstrips .byte " + ",".join(st),
-            "imgframes .byte " + ",".join(fr), ""]
+            "imgframes .byte " + ",".join(fr),
+            "; lines used in the image's last strip (the plotter skips the part",
+            "; of a strip that would only be empty lines)",
+            "imgh .byte " + ",".join(hh),
+            "; -width & 31, the width bits of a 4-byte header",
+            "imgnegw .byte " + ",".join(str((-int(x)) & 31) for x in w), ""]
+    asm += trig_tables()
+    asm += chain_table()
+    asm += wave_table(consts)
+    for ch, name in ((" ", "SPACE"), ("X", "X"), ("I", "I"), ("H", "H"), ("Y", "Y"), ("P", "P"),
+                     ("E", "E"), ("R", "R"), ("C", "C")):
+        consts.append(f"  const CH_{name} = {char_index(ch, font_base)}")
     asm += stage_lines
     (GEN / "data.asm").write_text("\n".join(asm) + "\n")
     (GEN / "consts.bas").write_text("\n".join(consts) + "\n")

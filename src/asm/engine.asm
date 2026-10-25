@@ -3,21 +3,24 @@
 ; See docs/ENGINE.md for the full picture. In short:
 ;
 ;   zone 0       HUD, 16 lines, never scrolls (7800basic manages it)
-;   zones 1-14   the playfield. Each zone's display list (DL) is one of 15
-;                ring buffers; each buffer holds one map row's background
-;                objects followed by that frame's sprites.
+;   zones 1-13   the playfield. Each zone's display list (DL) is one of 14
+;                ring buffers; each holds one map row's background (character
+;                objects) followed by that frame's sprites.
+;   zone 14      the bottom of the playfield: a pair of DLs used alternately,
+;                its row drawn as one direct-mode object per tile.
 ;
-; Fine scroll: zone 1 is cut to 16-s lines (s = 0..15) and zone 14 is
-; 1+s lines, so the playfield is always 209 lines. Zone 14 has to show the
-; *top* lines of its row, which MARIA can't do by itself (it always counts
-; a zone's lines down to 0), so its graphics are shifted up by 15-s pages:
-; the DLI on zone 13 moves CHARBASE for the background, and the plotter
-; adds 15-s to the high byte of sprite objects it puts in zone 14.
+; Fine scroll: zone 1 is cut to 16-s lines (s = 0..15) and zone 14 is 1+s
+; lines, so the playfield is always 209 lines. MARIA always draws a zone's
+; lines counting down to 0, which is right for zone 1 (it shows the bottom
+; of its row) but zone 14 must show the *top* of its row, so every object
+; in zone 14 points its graphics 15-s pages higher. That is why zone 14
+; uses direct-mode tiles: each object carries its own graphics address,
+; where character objects would all share CHARBASE.
 ;
-; Coarse scroll: every 16 pixels the zones move down one buffer. Zone 1
-; gets the spare buffer, which was filled with the next map row ahead of
-; time, and the buffer leaving the bottom becomes the new spare. Nothing
-; else is copied, so a coarse step costs about as much as a fine one.
+; Coarse scroll: every 16 pixels the zones move down one row. Zone 1 takes
+; the spare ring buffer (filled with the next row ahead of time), zone 13's
+; buffer becomes the new spare, and zone 14 rebuilds its tiles for the row
+; that just left zone 13.
 ;
 ; Frame order (from BASIC):
 ;   pf_frame       advance the scroll, rotate if needed, reset the zones
@@ -41,25 +44,32 @@ pft2        = $B1
 pft3        = $B2
 pft4        = $B3
 pfhead      = $B4   ; ring buffer shown in zone 1
+sp_h        = $C4   ; pf_plot argument: lines used in the strip (1-16)
 
-; ---- RAM: $2200-$22FF belongs to the engine --------------------------------
+; ---- RAM: $2200-$223F belongs to the engine --------------------------------
 zonelo      = $2200 ; [15] DL address of zone k, k = 1..14
 zonehi      = $2210 ; [15]
-bgsize      = $2220 ; [15] background bytes at the start of ring buffer i
+bgsize      = $2220 ; [14] background bytes at the start of ring buffer i
 spos_f      = $2230 ; scroll position in pixels, 16.8 fixed point
 spos_lo     = $2231
 spos_hi     = $2232
 pfspeed     = $2233 ; scroll speed, 1/256 pixel per frame
 pfsparedirty = $2234 ; nonzero: the spare buffer needs the next row
 pfnextrow   = $2235 ; map row the spare buffer gets next
-pfdliflag   = $2236 ; bit 7 set: the next NMI is our zone 13 DLI
-pfdlicharbase = $2237 ; CHARBASE for zone 14
-pfdlienable = $2238 ; $80 once the DLI is in the DLL
+pfrow14     = $2236 ; map row shown in zone 14
+pfz14back   = $2237 ; zone 14 buffer (0/1) being built this frame
+pfz14row    = $2238 ; [2] row each zone 14 buffer holds ($FF: none)
+pfz14bg     = $223A ; [2] background bytes in each zone 14 buffer
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
 
+RINGN       = 14
 RINGBASE    = $1900
-BUFSIZE     = 112
+BUFSIZE     = 108
 PFCAP       = BUFSIZE-6     ; room for one more 4-byte object + terminator
+Z14BASE     = RINGBASE+RINGN*BUFSIZE ; $1EE8
+Z14SIZE     = 140
+Z14BG       = 80            ; 20 tiles x 4 bytes
+Z14CAP      = Z14SIZE-6
 DLLZONE1    = DLLMEM+12     ; 3 blank entries + the HUD entry
 DLLNONVIS   = DLLZONE1+42   ; 14 playfield entries later
 
@@ -79,6 +89,10 @@ ZONE11ADDRESS = RINGBASE+10*BUFSIZE
 
      if S1_ROWS > 255
          echo "ERROR: the engine indexes map rows with a byte"
+         err
+     endif
+     if Z14BASE+2*Z14SIZE > $2000
+         echo "ERROR: engine DL buffers overflow $1FFF"
          err
      endif
 
@@ -121,26 +135,34 @@ pf_init_hudobj
      sta dlend
      sta dlendsave
 
-     ; Scroll state. At position 0, zone k shows row 14-k, and row r lives
-     ; in ring buffer r mod 15, so rows 0-14 go straight into buffers 0-14
-     ; (row 14 being the spare).
+     ; Scroll state. At position 0, zone k (1-13) shows row 14-k and zone
+     ; 14 shows row 0. Row r lives in ring buffer r mod 14, so rows 1-14 go
+     ; into buffers 1-13 and 0 (row 14 being the spare).
      lda #0
      sta spos_f
      sta spos_lo
      sta spos_hi
      sta pfsparedirty
-     sta pfdliflag
+     sta pfrow14
+     sta pfz14back
+     lda #$FF
+     sta pfz14row
+     sta pfz14row+1
      lda #160
      sta pfspeed
-     ldx #14
+     ldy #14
 pf_init_rows
-     txa
-     tay
-     stx pft4
+     tya
+     cmp #RINGN
+     bcc pf_init_rows1
+     lda #0
+pf_init_rows1
+     tax
+     sty pft4
      jsr pf_buildrow
-     ldx pft4
-     dex
-     bpl pf_init_rows
+     ldy pft4
+     dey
+     bne pf_init_rows
      lda #15
      sta pfnextrow
      lda #13
@@ -150,6 +172,7 @@ pf_init_rows
      sta pfs
      lda #0
      sta pfshift
+     jsr pf_zone14
      jsr pf_restore
 
      ; The DLL. 7800basic built 3 blank entries, the HUD (zone 0), some
@@ -169,10 +192,7 @@ pf_init_dll
      lda #(DLLNONVIS-DLLMEM)
      sta overscanDLLstart
      jsr pf_terminate
-     jsr pf_commit
-     lda #$80
-     sta pfdlienable
-     rts
+     jmp pf_commit
 
 pfhudobj
      ; lo, mode ($60 = 5-byte header, character mode), hi, palette 3 | 20 wide, x
@@ -203,7 +223,7 @@ pf_buildrow_done
      rts
 
 ; ---------------------------------------------------------------------------
-; pf_mapzones: zone k (1..14) gets ring buffer head-(k-1), mod 15.
+; pf_mapzones: zone k (1..13) gets ring buffer head-(k-1), mod 14.
 pf_mapzones
      ldy pfhead
      ldx #1
@@ -216,10 +236,10 @@ pf_mapzones_loop
      sta dlendsave,x
      dey
      bpl pf_mapzones_next
-     ldy #14
+     ldy #RINGN-1
 pf_mapzones_next
      inx
-     cpx #15
+     cpx #14
      bne pf_mapzones_loop
      rts
 
@@ -234,27 +254,101 @@ pf_restore_loop
      rts
 
 ; ---------------------------------------------------------------------------
+; pf_zone14: get this frame's zone 14 buffer ready: its tiles for the row
+; (rebuilt if it holds another row) pointing 15-s pages up.
+pf_zone14
+     ldx pfz14back
+     lda z14lo,x
+     sta pfq
+     sta zonelo+14
+     lda z14hi,x
+     sta pfq+1
+     sta zonehi+14
+     lda pfz14row,x
+     cmp pfrow14
+     beq pf_zone14_hi
+     lda pfrow14
+     sta pfz14row,x
+     tay
+     lda s1charlo,y
+     sta pfp
+     lda s1charhi,y
+     sta pfp+1
+     ; One object per tile that isn't open sea (that is the background
+     ; color): lo = character, palette|width, hi, x.
+     lda #0
+     sta pft1                ; tile column
+     sta pft3                ; object offset
+pf_zone14_tile
+     ldy pft1
+     lda (pfp),y             ; character (2 x tile; charset is at offset 0)
+     cmp #2*SEATILES
+     bcc pf_zone14_skip
+     tax
+     ldy pft3
+     sta (pfq),y
+     iny
+     lda tilepw,x
+     sta (pfq),y
+     iny
+     iny                     ; hi is set below, every frame
+     lda pft1
+     asl
+     asl
+     asl
+     sta (pfq),y             ; x = column * 8
+     iny
+     sty pft3
+pf_zone14_skip
+     inc pft1
+     lda pft1
+     cmp #20
+     bne pf_zone14_tile
+     ldx pfz14back
+     lda pft3
+     sta pfz14bg,x
+pf_zone14_hi
+     ldx pfz14back
+     lda pfz14bg,x
+     sta dlendsave+14
+     beq pf_zone14_done      ; all sea
+     sta pft3
+     lda #>charset
+     clc
+     adc pfshift
+     ldy #2
+pf_zone14_hiloop
+     sta (pfq),y
+     iny
+     iny
+     iny
+     iny
+     cpy pft3
+     bcc pf_zone14_hiloop
+pf_zone14_done
+     rts
+
+z14lo .byte <Z14BASE, <(Z14BASE+Z14SIZE)
+z14hi .byte >Z14BASE, >(Z14BASE+Z14SIZE)
+
+; ---------------------------------------------------------------------------
 ; pf_frame: start a frame. Fills the spare buffer if a coarse step used it
 ; up, advances the scroll by pfspeed, rotates the zones on a 16 pixel
-; boundary, and empties the zones of last frame's sprites.
+; boundary, readies zone 14, and empties the zones of last frame's sprites.
 pf_frame
      lda pfsparedirty
      beq pf_frame_scroll
-     ldx pfhead              ; spare = head + 1, mod 15
+     ldx pfhead              ; spare = head + 1, mod 14
      inx
-     cpx #15
+     cpx #RINGN
      bcc pf_frame_spare
      ldx #0
 pf_frame_spare
      ldy pfnextrow
      jsr pf_buildrow
-     inc pfnextrow           ; past the end, loop the boss section
      lda pfnextrow
-     cmp #S1_ROWS
-     bcc pf_frame_spare1
-     sbc #S1_LOOP_ROWS
+     jsr pf_nextrow
      sta pfnextrow
-pf_frame_spare1
      lda #0
      sta pfsparedirty
 
@@ -279,13 +373,16 @@ pf_frame_scroll
      ; Crossed a 16 pixel boundary: the spare becomes zone 1.
      ldx pfhead
      inx
-     cpx #15
+     cpx #RINGN
      bcc pf_frame_rot
      ldx #0
 pf_frame_rot
      stx pfhead
      lda #1
      sta pfsparedirty
+     lda pfrow14
+     jsr pf_nextrow
+     sta pfrow14
      jsr pf_mapzones
 pf_frame_fine
      lda spos_lo             ; s = 15 - (pos & 15)
@@ -293,7 +390,18 @@ pf_frame_fine
      sta pfshift
      eor #15
      sta pfs
+     jsr pf_zone14
      jmp pf_restore
+
+; A = the map row after row A (past the end, loop the boss section).
+pf_nextrow
+     clc
+     adc #1
+     cmp #S1_ROWS
+     bcc pf_nextrow_done
+     sbc #S1_LOOP_ROWS
+pf_nextrow_done
+     rts
 
 ; ---------------------------------------------------------------------------
 ; pf_drawimg: draw image pimg, frame pframe, at (px, py - 32) in palette
@@ -334,11 +442,20 @@ pf_drawimg_f1
      sta sp_x
      lda py
      sta sp_y
+     lda imgh,x
+     ldy imgstrips,x
+     cpy #2
+     bcc pf_drawimg_h
+     lda #16                 ; the first of two strips is full height
+pf_drawimg_h
+     sta sp_h
      jsr pf_plot
      ldx pimg
      lda imgstrips,x
      cmp #2
      bcc pf_drawimg_done
+     lda imgh,x
+     sta sp_h
      lda imglo2,x
      clc
      adc pft4
@@ -356,16 +473,20 @@ pf_drawimg_done
 
 ; ---------------------------------------------------------------------------
 ; pf_plot: one 16-line strip. sp_lo/sp_hi = graphics, sp_pw = palette and
-; width, sp_x, sp_y = playfield y + 32. Clips at the HUD and the bottom.
+; width, sp_x, sp_y = playfield y + 32, sp_h = lines the strip uses from
+; its top (a strip shorter than 16 lines skips the zone below when it ends
+; above it). Clips at the HUD and the bottom.
 pf_plot
      clc
      lda sp_y
      adc pfs
      bcs pf_plot_out         ; past line 255: below the playfield
-     sec
-     sbc #16                 ; virtual y = playfield y + 16 + s
+     sbc #15                 ; (carry clear) virtual y = y + s - 16
      bcc pf_plot_out         ; wholly above zone 1
      sta pft1
+     and #15
+     sta pft2                ; line within the zone
+     lda pft1
      lsr
      lsr
      lsr
@@ -373,9 +494,6 @@ pf_plot
      tax                     ; zone
      cpx #15
      bcs pf_plot_out
-     lda pft1
-     and #15
-     sta pft2                ; line within the zone
      cpx #0
      beq pf_plot_lower       ; the top part would be in the HUD
      lda sp_hi
@@ -384,6 +502,10 @@ pf_plot
 pf_plot_lower
      lda pft2
      beq pf_plot_out         ; lined up with the zone: no lower part
+     clc
+     adc sp_h
+     cmp #17
+     bcc pf_plot_out         ; ends inside this zone
      inx
      cpx #15
      bcs pf_plot_out
@@ -397,19 +519,25 @@ pf_plot_out
 
 ; pf_object: append a 4-byte object with high byte A to zone X.
 pf_object
-     cpx #14
-     bne pf_object1
-     clc
-     adc pfshift             ; zone 14 shows its row's top lines
-pf_object1
      sta pft3
      lda zonelo,x
      sta pfp
      lda zonehi,x
      sta pfp+1
      ldy dlend,x
+     cpx #14
+     bne pf_object_ring
+     cpy #Z14CAP
+     bcs pf_object_full
+     lda pft3
+     clc
+     adc pfshift             ; zone 14 shows its row's top lines
+     sta pft3
+     jmp pf_object_put
+pf_object_ring
      cpy #PFCAP
      bcs pf_object_full
+pf_object_put
      lda sp_lo
      sta (pfp),y
      iny
@@ -428,14 +556,24 @@ pf_object_full
 
 ; ---------------------------------------------------------------------------
 ; pf_drawscreen: use instead of drawscreen.
+;
+; It syncs to MARIA's own vblank flag rather than 7800basic's visibleover,
+; and resets 7800basic's NMI bookkeeping every frame. 7800basic counts its
+; three NMIs (top of screen, end of screen, overscan) to know which is
+; which; if that count ever slips, visibleover is only set for a few lines
+; that its long top-of-screen handler covers, and anything waiting on it
+; waits forever. Resetting the count in vblank, after all three have fired,
+; heals any slip within a frame.
 pf_drawscreen
      ifconst interrupthold
          lda #$FF
          sta interrupthold
      endif
-pf_drawscreen_wait1
-     lda visibleover
-     bne pf_drawscreen_wait1 ; wait for the visible screen to end
+     jsr waitforvblankstart  ; the start of MARIA's vblank (a full frame if late)
+     lda #3
+     sta interruptindex
+     lda #0
+     sta visibleover
      lda sCTRL
      sta CTRL
      lda sCHARBASE
@@ -443,9 +581,6 @@ pf_drawscreen_wait1
      jsr terminatedisplaylist ; zone 0 (7800basic's)
      jsr pf_terminate
      jsr pf_commit
-pf_drawscreen_wait2
-     lda visibleover
-     beq pf_drawscreen_wait2 ; and for the next one to start
      dec frameslost
      rts
 
@@ -466,6 +601,7 @@ pf_terminate_loop
      rts
 
 ; Write the zone layout into the DLL. Must run while MARIA is in vblank.
+; Then the zone 14 buffer just shown becomes next frame's one to build.
 pf_commit
      ldx #1
      ldy #0
@@ -486,25 +622,43 @@ pf_commit_loop
      sec
      sbc pfs
      sta DLLZONE1
-     lda pfs                 ; zone 14: 1+s lines. Its DLI fires as MARIA
-     ora #$C0                ; reaches the entry, i.e. before the zone.
+     lda pfs                 ; zone 14: 1+s lines
+     ora #$40
      sta DLLZONE1+3*13
-     lda #>charset
-     clc
-     adc pfshift
-     sta pfdlicharbase
+     lda pfz14back
+     eor #1
+     sta pfz14back
      rts
 
 ; Ring buffer addresses.
 ringlo
 RINGI SET 0
-     REPEAT 15
+     REPEAT RINGN
      .byte <(RINGBASE+RINGI*BUFSIZE)
 RINGI SET RINGI+1
      REPEND
 ringhi
 RINGI SET 0
-     REPEAT 15
+     REPEAT RINGN
      .byte >(RINGBASE+RINGI*BUFSIZE)
 RINGI SET RINGI+1
      REPEND
+
+; ---------------------------------------------------------------------------
+; Profiling (debug): prof_start starts the RIOT timer counting down in
+; 64-cycle steps; prof_mark stores the time since the last mark (in 64s of
+; cycles, wall time, so MARIA's DMA counts too) at profbuf+A, and restarts.
+profbuf     = $25F0
+prof_start
+     lda #255
+     sta TIM64T
+     rts
+prof_mark
+     tax
+     lda #255
+     sec
+     sbc INTIM
+     sta profbuf,x
+     lda #255
+     sta TIM64T
+     rts

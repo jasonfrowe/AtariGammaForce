@@ -11,5 +11,7 @@
   incgraphic gfx/needle.png 160A 0 1 2 3
   incgraphic gfx/bluebullet.png 160A 0 1 2 3
   incgraphic gfx/expl.png 160A 0 1 2 3
+  incgraphic gfx/gunship0.png 160A 0 1 2 3
+  incgraphic gfx/gunship1.png 160A 0 1 2 3
   incgraphic gfx/sword0.png 160A 0 1 2 3
   incgraphic gfx/sword1.png 160A 0 1 2 3

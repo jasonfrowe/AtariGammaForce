@@ -1,0 +1,7 @@
+# Fly left while firing, check the game loop keeps up (tick at $2312 should
+# advance one per frame).
+700 peek 2312 1
+700 press P1 Left
+700 press P1 Button 2
+760 snap
+800 peek 2312 1
