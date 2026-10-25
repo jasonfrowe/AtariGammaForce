@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Snapshot MegaGammaForce source art into assets/mgf/.
+
+MegaGammaForce (the RP6502 original) draws its art procedurally. This script
+runs its generators where we need something different (stage maps 20 tiles
+wide instead of 12, to fill the 7800's 160 pixel screen) and copies the
+sprite sheets as they are. The results are committed, so building the 7800
+game never needs the MegaGammaForce checkout; rerun this only to pull fresh
+art from it.
+
+    .venv/bin/python tools/import_mgf.py [--mgf ../../rp6502/MegaGammaForce]
+"""
+
+import argparse
+import json
+import shutil
+import sys
+from pathlib import Path
+
+import numpy as np
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "assets" / "mgf"
+COLS = 20  # 160 px screen / 8 px tiles
+
+SPRITE_SHEETS = [
+    "player.png", "enemy16.png", "enemy32.png", "bullet8.png", "bullet16.png",
+    "shot8.png", "sword.png", "vulcan.png", "expl16.png", "expl32.png",
+    "flame.png", "miniship.png", "gem.png", "digits.png", "icons.png",
+]
+
+
+def save_indexed(path, frames, palette):
+    """frames: list of 2D uint8 arrays of palette indices, saved side by side."""
+    h, w = frames[0].shape
+    img = Image.new("P", (w * len(frames), h))
+    flat = []
+    for c in palette:
+        flat += list(c) if c is not None else [255, 0, 255]
+    img.putpalette(flat + [0] * (768 - len(flat)))
+    for i, f in enumerate(frames):
+        img.paste(Image.fromarray(f.astype(np.uint8), "P"), (i * w, 0))
+    img.save(path)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--mgf", default=str(ROOT.parent.parent / "rp6502" / "MegaGammaForce"))
+    args = ap.parse_args()
+    mgf = Path(args.mgf).resolve()
+    if not (mgf / "tools" / "art" / "tiles.py").exists():
+        sys.exit(f"MegaGammaForce not found at {mgf}")
+    sys.path.insert(0, str(mgf / "tools" / "art"))
+    import palettes  # noqa: E402  (MegaGammaForce's)
+    import tiles  # noqa: E402
+
+    OUT.mkdir(parents=True, exist_ok=True)
+
+    # Stage 1 at 20 columns. tiles.stage1() returns the map top row first;
+    # we store it in stage order (row 0 is where the stage starts, at the
+    # bottom of the screen) because that is the order the 7800 reads it.
+    tiles.COLS = COLS
+    tl, ids, top_first, _hatches = tiles.stage1()
+    stage_order = top_first[::-1].copy()
+    save_indexed(OUT / "stage1_tiles.png", tl, palettes.TILES)
+    (OUT / "stage1_map.bin").write_bytes(stage_order.astype(np.uint8).tobytes())
+    meta = {
+        "cols": COLS,
+        "rows": int(stage_order.shape[0]),
+        "loop_rows": tiles.LOOP_ROWS,
+        "tile_ids": {k: int(v) for k, v in ids.items()},
+        "note": "map is stage order: row 0 = start of stage (bottom of screen)",
+    }
+    (OUT / "stage1.json").write_text(json.dumps(meta, indent=1) + "\n")
+
+    for name in SPRITE_SHEETS:
+        src = mgf / "images" / name
+        if src.exists():
+            shutil.copy2(src, OUT / name)
+    for name in ["boss_core.png", "boss_wing.png", "boss_cannon.png", "boss_turret.png", "logo.png"]:
+        src = mgf / "images" / "stage1" / name
+        if src.exists():
+            shutil.copy2(src, OUT / f"stage1_{name}")
+
+    # The palettes the sheets were drawn with, for the converters.
+    pals = {k: v for k, v in vars(palettes).items() if k.isupper() and isinstance(v, list)}
+    (OUT / "palettes.json").write_text(json.dumps(pals) + "\n")
+    print(f"stage 1 map {stage_order.shape[1]}x{stage_order.shape[0]}, {len(tl)} tiles -> {OUT}")
+
+
+if __name__ == "__main__":
+    main()
