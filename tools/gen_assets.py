@@ -185,6 +185,7 @@ TEXTS = {
     "hudover": "GAMEOVER",
     "hudwarn": "WARNING",
     "hudclear": "CLEARED!",
+    "hudlevel": "LEVEL UP",
 }
 
 

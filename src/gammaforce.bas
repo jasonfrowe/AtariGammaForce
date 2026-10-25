@@ -155,6 +155,12 @@
   dim bvx = $24D0
   dim bvy = $24E0
   dim shcount = $233F
+  dim vxp = $2350
+  dim sxp = $2351
+  dim vlv = $2352
+  dim slv = $2353
+  dim swcd = $2354
+  dim lvmsg = $2355
   dim gn = $234D
   dim gcolor = $234E
   dim bstate = $2344
@@ -260,6 +266,7 @@ newgame
   lives = 3 : gauge = 0 : hyper = 0
   chlevel = 0 : chcount = 0 : chcolor = 255
   vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0 : gn = 0 : gcolor = 0
+  vxp = 0 : sxp = 0 : vlv = 0 : slv = 0 : swcd = 0 : lvmsg = 0
   for i = 0 to NE1 : etype[i] = 0 : next
   for i = 0 to NB1 : bkind[i] = 0 : next
   for i = 0 to NS1 : shy[i] = 0 : next
@@ -445,8 +452,9 @@ player_nohyper
   swon = 1
   swx0 = pcx - 12 : swx1 = pcx + 12
   swy0 = pcy - 30 : swy1 = pcy - 4
-  temp6 = tick & 7
-  if temp6 = 0 then swdmg = 3
+  rem it strikes every 8 frames at level 1, every 4 at level 5, and harder
+  if swcd > 0 then swcd = swcd - 1
+  if swcd = 0 then swdmg = 3 + slv / 2 : swcd = 8 - slv
   temp6 = tick & 15
   if temp6 = 0 then gosub sword_hum
   if hyper = 0 then goto player_nosword
@@ -539,6 +547,8 @@ fire_vulcan
   return
 fire_slot
   shx[i] = plx + 4 : shy[i] = ply - 6 : firecd = 4
+  rem the Vulcan, already the strongest, only speeds up at level 4
+  if vlv >= 3 then firecd = 3
   asm
   lda #SFX_VULCAN
   jsr sfx_play
@@ -771,6 +781,7 @@ destroy_small
   jsr sfx_play
 end
 destroy_score
+  temp3 = enemy_hp[temp1] / 4 + 1 : gosub weapon_xp
   etype[i] = 0
   sadd2 = 0 : sadd1 = enemy_score1[temp1] : sadd0 = 0
   asm
@@ -781,6 +792,37 @@ end
   if temp2 < 4 then return
   gosub chain_kill
   return
+
+  rem Experience temp3 for the weapon that made the kill: the sword if it
+  rem is out, else the Vulcan (which learns at half the rate). Levels at
+  rem 25, 75, 150, 250 (MegaGammaForce's 50/150/300/500, halved to fit a byte).
+weapon_xp
+  if swon then goto weapon_xp_sword
+  if vlv >= 4 then return
+  temp3 = temp3 / 2 + 1
+  temp4 = vxp + temp3
+  if temp4 < vxp then temp4 = 255
+  vxp = temp4
+  if vxp < level_xp[vlv] then return
+  vlv = vlv + 1 : goto weapon_xp_up
+weapon_xp_sword
+  if slv >= 4 then return
+  temp4 = sxp + temp3
+  if temp4 < sxp then temp4 = 255
+  sxp = temp4
+  if sxp < level_xp[slv] then return
+  slv = slv + 1
+weapon_xp_up
+  lvmsg = 90
+  asm
+  lda #SFX_HYPER
+  jsr sfx_play
+end
+  return
+
+  data level_xp
+  25, 75, 150, 250
+end
 
   rem MegaGammaForce's chain_kill(): three of a color complete a set.
 chain_kill
@@ -1056,6 +1098,7 @@ part_damage
   if temp2 = ET_PCORE then goto part_core
   if ehp[i] > temp1 then ehp[i] = ehp[i] - temp1 : return
   rem a part is destroyed: 2,000 points
+  temp3 = boss_hp[i] / 4 + 1 : gosub weapon_xp
   temp7 = exh[i] : temp8 = eyh[i] : gosub spawn_fx
   etype[i] = 0 : bparts = bparts + 1
   sadd2 = 0 : sadd1 = $20 : sadd0 = 0
@@ -1164,6 +1207,7 @@ hud_tens
   if overt > 0 then goto hud_over
   if bmsg = 1 then goto hud_warning
   if bmsg = 2 then goto hud_clear
+  if lvmsg > 0 then goto hud_level
   if gauge >= GAUGE_MAX then goto hud_hyper
   temp3 = gauge / 8
   for k = 0 to 4
@@ -1193,6 +1237,13 @@ hud_warning
     hudtext[temp5] = temp4
   next
   hudtext[19] = CH_SPACE
+  return
+hud_level
+  if lvmsg > 4 then lvmsg = lvmsg - 4 else lvmsg = 0
+  for k = 0 to 7
+    temp5 = 12 + k
+    hudtext[temp5] = hudlevel[k]
+  next
   return
 hud_clear
   for k = 0 to 7

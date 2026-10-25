@@ -70,17 +70,30 @@ raw register writes, which would take ~40 KB per song.
 
 ## Cartridge
 
-Starting at 48K while the engine settles; the full game will be a 128K or
-256K SuperGame cart with POKEY, one stage per bank, code and sprites in
-the fixed bank.
+144K SuperGame with POKEY at $450: bank 1 (fixed at $4000) holds the game
+code and engine, each stage gets a switchable bank at $8000 (map, waves,
+music, its boss's data), and the last bank holds the graphics and
+7800basic's runtime. Stage 1 uses bank 2; banks 3-8 are free for stages
+2-7 (stages 8-9 will need a bigger cart or tighter packing).
 
-## Plan
+## Status
 
-1. ~~Smooth scrolling engine~~ (done, see ENGINE.md)
-2. Player: movement, Vulcan, Sword (absorb), slowdown, death and respawn
-3. Enemies and waves from MegaGammaForce's stage 1 script; enemy bullets
-4. Chain, score, HUD, weapon levels
-5. GAMMA CORE boss
-6. POKEY music converter and player; TIA sound effects
-7. Title screen, game over, high score
-8. 128K banked cart; stages 2-9
+Done:
+
+1. Smooth scrolling engine (see ENGINE.md)
+2. Player: movement with firing/sword slowdown, Vulcan, Radiant Sword
+   (absorbs pink bullets, fills the gauge), Hyper Sword, death, respawn
+3. Stage 1: MegaGammaForce's 32 waves (darts, saucers, drones, gunships)
+   with their behaviors and bullet patterns; ground turrets on the deck
+4. Chain, score, lives, HUD, weapon levels (LEVEL UP)
+5. GAMMA CORE boss: parts, attacks, perfect bonus, escape, stage loop
+6. POKEY music (stage and boss themes), TIA sound effects
+7. Title screen, game over
+
+Next:
+
+- Speed over the fortress deck (40-55 fps in the busiest moments, see
+  ENGINE.md "Performance")
+- Extends at 50,000 / 100,000, high score, pause
+- Big pink orb sprites for the cannon, a title logo
+- Stages 2-9 and their bosses, one bank each

@@ -6,6 +6,7 @@ hudinit .byte 80,118,86,110,116,90,80,60,60,60,60,60,60,60,80,80,80,128,66,80 ; 
 hudover .byte 94,82,106,90,110,124,90,116 ; 'GAMEOVER'
 hudwarn .byte 126,82,116,108,98,108,94 ; 'WARNING'
 hudclear .byte 86,104,90,82,116,90,88,80 ; 'CLEARED!'
+hudlevel .byte 104,90,124,90,104,80,122,112 ; 'LEVEL UP'
 ; Playfield texts for pf_text: TXT_ numbers index these.
 txt_atari .byte 82,120,82,116,98 ; 'ATARI'
 txt_gamma .byte 94,82,106,106,82,80,92,110,116,86,90 ; 'GAMMA FORCE'
