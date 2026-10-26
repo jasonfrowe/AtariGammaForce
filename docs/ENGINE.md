@@ -64,6 +64,18 @@ pf_drawscreen   (instead of drawscreen) wait for MARIA's vblank, terminate
                 the DLs, write the zone layout into the DLL
 ```
 
+**Game speed vs. frame rate.** The game runs in steps of 1/60 second.
+When a frame's logic runs past its frame, that frame shows for two and
+`pflate` is set; the next frame then runs two steps: a catch-up step with
+`pfnodraw` set (`pf_plot` draws nothing, and the game skips its other
+drawing), then the usual one, and `pf_frame` scrolls two steps' worth. So
+the game never slows down; the display drops to 30 frames a second while
+the load is high and comes back to 60 when it eases. `const FPS30 = 1`
+locks it at 30 (two steps every frame). Anything that should alternate as
+*shown* (the HUD's four parts, the boss's hit flash) counts `pfdraws`, the
+frames drawn, rather than `tick`, the game steps, since at 30 frames a
+second only every other step is drawn.
+
 The engine keeps a *shadow* layout (`zonelo`/`zonehi`: which DL each zone
 uses) that changes at the start of the frame, and writes it into the real
 DLL only in vblank. Sprites are plotted against the shadow, so on a coarse
@@ -88,6 +100,21 @@ last strip each image uses, so a short sprite (a bullet) skips the zone
 below when it ends above it. Strips that overlap the HUD or fall below the
 playfield are clipped. A ring buffer holds about 19 sprite objects besides
 its background; zone 14 about 14. Past that, objects are dropped.
+
+MARIA rereads a zone's DL on every line, and the frame is built while the
+last one is showing, so `pf_object` keeps every DL valid after each single
+store. A new object past last frame's end gets a terminator after it first
+and its palette|width byte (which makes it exist) last. An object over one
+of last frame's: if it is the same image (low byte and width), as for
+anything that stays put or moves a little, palette, high byte and x are
+rewritten one byte at a time, and a line drawn in between is at worst a
+line or a pixel off. A different image is hidden first (x = 160) and shown
+last, which drops it from a line drawn in between: on a big sprite that
+shows as a one-line gap. So the draw order is kept stable: a full 16-line
+strip always takes two objects, even lined up with a zone (the lower one
+then reads only DMA holes and costs just its header), and the boss's parts
+all count as full strips. That way the objects after it keep their slots
+from frame to frame.
 
 ## Memory
 
@@ -147,10 +174,13 @@ fortress is MegaGammaForce's own 12-column map in the middle of the sea.
 CPU side: each sprite object costs ~100 cycles of 6502 work (a 16-line
 strip that crosses a zone boundary is two objects), so the hot loops are
 assembly (objects.asm: enemy AI, movement, bullets, hits, the ship), the
-game keeps 12 enemy bullets and 4 explosions at most, and when a frame runs
-late enemies hold fire for a frame (`pflate`), which limits bullets exactly
-when it matters. `tools/fps_test.sh` measures stage 1 with an invulnerable
-ship: about 59 fps, with the busiest fortress stretch around 50-55.
+game keeps 16 enemy bullets and 4 explosions at most, and late frames are
+caught up rather than slowing the game (above). `tools/fps_test.sh`
+measures stage 1 with an invulnerable ship (`tests/boss_fps.txt`, run the
+same way with a BOSSTEST build, measures the boss); `tools/fps.py` reports
+the game speed and the frames drawn. Stage 1: game speed 59/s, display
+about 56 fps. The boss: 59/s, display about 40 fps (its parts are ~36
+objects).
 
 Tools: `const PROFILE = 1` times each part of the main loop (wall time,
 so MARIA and the NMIs count; `tools/profile.py`), and the `a7800dev`

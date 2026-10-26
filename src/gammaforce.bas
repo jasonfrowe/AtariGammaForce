@@ -24,14 +24,14 @@
 
   rem ---- sizes ----
   const NE = 12
-  const NB = 12
+  const NB = 16
   const NS = 6
   const NX = 4
   const NSP = 3
   rem 7800basic drops arithmetic in a for loop's limit ("to NE1" runs to
   rem NE), so loops use these.
   const NE1 = 11
-  const NB1 = 11
+  const NB1 = 15
   const NS1 = 5
   const NX1 = 3
   const NSP1 = 2
@@ -41,6 +41,9 @@
   rem Testing: start at the boss, and/or never get hit.
   rem const BOSSTEST = 1
   rem const CHEAT = 1
+  rem Always 30 frames a second (each frame two game steps). Without it the
+  rem display runs at 60 and drops to 30 only while a frame runs late.
+  rem const FPS30 = 1
 
   rem ---- enemy types (as in MegaGammaForce's enemies.h) ----
   const ET_DART = 1
@@ -55,6 +58,8 @@
   const ET_PARMOR = 12
   const ET_PCORE = 13
   const ET_PTURRET = 14
+  rem a destroyed cannon or wing: drawn dark, no longer hit
+  const ET_PWRECK = 15
 
   rem ---- bullet kinds: odd = pink (the sword absorbs them) ----
   const BK_PINK = 1
@@ -73,6 +78,9 @@
   rem ---- engine state BASIC reads or writes ----
   dim spos_lo = $2231
   dim spos_hi = $2232
+  dim pflate = $22C1
+  dim pfnodraw = $22C2
+  dim pfdraws = $22C3
   dim hudtext = $2240
 
   rem ---- object arguments and results (asm/objects.asm) ----
@@ -298,13 +306,26 @@ main
   jsr prof_mark
   endif
 end
+  rem After a late frame (the last one showed for two), a catch-up step
+  rem that draws nothing, so the game keeps its speed (engine.asm).
+  if pflate then pfnodraw = 1 : gosub step : pfnodraw = 0
+  gosub step
+  if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
+  asm
+  jsr pf_drawscreen
+end
+  if overt = 1 then goto title
+  goto main
+
+  rem One game step: 1/60 second of play, drawn unless pfnodraw
+step
   tick = tick + 1
 
   if overt > 0 then gosub gameover_tick
   gosub player
   rem The ship and sword are plotted first, early in the frame, before
   rem MARIA reaches the bottom of the screen where they usually are.
-  gosub draw_player
+  if pfnodraw = 0 then gosub draw_player
   asm
   ifconst PROFILE
   lda #1
@@ -348,9 +369,12 @@ end
   endif
 end
 
-  rem ---- draw, back to front ----
+  rem ---- draw, back to front (the moving objects move as they draw) ----
   asm
+  lda pfnodraw
+  bne skip_en_draw
   jsr en_draw
+skip_en_draw
 end
   asm
   ifconst PROFILE
@@ -383,20 +407,14 @@ end
   jsr prof_mark
   endif
 end
-  gosub hud
+  if pfnodraw = 0 then gosub hud
   asm
   ifconst PROFILE
   lda #10
   jsr prof_mark
   endif
 end
-
-  if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
-  asm
-  jsr pf_drawscreen
-end
-  if overt = 1 then goto title
-  goto main
+  return
 
   rem Show text temp1 in zone tzone, palette tpal (asm/engine.asm pf_text)
 text
@@ -510,8 +528,9 @@ end
 end
   return
 
+  rem (stops at 1, which the main loop takes back to the title)
 gameover_tick
-  overt = overt - 1
+  if overt > 1 then overt = overt - 1
   return
 
   rem ======================================================================
@@ -753,10 +772,13 @@ ground_slot
 
   rem ======================================================================
   rem  GAMMA CORE, the stage 1 boss (MegaGammaForce's boss1.c, thinned).
-  rem  Eleven enemy slots: cannon, two wings (a hittable top half and an
-  rem  armor bottom half each), the core (two halves sharing bcorehp), and
-  rem  four turrets on the wings. bstate: 0 none, 1 warning, 2 entering,
-  rem  3 fighting, 4 exploding, 5 stage clear.
+  rem  Eleven enemy slots: cannon, two wings (a top half and a bottom
+  rem  half, ET_PARMOR, that passes its hits to the top), the core (two
+  rem  halves sharing bcorehp), and four turrets on the wings. While a wing
+  rem  has turrets, shots pass through the wing's middle column to reach
+  rem  them (eparam, objects.asm en_hits). A destroyed cannon or wing stays
+  rem  as a dark wreck. bstate: 0 none, 1 warning, 2 entering, 3 fighting,
+  rem  4 exploding, 5 stage clear.
   rem ======================================================================
 boss
   if bstate = 0 then goto boss_wait
@@ -827,24 +849,40 @@ end
   rem Part k's position from the boss centre (bx, by): offset tables in
   rem MegaGammaForce pixels halved across (sprites are half width here)
 boss_place
-  for k = 0 to 10
-    if etype[k] = 0 then goto boss_place_next
-    exh[k] = bx + boss_dx[k]
-    eyh[k] = by + boss_dy[k]
+  asm
+  ldx #10
+boss_place_loop
+  lda etype,x
+  beq boss_place_next
+  lda bx
+  clc
+  adc boss_dx,x
+  sta exh,x
+  lda by
+  clc
+  adc boss_dy,x
+  sta eyh,x
 boss_place_next
-  next
+  dex
+  bpl boss_place_loop
+end
+  rem shots pass through a wing's turret column while it has turrets
+  temp1 = etype[7] | etype[8]
+  eparam[1] = temp1 : eparam[2] = temp1
+  temp1 = etype[9] | etype[10]
+  eparam[3] = temp1 : eparam[4] = temp1
   rem the cannon glows before it fires
   eframe[0] = 0
+  if etype[0] <> ET_PCANNON then goto boss_turrets
   temp1 = btl & 255
   if temp1 >= 96 && temp1 < 128 then eframe[0] = (tick / 4) & 1
-  rem turrets turn to face the player (8 directions)
-  for k = 7 to 10
-    if etype[k] = 0 then goto boss_turret_next
-    fx = exh[k] + 4 : fy = eyh[k] + 8
-    gosub aim
-    eframe[k] = (fang - 48) / 32 & 7
-boss_turret_next
-  next
+boss_turrets
+  rem turrets turn to face the player (8 directions), one a step
+  k = (btl & 3) + 7
+  if etype[k] = 0 then return
+  fx = exh[k] + 4 : fy = eyh[k] + 8
+  gosub aim
+  eframe[k] = (fang - 48) / 32 & 7
   return
 
 boss_attack
@@ -863,15 +901,15 @@ boss_att_next
   next
   rem wings: pink fans, alternating sides
   temp1 = btl & 127
-  if temp1 = 0 && etype[1] then fx = exh[1] + 8 : fy = eyh[1] + 56 : fang = 72 : gosub boss_fan
-  if temp1 = 64 && etype[3] then fx = exh[3] + 8 : fy = eyh[3] + 56 : fang = 56 : gosub boss_fan
+  if temp1 = 0 && etype[1] = ET_PWING then fx = exh[1] + 8 : fy = eyh[1] + 56 : fang = 72 : gosub boss_fan
+  if temp1 = 64 && etype[3] = ET_PWING then fx = exh[3] + 8 : fy = eyh[3] + 56 : fang = 56 : gosub boss_fan
   rem cannon: three big pink orbs at the player. Absorb them!
   temp1 = btl & 255
-  if temp1 = 128 && etype[0] then gosub boss_cannon
+  if temp1 = 128 && etype[0] = ET_PCANNON then gosub boss_cannon
   rem core: spirals once a wing is gone, time drags on, or it is hurt
   temp2 = 0
-  if etype[1] = 0 then temp2 = 1
-  if etype[3] = 0 then temp2 = temp2 + 1
+  if etype[1] <> ET_PWING then temp2 = 1
+  if etype[3] <> ET_PWING then temp2 = temp2 + 1
   temp3 = 0
   if bcorehp < 112 then temp3 = 1
   if temp2 = 0 && temp3 = 0 && bth < 6 then return
@@ -909,27 +947,43 @@ boss_cannon
 end
   return
 
-  rem Damage temp1 to boss part i
+  rem Damage temp1 to boss part i. A wing's bottom half passes its hits
+  rem to the top half, the slot before it.
 part_damage
-  temp2 = etype[i]
-  if temp2 = ET_PARMOR then return
   if bstate <> 3 then return
+  if etype[i] <> ET_PARMOR then goto part_hit
+  i = i - 1 : gosub part_hit : i = i + 1
+  return
+part_hit
+  temp2 = etype[i]
+  if temp2 = ET_PWRECK then return
   eflash[i] = 3
+  temp5 = i + 1
+  if temp2 = ET_PWING then eflash[temp5] = 3
   if temp2 = ET_PCORE then goto part_core
   if ehp[i] > temp1 then ehp[i] = ehp[i] - temp1 : return
   rem a part is destroyed: 2,000 points
   temp3 = boss_hp[i] / 4 + 1 : gosub weapon_xp
-  temp7 = exh[i] : temp8 = eyh[i] : gosub spawn_fx
-  etype[i] = 0 : bparts = bparts + 1
+  temp7 = exh[i] : temp8 = eyh[i]
+  if temp2 = ET_PTURRET then gosub spawn_fx : etype[i] = 0 : goto part_score
+  rem explosions down the part, and it stays as a wreck
+  temp7 = temp7 + 4 : temp8 = temp8 + 4 : gosub spawn_fx
+  temp8 = eyh[i] + 20 : gosub spawn_fx
+  etype[i] = ET_PWRECK : ecol[i] = 1 : eframe[i] = 0
+  if temp2 <> ET_PWING then goto part_score
+  temp8 = eyh[i] + 40 : gosub spawn_fx
+  etype[temp5] = ET_PWRECK : ecol[temp5] = 1
+  rem and a wing takes its turrets with it
+  if i = 1 then etype[7] = 0 : etype[8] = 0
+  if i = 3 then etype[9] = 0 : etype[10] = 0
+part_score
+  bparts = bparts + 1
   sadd2 = 0 : sadd1 = $20 : sadd0 = 0
   asm
   jsr score_add
   lda #SFX_BIGBOOM
   jsr sfx_play
 end
-  rem a wing takes its armor and its turrets with it
-  if i = 1 then etype[2] = 0 : etype[7] = 0 : etype[8] = 0
-  if i = 3 then etype[4] = 0 : etype[9] = 0 : etype[10] = 0
   return
 part_core
   eflash[5] = 3 : eflash[6] = 3
@@ -1011,7 +1065,7 @@ end
   rem ======================================================================
   rem One part of the HUD a frame, so no frame pays for all of it.
 hud
-  temp1 = tick & 3
+  temp1 = pfdraws & 3
   if temp1 = 1 then goto hud_chain
   if temp1 = 2 then goto hud_middle
   if temp1 = 3 then goto hud_lives

@@ -103,8 +103,6 @@ weave
 ; Enemy bullets.
 
 bul_fire
-     lda pflate              ; the last frame was late: hold fire this frame,
-     bne bul_fire_none       ; which keeps the bullet count (and the load) down
      ldx #NB-1
 bul_fire_find
      lda bkind,x
@@ -532,9 +530,22 @@ en_hits
      ldx #NE-1
 en_hits_loop
      lda etype,x
+     beq en_hits_skip
+     cmp #ET_PWRECK
      bne en_hits_live
+en_hits_skip
      jmp en_hits_next
 en_hits_live
+     ; ob7: nonzero for a boss wing whose turrets are still there; shots
+     ; pass through its middle column (where the turrets sit) to them
+     ldy #0
+     cmp #ET_PWING
+     bcc en_hits_hole
+     cmp #ET_PARMOR+1
+     bcs en_hits_hole
+     ldy eparam,x
+en_hits_hole
+     sty ob7
      ; box: ob2 = right edge, ob3 = bottom edge
      ldy eimg,x
      lda imgw,y
@@ -583,6 +594,16 @@ en_hits_shot
      lda shy,y
      cmp ob3
      bcs en_hits_shotnext
+     lda ob7
+     beq en_hits_take
+     lda shx,y               ; through the turret column: x - exh in 2..10
+     sec
+     sbc exh,x
+     sec
+     sbc #2
+     cmp #9
+     bcc en_hits_shotnext
+en_hits_take
      lda ehit,x
      clc
      adc vdmg
@@ -662,6 +683,13 @@ en_draw_live
      lda eflash,x
      beq en_draw_color
      dec eflash,x
+     lda etype,x             ; boss parts flash on alternate frames only:
+     cmp #ET_PART            ; all white is too much on parts that big
+     bcc en_draw_white
+     lda pfdraws             ; (frames shown, not game steps: at 30 frames a
+     lsr                     ; second only every other step is drawn)
+     bcc en_draw_color
+en_draw_white
      lda #3<<5
      bne en_draw_pal
 en_draw_color

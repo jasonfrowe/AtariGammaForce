@@ -270,6 +270,7 @@ SPRITES = [
     ("bcannon", "boss", 0, 0, None, None, 0),
     ("bturret", "boss", 0, 0, None, None, 0),
 ]
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] == "boss"}
 
 
 def sword_frames():
@@ -342,6 +343,10 @@ def build_sprites():
             incs.append(label)
         used = max((int(np.nonzero(c.any(axis=1))[0].max()) + 1) if c.any() else 1 for c in conv)
         last_h = used - 16 * (strips - 1)  # lines used in the last strip
+        if name in BOSS_PARTS:
+            # Boss parts count as full strips, so each always takes the
+            # same number of display objects (see pf_plot in engine.asm).
+            last_h = 16
         table.append((name, w // 4, strips, len(conv), max(1, last_h)))
         previews.append(preview(np.concatenate(conv, axis=1), PAL_CODES[pal], bg=(40, 0, 40)))
     return table, incs, previews

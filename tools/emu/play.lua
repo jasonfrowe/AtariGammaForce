@@ -6,6 +6,7 @@
 --                               Pause, Reset, Select)
 --   650 snap                  save a screenshot
 --   650 peek 2312 4           log 4 bytes from $2312 to PLAY_OUT
+--   650 poke 2621 01 02      write bytes from $2621
 --   650 pc                    log the CPU registers
 --   900 exit
 -- Lines starting with # are comments.
@@ -53,6 +54,11 @@ emu.register_frame_done(function()
       for i = 0, n - 1 do vals[#vals + 1] = string.format("%02x", mem:read_u8(a + i)) end
       out:write(string.format("%d %04x %s\n", f, a, table.concat(vals, " ")))
       out:flush()
+    elseif verb == "poke" then
+      local a, rest2 = arg:match("(%x+)%s*(.*)$")
+      a = tonumber(a, 16)
+      local mem = manager:machine().devices[":maincpu"].spaces["program"]
+      for v in rest2:gmatch("%x+") do mem:write_u8(a, tonumber(v, 16)); a = a + 1 end
     elseif verb == "pc" then
       local st = manager:machine().devices[":maincpu"].state
       out:write(string.format("%d pc %04x sp %02x a %02x x %02x y %02x\n", f, st["PC"].value,

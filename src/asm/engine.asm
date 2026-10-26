@@ -66,7 +66,10 @@ zonebuf     = $2290 ; [15] which DL buffer zone k uses (0-13 ring, 14-15 zone 14
 oldend      = $22A0 ; [16] each buffer's object count as last terminated
 zoneold     = $22B0 ; [15] oldend of the buffer each zone uses this frame
 pfframe     = $22C0 ; framecounter when this frame's logic started
-pflate      = $22C1 ; nonzero: the last frame's logic ran past its frame
+pflate      = $22C1 ; nonzero: the last frame's logic ran past its frame, so
+                    ; this one shows two game steps (see pf_drawscreen)
+pfnodraw    = $22C2 ; nonzero: pf_plot draws nothing (a catch-up step)
+pfdraws     = $22C3 ; counts frames drawn (for things that alternate as shown)
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
 
 RINGN       = 14
@@ -161,6 +164,8 @@ pf_init_dll
      lda #0
      sta pfspeed
      sta pfstartrow
+     sta pfnodraw
+     sta pflate
 
 ; ---------------------------------------------------------------------------
 ; pf_reset: back to the start of the map (keeps pfspeed).
@@ -384,8 +389,10 @@ pf_frame_scroll
      lda spos_lo
      and #$F0
      sta pft1
-     clc
-     lda spos_f
+     ldx pflate              ; two game steps this frame: scroll twice as far
+pf_frame_step
+     clc                     ; (under a line a step, so two steps cross at
+     lda spos_f              ; most one 16-line boundary)
      adc pfspeed
      sta spos_f
      lda spos_lo
@@ -394,6 +401,8 @@ pf_frame_scroll
      lda spos_hi
      adc #0
      sta spos_hi
+     dex
+     bpl pf_frame_step
      lda spos_lo
      and #$F0
      cmp pft1
@@ -508,11 +517,13 @@ pf_drawimg_done
      rts
 
 ; ---------------------------------------------------------------------------
-; pf_plot: one 16-line strip. sp_lo/sp_hi = graphics, sp_pw = palette and
+; pf_plot: one 16-line strip (nothing while pfnodraw is set). sp_lo/sp_hi = graphics, sp_pw = palette and
 ; width, sp_x, sp_y = playfield y + 32, sp_h = lines the strip uses from
 ; its top (a strip shorter than 16 lines skips the zone below when it ends
 ; above it). Clips at the HUD and the bottom.
 pf_plot
+     lda pfnodraw
+     bne pf_plot_out
      clc
      lda sp_y
      adc pfs
@@ -535,12 +546,16 @@ pf_plot
      ora pft2                ; upper part: hi + line
      jsr pf_object
 pf_plot_lower
+     ; A strip that reaches the zone's last line gets a lower part even
+     ; when that part is empty (lined up with the zone, its graphics are
+     ; all in the DMA holes and cost only the header). The number of
+     ; objects then doesn't change as a full strip moves, so later objects
+     ; in the zone keep their slots and are updated in place (pf_object).
      lda pft2
-     beq pf_plot_out         ; lined up with the zone: no lower part
      clc
      adc sp_h
-     cmp #17
-     bcc pf_plot_out         ; ends inside this zone
+     cmp #16
+     bcc pf_plot_out         ; ends above the zone's last line
      inx
      cpx #15
      bcs pf_plot_out
@@ -603,6 +618,30 @@ pf_object_ptr
      sta (pfp),y             ; now it exists
      rts
 pf_object_over
+     ; The same image (low byte and width) as last frame's object here, as
+     ; for a part that stays put or moves a line: rewrite palette, high
+     ; byte and x one at a time. Each store is one byte, and a line drawn
+     ; between them shows the object at most a line or pixel off, never
+     ; garbage, so it needn't be hidden (hiding drops it from that line).
+     ldy #0
+     lda (pfp),y
+     cmp sp_lo
+     bne pf_object_new
+     iny
+     lda (pfp),y
+     eor sp_pw
+     and #$1F
+     bne pf_object_new
+     lda sp_pw
+     sta (pfp),y
+     iny
+     lda pft3
+     sta (pfp),y
+     iny
+     lda sp_x
+     sta (pfp),y
+     rts
+pf_object_new
      ldy #3
      lda #160
      sta (pfp),y             ; hide the old object
@@ -702,7 +741,10 @@ pf_drawscreen
          sta interrupthold
      endif
      ; Late? The frame started in vblank, one top-of-screen NMI ago; two or
-     ; more means the logic ran into the next frame.
+     ; more means the logic ran into the next frame. This frame then shows
+     ; for two, and the next one runs two game steps (a catch-up step that
+     ; draws nothing, then the usual one), so the game keeps its speed and
+     ; only the display drops to 30 frames a second.
      lda framecounter
      sec
      sbc pfframe
@@ -710,6 +752,13 @@ pf_drawscreen
      lda #0
      rol                     ; carry set: late
      sta pflate
+     ifconst FPS30
+         ; Always 30: every frame shows for two and runs two steps.
+         bne pf_drawscreen_wait
+         inc pflate
+         jsr waitforvblankstart
+pf_drawscreen_wait
+     endif
      jsr waitforvblankstart  ; the start of MARIA's vblank (a full frame if late)
      lda #3
      sta interruptindex
@@ -722,6 +771,7 @@ pf_drawscreen
      jsr terminatedisplaylist ; zone 0 (7800basic's)
      jsr pf_terminate
      jsr pf_commit
+     inc pfdraws
      dec frameslost
      rts
 
