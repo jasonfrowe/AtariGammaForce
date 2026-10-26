@@ -132,7 +132,11 @@ same addresses, so stage code has no stage numbers in it.
 
 A map row stores the characters of its used columns (stages 1 and 2 use
 columns 4-15; outside is background) and its ready-made background
-objects; rows that are the same are stored once.
+objects; rows that are the same are stored once. Each row also has a shift
+byte (`stg_rowshift`): a whole-row shift in tiles, and a gap opened at x 80
+that moves everything right of it on (`pf_rowshift`, applied as a row is
+copied into its zone and to zone 14's tiles). Stage 2's city winds and
+splits with these, while storing each district once.
 
 Every character block starts with the font, so text keeps its character
 numbers in every stage. Stage 1's block is in the last bank; stage 2's
@@ -212,10 +216,10 @@ measures stage 1 with an invulnerable ship (`tests/boss_fps.txt`, run the
 same way with a BOSSTEST build, measures the boss); `tools/fps.py` reports
 the game speed and the frames drawn. Stage 1 (its fortress now runs most of
 the way to the boss): game speed 59/s, display
-about 53 fps; its boss 59/s, about 39 fps (its parts are ~36 objects).
-Stage 2 (the city covers the whole stage): 59/s, about 54 fps; its boss
+about 48 fps; its boss 59/s, about 42 fps (its parts are ~36 objects).
+Stage 2 (the city covers the whole stage): 58/s, about 48 fps; its boss
 fights over a mostly dark plaza (a city block under it cost most of the
-frame rate): 59/s, about 44 fps.
+frame rate): 58/s, about 34 fps.
 
 Tools: `const PROFILE = 1` times each part of the main loop (wall time,
 so MARIA and the NMIs count; `tools/profile.py`), and the `a7800dev`

@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import gen_assets as ga  # noqa: E402
 
 
-def expected_lines(spos, tiles, pals, m):
+def expected_lines(spos, tiles, pals, m, shift=None, codes=None, bg=None):
     """The 209 playfield lines as (209, 160, 3) RGB, one 160A pixel each."""
     rows = m.shape[0]
     C, s = spos >> 4, 15 - (spos & 15)
@@ -32,11 +32,18 @@ def expected_lines(spos, tiles, pals, m):
         r = C + 14 - k
         while r >= rows:
             r -= 16  # the boss loop
+        dx, gap = shift[r] if shift else (0, 0)
+        out[L, :] = ga.rgb_of(bg if bg is not None else ga.BG_CODE)
         for c in range(20):
             t = int(m[r, c])
-            cols = [ga.rgb_of(ga.BG_CODE)] + [ga.rgb_of(x) for x in ga.PAL_CODES[pals[t]]]
+            if t == 0 and shift:
+                continue  # background
+            pc = (codes or ga.PAL_CODES)[pals[t]]
+            cols = [ga.rgb_of(bg if bg is not None else ga.BG_CODE)] + [ga.rgb_of(x) for x in pc]
+            x0 = c * 8 + dx * 8 + (gap * 8 if c * 8 >= 80 else 0)
             for x in range(8):
-                out[L, c * 8 + x] = cols[tiles[t][line, x]]
+                if 0 <= x0 + x < 160:
+                    out[L, x0 + x] = cols[tiles[t][line, x]]
     return out
 
 
@@ -45,8 +52,13 @@ TOP = 26  # screenshot line where the playfield starts (HUD is the 16 above)
 
 def main():
     d = Path(sys.argv[1])
-    st = ga.stage1()
+    st = ga.stage2() if len(sys.argv) > 2 and sys.argv[2] == "2" else ga.stage1()
     m, tiles, pals = st["map"], st["t_slots"], st["t_pals"]
+    shift = st.get("shift")
+    codes = list(ga.PAL_CODES)
+    if st.get("pal_codes"):
+        codes[0:3] = st["pal_codes"]
+    bg = st["bg"]
     ok = True
     # play.sh log: "<frame> 2231 <lo> <hi>" per screenshot, in order
     probes = [l.split() for l in (d / "play.txt").read_text().split("\n") if l.split()[1:2] == ["2231"]]
@@ -58,7 +70,7 @@ def main():
         # this position or an earlier one (more than one when frames lag).
         results = []
         for pos in (spos, spos - 1, spos - 2, spos - 3):
-            exp = expected_lines(pos, tiles, pals, m)
+            exp = expected_lines(pos, tiles, pals, m, shift, codes, bg)
             bad = [L for L in range(209) if np.any(shot[TOP + L] != exp[L], axis=1).mean() > 0.5]
             results.append((len(bad), pos, bad))
         nbad, pos, bad = min(results)

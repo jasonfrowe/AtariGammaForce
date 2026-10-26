@@ -447,9 +447,11 @@ en_update_loop
 en_update_live
      cmp #ET_TURRET
      beq en_update_ground
+     cmp #ET_TOWER
+     beq en_update_ground
      cmp #ET_TANK
      bne en_update_air
-     ; tanks drive along their road, and leave at the city's edge
+     ; tanks drive along their road, and leave at the screen's edge
      lda evx,x
      jsr ob_x8
      clc
@@ -459,9 +461,9 @@ en_update_live
      lda exh,x
      adc ob2
      sta exh,x
-     cmp #24
+     cmp #2
      bcc en_update_tankoff
-     cmp #133
+     cmp #152
      bcc en_update_ground
 en_update_tankoff
      jmp en_update_kill
@@ -576,7 +578,7 @@ en_hits_hole
      sbc #1
      sta ob2
      lda imgstrips,y
-     lsr                     ; 1 strip: 0, 2 strips: 1
+     cmp #2                  ; 1 strip: 16 lines, 2 strips: 32 (less 2)
      lda #14
      bcc en_hits_h
      lda #30
@@ -584,6 +586,12 @@ en_hits_h
      clc
      adc eyh,x
      sta ob3
+     ; towers can't be shot or cut: only the ship meets them
+     lda etype,x
+     cmp #ET_TOWER
+     bne en_hits_weapons
+     jmp en_hits_ship
+en_hits_weapons
      ; Vulcan: every live shot inside the box. Each enemy is checked every
      ; other frame: a shot moves 12 lines in two, and the overlap window
      ; (enemy 16 + shot 12 lines) is wider, so none slip through.
@@ -1411,12 +1419,7 @@ pl_u_shot
      sec
      sbc #6
      sta shy,x
-     lda #4                  ; the Vulcan only speeds up at level 4
-     ldx vlv
-     cpx #3
-     bcc pl_u_cd
-     lda #3
-pl_u_cd
+     lda #4                  ; a pair of bolts every 4 frames
      sta firecd
      lda #SFX_VULCAN
      jsr sfx_play
@@ -1441,20 +1444,15 @@ pl_u_sw1
      clc
      adc #26
      sta swy1
-     ; it strikes every 8 frames at level 1, every 4 at level 5, and harder
+     ; it strikes for 4 every 6 frames
      lda swcd
      beq pl_u_strike
      dec swcd
      bne pl_u_hum
 pl_u_strike
-     lda slv
-     lsr
-     clc
-     adc #3
+     lda #4
      sta swdmg
-     lda #8
-     sec
-     sbc slv
+     lda #6
      sta swcd
 pl_u_hum
      lda tick

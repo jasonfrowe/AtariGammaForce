@@ -3,7 +3,8 @@
   rem  in stage 2's bank (switched in for the whole stage); the shared boss
   rem  code in gammaforce.bas calls it.
   rem  Slots: 0 the twin cannon, 1-2 the shoulder turrets, 5-6 the core
-  rem  (two halves sharing bcorehp), 8-10 the pods that orbit the core. The
+  rem  (two halves sharing bcorehp; its eye stays shut, and it takes no
+  rem  damage, until every pod is destroyed), 8-10 the pods that orbit it. The
   rem  pods are last: as they cross between zones the parts drawn before
   rem  them keep their places in the display lists (engine.asm pf_object).
   rem ======================================================================
@@ -53,11 +54,16 @@ b2_orbit_pod
 end
   return
 
-  rem The pods' lights turn; the cannon glows before each sweep.
+  rem The pods' lights turn; the core's eye opens once every pod is gone;
+  rem the cannon glows before each sweep.
 boss2_frames
   temp1 = (tick / 8) & 1
   eframe[8] = temp1 : eframe[10] = temp1
   eframe[9] = 1 - temp1
+  temp1 = etype[8] | etype[9] | etype[10]
+  temp2 = 1
+  if temp1 then temp2 = 0
+  eframe[5] = temp2 : eframe[6] = temp2
   eframe[0] = 0
   if etype[0] <> ET_PCANNON then return
   if btl >= 40 && btl < 64 then eframe[0] = (tick / 4) & 1
@@ -153,7 +159,7 @@ end
   IMG_B2CANNON, IMG_BTURRET, IMG_BTURRET, 0, 0, IMG_B2CORET, IMG_B2COREB, 0, IMG_B2POD, IMG_B2POD, IMG_B2POD
 end
   data boss2_hp
-  160, 50, 50, 0, 0, 255, 255, 0, 120, 120, 120
+  240, 120, 120, 0, 0, 255, 255, 0, 200, 200, 200
 end
   rem top-left x and y of each part relative to (bx, by), two's complement
   rem (the pods' are set as they orbit)

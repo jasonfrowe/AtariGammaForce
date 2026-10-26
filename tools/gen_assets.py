@@ -182,7 +182,6 @@ TEXTS = {
     "hudover": "GAMEOVER",
     "hudwarn": "WARNING",
     "hudclear": "CLEARED!",
-    "hudlevel": "LEVEL UP",
     "hudstage": "STAGE ",
 }
 
@@ -256,6 +255,7 @@ SPRITES = [
     # Stage 2's own enemies (in its bank's graphics block)
     ("wasp", "art", 0, 0, None, None, 4),
     ("tank", "tank", 0, 0, None, None, 5),
+    ("tower", "tower", 0, 0, None, None, 0),
     # SPIRE WARDEN, stage 2's boss (tools/boss7800.py), in its bank too
     ("b2coret", "boss2", 0, 0, None, None, 0),
     ("b2coreb", "boss2", 0, 0, None, None, 0),
@@ -279,8 +279,9 @@ SPRITES = [
 ]
 BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2")}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
-STAGE2_SPRITES = {"wasp", "tank", "b2coret", "b2coreb", "b2pod", "b2cannon"}
-STAGE2_STRIPS = {"wasp", "tank", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
+# (the wasp and the tank are in the last bank's sprite block: they don't fit)
+STAGE2_SPRITES = {"tower", "b2coret", "b2coreb", "b2pod", "b2cannon"}
+STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
 
@@ -345,6 +346,27 @@ def tank_frames():
     return frames
 
 
+def tower_frame():
+    """Stage 2's obstacle: a neon tower seen from above, its roof (with a
+    beacon) and below it the lit face it leans out over. 16 pixels by 32
+    lines, in the neon palette (1 dark violet, 2 violet, 3 pink)."""
+    a = np.zeros((32, 16), dtype=np.uint8)
+    a[0:12, 0:16] = 1                    # roof, outlined
+    a[1:11, 1:15] = 2
+    a[1, 1:15] = 3                       # lit parapet
+    a[1:11, 1] = 3
+    a[4:8, 6:10] = 1                     # the beacon on its housing
+    a[5:7, 7:9] = 3
+    a[12:31, 1:15] = 1                   # the face, dark
+    for y in range(13, 30, 4):           # bands of windows
+        for x in range(2, 14, 3):
+            a[y:y + 2, x:x + 2] = 3 if (x + y) % 7 else 2
+    a[12:31, 0] = 1
+    a[12:31, 15] = 1
+    a[31, 1:15] = 1
+    return a
+
+
 def build_sprites():
     """Returns the image table: list of (label, width_bytes, strips)."""
     table = []
@@ -369,6 +391,8 @@ def build_sprites():
             conv = sword_frames()
         elif fn == "tank":
             conv = tank_frames()
+        elif fn == "tower":
+            conv = [tower_frame()]
         elif fn is None:
             conv = [np.array(f, dtype=np.uint8) for f in HAND_DRAWN[name]]
         else:
@@ -421,8 +445,8 @@ def build_sprites():
 MAX_RUNS = 6
 MAX_ROWS = 208
 MAX_WAVES = 40
-MAX_GROUND = 32
-MAX_CHARS = 192
+MAX_GROUND = 40
+MAX_TILES = 64
 WAVE_FIELDS = ("watl", "wath", "wtype", "wpal", "wx", "wdx", "wcount", "wgap", "wparam")
 GROUND_FIELDS = ("gtl", "gth", "gtx", "gtbase", "gtype", "gpal", "gparam")
 
@@ -443,8 +467,8 @@ def stg_layout():
     for f in GROUND_FIELDS:
         lay[f] = (off, MAX_GROUND)
         off += MAX_GROUND
-    for name, size in (("stg_tilepw", MAX_CHARS), ("stg_rowlo", MAX_ROWS), ("stg_rowhi", MAX_ROWS),
-                       ("stg_charlo", MAX_ROWS), ("stg_charhi", MAX_ROWS)):
+    for name, size in (("stg_tilepw", MAX_TILES), ("stg_rowlo", MAX_ROWS), ("stg_rowhi", MAX_ROWS),
+                       ("stg_charlo", MAX_ROWS), ("stg_charhi", MAX_ROWS), ("stg_rowshift", MAX_ROWS)):
         lay[name] = (off, size)
         off += size
     lay["stg_end"] = (off, 0)
@@ -454,20 +478,24 @@ def stg_layout():
 STG = stg_layout()
 
 
-def row_runs(pals):
+SPLIT_COL = 10   # the column at x 80, where a row's gap opens (pf_shiftx)
+
+
+def row_runs(pals, split=None):
     runs = []
     for c, p in enumerate(pals):
-        if runs and runs[-1][2] == p:
+        if runs and runs[-1][2] == p and c != split:
             runs[-1][1] += 1
         else:
             runs.append([c, 1, p])
-    # Too many objects for one zone: fold the shortest run into a neighbor.
+    # Too many objects for one zone: fold the shortest run into a neighbor
+    # (taking the neighbor's palette), never across the split.
     while len(runs) > MAX_RUNS:
-        i = min(range(len(runs)), key=lambda k: runs[k][1])
-        j = i - 1 if i > 0 else i + 1
-        a, b = sorted((i, j))
-        runs[a] = [runs[a][0], runs[a][1] + runs[b][1], runs[j][2]]
-        del runs[b]
+        pairs = [a for a in range(len(runs) - 1) if runs[a + 1][0] != split]
+        a = min(pairs, key=lambda k: min(runs[k][1], runs[k + 1][1]))
+        keep = runs[a] if runs[a][1] >= runs[a + 1][1] else runs[a + 1]
+        runs[a] = [runs[a][0], runs[a][1] + runs[a + 1][1], keep[2]]
+        del runs[a + 1]
     return runs
 
 
@@ -499,7 +527,8 @@ def stage_bank(st):
     # background), which tiles7800 arranges.
     assert blank == set(range(len(blank)))
     chars = lambda t: first_tile_char + 2 * int(t)  # noqa: E731
-    assert 2 * NFONT + 2 * len(t_pals) <= MAX_CHARS
+    assert len(t_pals) <= MAX_TILES
+    shift = st.get("shift") or [(0, 0)] * rows
 
     lines = [f"; Generated by tools/gen_assets.py. Do not edit.",
              f"; Stage {n}'s bank: switched in at $8000 for the whole stage.",
@@ -514,10 +543,10 @@ def stage_bank(st):
         lines += table(f"{p}_{f}", st["waves"][f], MAX_WAVES, per=20)
     for f in GROUND_FIELDS:
         lines += table(f"{p}_{f}", st["ground"][f], MAX_GROUND)
-    pw = [0] * first_tile_char + [(t_pals[c // 2] << 5) | ((-2) & 31) for c in range(2 * len(t_pals))]
-    lines.append("; Direct-mode palette|width byte for each character (zone 14 draws its")
-    lines.append("; tiles as one 2-byte-wide object each), indexed by character number.")
-    lines += table(f"{p}_tilepw", pw, MAX_CHARS)
+    pw = [(pal << 5) | ((-2) & 31) for pal in t_pals]
+    lines.append("; Direct-mode palette|width byte for each tile (zone 14 draws its")
+    lines.append("; tiles as one 2-byte-wide object each).")
+    lines += table(f"{p}_tilepw", pw, MAX_TILES)
 
     # Rows: the same row is stored once.
     uniq, which = {}, []
@@ -532,6 +561,11 @@ def stage_bank(st):
             lines.append("  .byte " + ",".join(f"{op}{p}{lab}{which[k]}" for k in range(r, min(rows, r + 8))))
         if rows < MAX_ROWS:
             lines.append(f"  ds {MAX_ROWS - rows},0")
+    # each row's shift: high nibble a signed whole-row shift in tiles, low
+    # nibble a gap in tiles opened at x 80 (engine.asm pf_rowshift)
+    for dx, gap in shift:
+        assert -8 <= dx <= 7 and 0 <= gap <= 15
+    lines += table(f"{p}_rowshift", [((dx & 15) << 4) | gap for dx, gap in shift], MAX_ROWS)
     lines.append(f"  if . - stage{n}_header != {STG['stg_end'][0]}")
     lines.append(f'    echo "ERROR: stage {n} header layout"')
     lines.append("    err")
@@ -542,7 +576,7 @@ def stage_bank(st):
     max_bytes = 0
     for key, u in uniq.items():
         lines.append(f"{p}r{u} .byte " + ",".join(str(chars(t)) for t in key))
-        runs = row_runs([t_pals[t] for t in key])
+        runs = row_runs([t_pals[t] for t in key], split=SPLIT_COL - col0)
         # background tiles are the background color: no objects
         runs = [rn for rn in runs if not all(key[c] in blank for c in range(rn[0], rn[0] + rn[1]))]
         max_bytes = max(max_bytes, 5 * len(runs))
@@ -640,7 +674,7 @@ def chain_table():
 # MegaGammaForce coordinates to ours: its playfield is 192 x 240, ours is
 # 160 x 209 (y stored + 32).
 ENEMY_TYPES = {"ET_DART": 1, "ET_SAUCER": 2, "ET_DRONE": 3, "ET_GUNSHIP": 4, "ET_TURRET": 5,
-               "ET_WASP": 6, "ET_TANK": 7}
+               "ET_WASP": 6, "ET_TANK": 7, "ET_TOWER": 8}
 ENEMY_WIDTH = {"ET_GUNSHIP": 16}
 COLOR_PAL = {"COL_RED": 4, "COL_BLUE": 5, "COL_YELLOW": 6, "COL_GRAY": 2}
 
@@ -675,7 +709,7 @@ def ground_cols(units):
     for y, x, typ, pal, param in sorted(units):
         # Screen line of world height y is spos + 208 - y; the sprite's top
         # is 8 above its centre, stored + 32: eyh = spos + 232 - y.
-        t = max(0, y - 216)
+        t = max(0, y - 216 - (16 if typ == "ET_TOWER" else 0))
         cols["gtl"].append(t & 255)
         cols["gth"].append(t >> 8)
         cols["gtx"].append(max(0, min(152, x - 4)))
@@ -710,9 +744,19 @@ STAGE2_PALETTES = [
     [(36, 32, 56), (86, 80, 116), (250, 170, 40)],       # P2 roof dark and plate, amber
 ]
 # The districts (8-row blocks of stage2_blocks.bin) in stage order: each
-# of the eight three times, then the boss loop.
-STAGE2_ORDER = [0, 1, 2, 3, 4, 5, 6, 7, 2, 5, 0, 7, 3, 6, 1, 4, 6, 3, 7, 0, 5, 2, 4, 1]
+# of the eight three times or so, then the boss loop.
+STAGE2_ORDER = [0, 1, 2, 3, 4, 6, 7, 2, 1, 5, 0, 5, 3, 6, 1, 4, 6, 3, 7, 0, 5, 0, 4, 7]
 WAVES_END_2 = 2950   # MegaGammaForce's stage 2: no ground units past this
+# The city winds: each district's (shift, gap) in tiles (engine.asm
+# pf_rowshift). The shift moves the whole block left or right; the gap
+# splits it at its middle (x 80), the right half moving on by the gap, so
+# the city parts around a dark channel. Only districts 0 and 5 split: their
+# avenue runs down that column, so they part along a street, not through
+# buildings. The right edge stays on screen: shift + gap <= 4.
+STAGE2_SHIFT = [(0, 0), (-1, 0), (-2, 0), (-3, 0), (-4, 0), (-4, 0), (-3, 0), (-4, 0),
+                (-4, 0), (-4, 8), (-4, 8), (-4, 8), (-2, 0), (0, 0), (2, 0), (4, 0),
+                (3, 0), (1, 0), (-2, 0), (-4, 8), (-4, 8), (-4, 8), (-2, 0), (0, 0)]
+assert all(STAGE2_ORDER[k] in (0, 5) for k, (_, gap) in enumerate(STAGE2_SHIFT) if gap)
 
 
 def stage2_plaza(ids, lut, rows):
@@ -746,6 +790,12 @@ def stage2():
     m = np.zeros((rows, 20), dtype=np.uint8)
     m[:city.shape[0], 4:16] = np.vectorize(lambda t: lut[int(t)])(city)
     m[city.shape[0]:] = stage2_plaza(meta["tile_ids"], lut, len(loop))
+    shift = [STAGE2_SHIFT[r // br] for r in range(city.shape[0])] + [(0, 0)] * len(loop)
+
+    def sx(x, r):
+        """A city x (our pixels, unshifted) at map row r, shifted."""
+        dx, gap = shift[r]
+        return x + dx * 8 + (gap * 8 if x >= 80 else 0)
 
     # Ground units, by MegaGammaForce's rules (stages.py stage2): guns on
     # three pads in four, tanks on three roads in eight, alternating
@@ -759,18 +809,32 @@ def stage2():
     for i, (r, c) in enumerate(p for k, p in enumerate(sorted(pads)) if k % 4 != 3):
         y = (r + 1) * 16
         if 300 < y < WAVES_END_2:
-            units.append((y, 32 + (c + 1) * 8, "ET_TURRET", 4 + i % 3, 0))
+            units.append((y, sx(32 + (c + 1) * 8, r), "ET_TURRET", 4 + i % 3, 0))
     k = 0
     for band in range(len(STAGE2_ORDER)):
         r = band * br
         y = r * 16 + 8
-        if y < 500 or y > WAVES_END_2 - 100 or band % 8 not in (0, 3, 5):
-            continue
+        if y < 500 or y > WAVES_END_2 - 100 or band % 8 not in (0, 3, 5) or shift[r][1]:
+            continue  # (no tanks on a split road: they'd drive into the channel)
         left = k % 2 == 1
-        units.append((y, 128 if left else 36, "ET_TANK", 4 + (k // 3) % 3, (0x80 if left else 0) | 10))
+        x = sx(124, r) if left else sx(36, r)
+        units.append((y, x, "ET_TANK", 4 + (k // 3) % 3, (0x80 if left else 0) | 10))
         k += 1
 
-    return {"n": 2, "map": m, "t_slots": t_slots, "t_pals": t_pals,
+    # Towers: obstacles on rooftops (2 x 2 tiles of plain roof), every other
+    # district from the third, on alternate sides of the city.
+    names = {v: k for k, v in meta["tile_ids"].items()}
+    for n, k in enumerate(range(2, len(STAGE2_ORDER) - 1, 2)):
+        r0 = k * br
+        side = range(0, 5) if n % 2 == 0 else range(7, 11)
+        spot = next(((r, c) for r in range(r0 + 2, r0 + 6) for c in side
+                     if all(names[int(city[rr, cc])].startswith("roof")
+                            for rr in (r, r + 1) for cc in (c, c + 1))), None)
+        if spot:
+            r, c = spot
+            units.append(((r + 2) * 16 - 8, sx(32 + c * 8, r) + 4, "ET_TOWER", 0, 0))
+
+    return {"n": 2, "map": m, "t_slots": t_slots, "t_pals": t_pals, "shift": shift,
             "blank": {0}, "col0": 4, "col1": 16, "loop": meta["loop_rows"],
             "charset": "charset2", "pals": [nearest(c) for p in STAGE2_PALETTES for c in p],
             "bg": nearest(STAGE2_BG), "song": "SONG_STAGE2", "bosssong": "SONG_BOSS2",

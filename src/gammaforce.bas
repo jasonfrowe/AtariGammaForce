@@ -55,6 +55,9 @@
   const ET_TURRET = 5
   const ET_WASP = 6
   const ET_TANK = 7
+  rem an obstacle (stage 2's towers): rides the map, can't be shot, and
+  rem destroys the ship that flies into it
+  const ET_TOWER = 8
   rem boss parts: types from ET_PART up are placed by the boss code
   const ET_PART = 10
   const ET_PCANNON = 10
@@ -169,12 +172,7 @@
   dim bvx = $24D0
   dim bvy = $24E0
   dim shcount = $233F
-  dim vxp = $2350
-  dim sxp = $2351
-  dim vlv = $2352
-  dim slv = $2353
   dim swcd = $2354
-  dim lvmsg = $2355
   dim anyhit = $2356
   dim plfire = $2357
   dim plsword = $2358
@@ -326,7 +324,7 @@ newgame
   lives = 3 : gauge = 0 : hyper = 0
   chlevel = 0 : chcount = 0 : chcolor = 255
   vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0 : gn = 0 : gcolor = 0
-  vxp = 0 : sxp = 0 : vlv = 0 : slv = 0 : swcd = 0 : lvmsg = 0
+  swcd = 0
   for i = 0 to NE1 : etype[i] = 0 : next
   for i = 0 to NB1 : bkind[i] = 0 : next
   for i = 0 to NS1 : shy[i] = 0 : next
@@ -683,7 +681,6 @@ destroy_small
   jsr sfx_play
 end
 destroy_score
-  temp3 = enemy_hp[temp1] / 4 + 1 : gosub weapon_xp
   etype[i] = 0
   sadd2 = 0 : sadd1 = enemy_score1[temp1] : sadd0 = 0
   asm
@@ -694,37 +691,6 @@ end
   if temp2 < 4 then return
   gosub chain_kill
   return
-
-  rem Experience temp3 for the weapon that made the kill: the sword if it
-  rem is out, else the Vulcan (which learns at half the rate). Levels at
-  rem 25, 75, 150, 250 (MegaGammaForce's 50/150/300/500, halved to fit a byte).
-weapon_xp
-  if swon then goto weapon_xp_sword
-  if vlv >= 4 then return
-  temp3 = temp3 / 2 + 1
-  temp4 = vxp + temp3
-  if temp4 < vxp then temp4 = 255
-  vxp = temp4
-  if vxp < level_xp[vlv] then return
-  vlv = vlv + 1 : goto weapon_xp_up
-weapon_xp_sword
-  if slv >= 4 then return
-  temp4 = sxp + temp3
-  if temp4 < sxp then temp4 = 255
-  sxp = temp4
-  if sxp < level_xp[slv] then return
-  slv = slv + 1
-weapon_xp_up
-  lvmsg = 90
-  asm
-  lda #SFX_HYPER
-  jsr sfx_play
-end
-  return
-
-  data level_xp
-  25, 75, 150, 250
-end
 
   rem MegaGammaForce's chain_kill(): three of a color complete a set.
 chain_kill
@@ -1101,13 +1067,12 @@ part_damage
 part_hit
   temp2 = etype[i]
   if temp2 = ET_PWRECK then return
+  if temp2 = ET_PCORE then goto part_core
   eflash[i] = 3
   temp5 = i + 1
   if temp2 = ET_PWING then eflash[temp5] = 3
-  if temp2 = ET_PCORE then goto part_core
   if ehp[i] > temp1 then ehp[i] = ehp[i] - temp1 : return
   rem a part is destroyed: 2,000 points
-  temp3 = boss_hp[i] / 4 + 1 : gosub weapon_xp
   temp7 = exh[i] : temp8 = eyh[i]
   if temp2 = ET_PTURRET then gosub spawn_fx : etype[i] = 0 : goto part_score
   if temp2 = ET_PPOD then temp7 = temp7 + 4 : temp8 = temp8 + 8 : gosub spawn_fx : etype[i] = 0 : goto part_score
@@ -1131,6 +1096,11 @@ part_score
 end
   return
 part_core
+  rem stage 2's core is shut while any of its pods orbits
+  if stage <> 2 then goto part_core_open
+  temp6 = etype[8] | etype[9] | etype[10]
+  if temp6 then return
+part_core_open
   eflash[5] = 3 : eflash[6] = 3
   rem the core is armored: half damage
   temp1 = temp1 / 2 + 1
@@ -1247,7 +1217,6 @@ hud_middle
   if bmsg = 1 then goto hud_warning
   if bmsg = 2 then goto hud_clear
   if smsg > 0 then goto hud_stage
-  if lvmsg > 0 then goto hud_level
   if gauge >= GAUGE_MAX then goto hud_hyper
   temp3 = gauge / 8
   for k = 0 to 4
@@ -1267,7 +1236,6 @@ hud_hyper
 hud_lives
   if overt > 0 then return
   if bmsg > 0 then return
-  if lvmsg > 0 then return
   if smsg > 0 then return
   hudtext[17] = CH_SPACE
   hudtext[18] = CH_X
@@ -1282,13 +1250,6 @@ hud_warning
     hudtext[temp5] = temp4
   next
   hudtext[19] = CH_SPACE
-  return
-hud_level
-  if lvmsg > 4 then lvmsg = lvmsg - 4 else lvmsg = 0
-  for k = 0 to 7
-    temp5 = 12 + k
-    hudtext[temp5] = hudlevel[k]
-  next
   return
 hud_stage
   if smsg > 4 then smsg = smsg - 4 else smsg = 0
@@ -1320,14 +1281,15 @@ userinterrupt
 end
 
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----
+  rem hit points: the Vulcan does 3 a bolt pair, the sword 4 a strike
   data enemy_hp
-  0, 2, 4, 10, 60, 8, 3, 10
+  0, 2, 12, 30, 60, 24, 9, 30, 255
 end
   data enemy_score1
-  0, $01, $02, $03, $20, $03, $01, $04
+  0, $01, $02, $03, $20, $03, $01, $04, 0
 end
   data enemy_img
-  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP, IMG_TURRET, IMG_WASP, IMG_TANK
+  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP, IMG_TURRET, IMG_WASP, IMG_TANK, IMG_TOWER
 end
 
   rem Assembly files are copied flat into the build directory (tools/build.sh).

@@ -9,11 +9,11 @@ with an assembly display engine for smooth vertical scrolling.
 
 **Status:** playable through two stages, round and round. Stage 1 (the
 fortress at sea, and the GAMMA CORE) and stage 2 (NEON SPIRES, a city at
-night, with wasps, tanks and the SPIRE WARDEN) scroll pixel-exact to
+night that winds and splits, with wasps, tanks, towers to fly around and
+the SPIRE WARDEN) scroll pixel-exact to
 MegaGammaForce's music converted to POKEY, with its enemy waves, ground
 units and bullet patterns; the Vulcan, the Radiant Sword (absorbing pink
-bullets), the Hyper Sword, the color chain, weapon levels, score and
-lives work. See [docs/DESIGN.md](docs/DESIGN.md) for the plan and
+bullets), the Hyper Sword, the color chain, score and lives work. See [docs/DESIGN.md](docs/DESIGN.md) for the plan and
 [docs/ENGINE.md](docs/ENGINE.md) for how the scrolling and the stage banks
 work.
 

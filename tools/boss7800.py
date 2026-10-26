@@ -154,9 +154,9 @@ def parts():
 # SPIRE WARDEN, the stage 2 boss. Palette P0 in stage 2 (neon): 1 dark
 # violet, 2 violet, 3 magenta.
 
-def core2():
+def core2(open_eye=True):
     """The defence core: 32 px by 64 lines, an armored spire with a ringed
-    magenta eye, fins top and bottom."""
+    eye, fins top and bottom. Closed, armored shutters cover the eye."""
     c = Canvas(32, 64)
     body = poly([(32, 0), (52, 10), (60, 28), (60, 40), (50, 56), (32, 63), (14, 56), (4, 40), (4, 28), (12, 10)])
     c.fill(body, 2)
@@ -167,9 +167,16 @@ def core2():
     c.fill(lambda x, y: body(x, y) and (abs(y - 14) < 0.6 or abs(y - 50) < 0.6) and 14 < x < 50, 1)
     # the eye
     c.fill(circle(32, 32, 15), 1)
-    c.fill(ring(32, 32, 9, 13), 3)
-    c.fill(circle(32, 32, 6), 3)
-    c.fill(circle(29, 29, 2), 2)
+    if open_eye:
+        c.fill(ring(32, 32, 9, 13), 3)
+        c.fill(circle(32, 32, 6), 3)
+        c.fill(circle(29, 29, 2), 2)
+    else:
+        # two shutters meeting in a dark seam, a glint of the eye between
+        c.fill(lambda x, y: (x - 32) ** 2 + (y - 32) ** 2 < 13 * 13 and abs(y - 32) > 1.2, 2)
+        c.fill(lambda x, y: (x - 32) ** 2 + (y - 32) ** 2 < 13 * 13 and abs(y - 32) > 1.2
+               and int(x) % 8 == 0, 1)
+        c.fill(lambda x, y: abs(y - 32) <= 1.2 and abs(x - 32) < 4, 3)
     return [c.a]
 
 
@@ -209,5 +216,7 @@ def cannon2():
 
 
 def parts2():
-    co = core2()[0]
-    return {"b2coret": [co[:32]], "b2coreb": [co[32:]], "b2pod": pod(), "b2cannon": cannon2()}
+    """Frames: the core closed (0) and open (1)."""
+    shut, op = core2(False)[0], core2(True)[0]
+    return {"b2coret": [shut[:32], op[:32]], "b2coreb": [shut[32:], op[32:]],
+            "b2pod": pod(), "b2cannon": cannon2()}

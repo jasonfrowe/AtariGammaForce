@@ -207,6 +207,8 @@ pfhudobj
 ; ---------------------------------------------------------------------------
 ; pf_buildrow: copy map row Y's background objects into ring buffer X.
 pf_buildrow
+     lda stg_rowshift,y
+     jsr pf_rowshift
      lda stg_rowlo,y
      sta pfp
      lda stg_rowhi,y
@@ -225,7 +227,51 @@ pf_buildrow_copy
      dey
      sta (pfq),y
      bne pf_buildrow_copy
+     ; then move the objects by the row's shift (each object's x is its
+     ; fifth byte)
+     ldy #4
+pf_buildrow_x
+     tya
+     cmp bgsize,x
+     bcs pf_buildrow_done
+     lda (pfq),y
+     jsr pf_shiftx
+     sta (pfq),y
+     tya
+     clc
+     adc #5
+     tay
+     bne pf_buildrow_x
 pf_buildrow_done
+     rts
+
+; pf_rowshift: A = a row's shift byte (stg_rowshift): high nibble, a signed
+; whole-row shift in tiles; low nibble, a gap in tiles opened at the
+; city's middle (x 80: everything right of it moves on by the gap, so the
+; city splits). -> pft2 = the shift in pixels, pft5 = the gap in pixels.
+pf_rowshift
+     pha
+     and #$0F
+     asl
+     asl
+     asl
+     sta pft5
+     pla
+     and #$F0
+     cmp #$80                ; (the sign into carry)
+     ror                     ; nibble * 16 / 2 = nibble * 8, signed
+     sta pft2
+     rts
+
+; pf_shiftx: A = an x before the shift -> A = x after it.
+pf_shiftx
+     cmp #80
+     bcc pf_shiftx_left
+     clc
+     adc pft5
+pf_shiftx_left
+     clc
+     adc pft2
      rts
 
 ; ---------------------------------------------------------------------------
@@ -281,6 +327,8 @@ pf_zone14
      lda pfrow14
      sta pfz14row,x
      tay
+     lda stg_rowshift,y
+     jsr pf_rowshift
      lda stg_charlo,y
      sta pfp
      lda stg_charhi,y
@@ -300,9 +348,12 @@ pf_zone14_tile
      lda (pfp),y             ; character
      cmp stg_blank
      bcc pf_zone14_skip
-     tax
      ldy pft3
      sta (pfq),y
+     sec                     ; its palette: by tile, (character - font) / 2
+     sbc #NFONTCHARS
+     lsr
+     tax
      iny
      lda stg_tilepw,x
      sta (pfq),y
@@ -312,7 +363,8 @@ pf_zone14_tile
      asl
      asl
      asl
-     sta (pfq),y             ; x = column * 8
+     jsr pf_shiftx
+     sta (pfq),y             ; x = column * 8, shifted
      iny
      sty pft3
 pf_zone14_skip
