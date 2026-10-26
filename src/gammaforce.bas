@@ -1283,7 +1283,7 @@ end
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----
   rem hit points: the Vulcan does 3 a bolt pair, the sword 4 a strike
   data enemy_hp
-  0, 2, 8, 12, 60, 16, 9, 20, 255
+  0, 2, 6, 9, 60, 16, 9, 20, 255
 end
   data enemy_score1
   0, $01, $02, $03, $20, $03, $01, $04, 0

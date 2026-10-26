@@ -18,6 +18,14 @@
 ; 256 per turn, 0 = right, 64 = down. All arrays are dimmed in BASIC.
 ; ===========================================================================
 
+; Towers on screen this frame (en_hits notes them; bul_update stops enemy
+; bullets on them): their boxes.
+ntow        = $2381
+towx0       = $2384 ; [3]
+towx1       = $2387
+towy0       = $238A
+towy1       = $238D
+
 ob1         = $BB   ; zero page scratch (7800basic's tracker block)
 ob2         = $BC
 ob3         = $BD
@@ -342,6 +350,26 @@ bul_update_live
 bul_update_off
      jmp bul_update_kill
 bul_update_on
+     ; towers stop bullets
+     ldy ntow
+     beq bul_update_sw
+bul_update_tow
+     dey
+     lda bxh,x
+     cmp towx0,y
+     bcc bul_update_tnext
+     cmp towx1,y
+     bcs bul_update_tnext
+     lda byh,x
+     cmp towy0,y
+     bcc bul_update_tnext
+     cmp towy1,y
+     bcs bul_update_tnext
+     jmp bul_update_kill
+bul_update_tnext
+     tya
+     bne bul_update_tow
+bul_update_sw
      ; the sword absorbs pink bullets (odd kinds)
      lda swon
      beq bul_update_hit
@@ -544,10 +572,176 @@ en_update_next
 en_update_done
      rts
 
+; A tower (box exh..ob2, eyh..ob3): every shot inside it is stopped; its box
+; is noted for bul_update; and the ship, if it overlaps (its body: plx+3 to
+; plx+12, ply+2 to ply+21), is pushed out the shortest way. Pushed down off
+; the bottom, it is crushed.
+en_hits_tower
+     ldy #NS-1
+eht_shot
+     lda shy,y
+     beq eht_shotnext
+     lda shx,y
+     clc
+     adc #3
+     cmp exh,x
+     bcc eht_shotnext
+     lda shx,y
+     cmp ob2
+     bcs eht_shotnext
+     lda shy,y
+     clc
+     adc #7
+     cmp eyh,x
+     bcc eht_shotnext
+     lda shy,y
+     cmp ob3
+     bcs eht_shotnext
+     lda #0
+     sta shy,y
+eht_shotnext
+     dey
+     bpl eht_shot
+     ldy ntow
+     cpy #3
+     bcs eht_ship
+     lda exh,x
+     sta towx0,y
+     lda ob2
+     sta towx1,y
+     lda eyh,x
+     sta towy0,y
+     lda ob3
+     sta towy1,y
+     inc ntow
+     jmp eht_ship
+eht_out
+     jmp en_hits_next        ; (in branch range of the tests below)
+eht_ship
+     lda pdead
+     bne eht_out
+     ; how far to push the ship left (ob1), right (ob5), up (ob6), down (ob8)
+     lda plx
+     clc
+     adc #13
+     sec
+     sbc exh,x
+     bcc eht_out            ; wholly left of it
+     beq eht_out
+     sta ob1
+     lda plx
+     clc
+     adc #3
+     sta ob5
+     lda ob2
+     sec
+     sbc ob5
+     bcc eht_out            ; wholly right of it
+     adc #0                  ; (+1: carry set)
+     sta ob5
+     lda ply
+     clc
+     adc #22
+     sec
+     sbc eyh,x
+     bcc eht_out            ; wholly above it
+     beq eht_out
+     sta ob6
+     lda ply
+     clc
+     adc #2
+     sta ob8
+     lda ob3
+     sec
+     sbc ob8
+     bcc eht_out            ; wholly below it
+     adc #0
+     sta ob8
+     ldy #0                  ; the smallest push (sideways first on a tie)
+     lda ob1
+     cmp ob5
+     bcc eht_m1
+     lda ob5
+     ldy #1
+eht_m1
+     cmp ob6
+     bcc eht_m2
+     lda ob6
+     ldy #2
+eht_m2
+     cmp ob8
+     bcc eht_m3
+     lda ob8
+     ldy #3
+eht_m3
+     sta obj                 ; the push
+     cpy #0
+     beq eht_left
+     cpy #1
+     beq eht_right
+     cpy #2
+     bne eht_down
+     lda ply
+     sec
+     sbc obj
+     sta ply
+     jmp eht_done
+eht_down
+     lda ply
+     clc
+     adc obj
+     cmp #217
+     bcs eht_aside
+     sta ply
+     jmp eht_done
+eht_aside
+     ; at the bottom: shoved aside instead, the shorter way that fits
+     lda ob1
+     cmp ob5
+     bcs eht_tryright
+     lda plx
+     cmp ob1
+     bcs eht_goleft
+eht_tryright
+     lda plx
+     clc
+     adc ob5
+     cmp #144
+     bcc eht_setx
+     lda plx                 ; (right doesn't fit: left, if that does)
+     cmp ob1
+     bcs eht_goleft
+     lda plvuln              ; pinned in a corner: crushed
+     beq eht_done
+     lda #1
+     sta phit
+     jmp eht_done
+eht_left
+     lda plx
+     cmp ob1
+     bcc eht_done            ; (no room: next frame tries again)
+eht_goleft
+     lda plx
+     sec
+     sbc ob1
+     jmp eht_setx
+eht_right
+     lda plx
+     clc
+     adc ob5
+     cmp #144
+     bcs eht_done
+eht_setx
+     sta plx
+eht_done
+     jmp en_hits_next
+
 ; Shots, sword and ship against enemies. Adds damage to ehit; sets phit.
 ; An enemy's box is its image: imgw*4 pixels wide, 16 lines (32 for
 ; 2-strip images), less a pixel or two all round.
 en_hits
+     lda #0
+     sta ntow
      ldx #NE-1
 en_hits_loop
      lda etype,x
@@ -586,11 +780,12 @@ en_hits_h
      clc
      adc eyh,x
      sta ob3
-     ; towers can't be shot or cut: only the ship meets them
+     ; towers are solid: they can't be hurt, but stop shots and bullets
+     ; and push the ship out of them
      lda etype,x
      cmp #ET_TOWER
      bne en_hits_weapons
-     jmp en_hits_ship
+     jmp en_hits_tower
 en_hits_weapons
      ; Vulcan: every live shot inside the box. Each enemy is checked every
      ; other frame: a shot moves 12 lines in two, and the overlap window
@@ -699,12 +894,31 @@ en_draw
      lsr
      lsr
      sta ob8                 ; animation step: a new frame every 8 ticks
-     ldx #0                  ; first to last: later slots draw on top
+     ; two passes: the ground (turrets, tanks, towers), then everything
+     ; that flies over it; first to last slot: later slots draw on top
+     lda #0
+     sta ob7
+en_draw_pass
+     ldx #0
 en_draw_loop
      lda etype,x
      bne en_draw_live
      jmp en_draw_next
 en_draw_live
+     ldy #1                  ; 1: flies
+     cmp #ET_TURRET
+     beq en_draw_gnd
+     cmp #ET_TANK
+     bcc en_draw_side
+     cmp #ET_TOWER+1
+     bcs en_draw_side
+en_draw_gnd
+     ldy #0
+en_draw_side
+     cpy ob7
+     beq en_draw_go
+     jmp en_draw_next
+en_draw_go
      ldy eimg,x
      ; palette | width: white (palette 3) while flashing
      lda eflash,x
@@ -799,8 +1013,14 @@ en_draw_done1
 en_draw_next
      inx
      cpx #NE
-     bcs en_draw_out
+     bcs en_draw_passdone
      jmp en_draw_loop
+en_draw_passdone
+     inc ob7
+     lda ob7
+     cmp #2
+     bcs en_draw_out
+     jmp en_draw_pass
 en_draw_out
      rts
 
