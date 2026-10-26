@@ -260,7 +260,6 @@ end
   tzone = 10 : temp1 = TXT_B1 : gosub text
   tzone = 11 : temp1 = TXT_B2 : gosub text
   tpal = 6
-  tzone = 12 : temp1 = TXT_DEMAKE : gosub text
   tzone = 13 : temp1 = TXT_CREDIT : gosub text
   asm
   jsr pf_drawscreen

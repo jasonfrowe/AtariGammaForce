@@ -178,8 +178,9 @@ game keeps 16 enemy bullets and 4 explosions at most, and late frames are
 caught up rather than slowing the game (above). `tools/fps_test.sh`
 measures stage 1 with an invulnerable ship (`tests/boss_fps.txt`, run the
 same way with a BOSSTEST build, measures the boss); `tools/fps.py` reports
-the game speed and the frames drawn. Stage 1: game speed 59/s, display
-about 56 fps. The boss: 59/s, display about 40 fps (its parts are ~36
+the game speed and the frames drawn. Stage 1 (its fortress now runs most of
+the way to the boss): game speed 59/s, display
+about 51 fps. The boss: 59/s, display about 40 fps (its parts are ~36
 objects).
 
 Tools: `const PROFILE = 1` times each part of the main loop (wall time,

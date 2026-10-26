@@ -45,8 +45,7 @@ TOP = 26  # screenshot line where the playfield starts (HUD is the 16 above)
 
 def main():
     d = Path(sys.argv[1])
-    meta = json.loads((ga.MGF / "stage1.json").read_text())
-    m = np.frombuffer((ga.MGF / "stage1_map.bin").read_bytes(), dtype=np.uint8).reshape(meta["rows"], meta["cols"])
+    m = ga.stage1_map()
     tiles, pals = ga.stage_tiles()
     ok = True
     # play.sh log: "<frame> 2231 <lo> <hi>" per screenshot, in order

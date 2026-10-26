@@ -13,17 +13,16 @@ txt_push .byte 112,116,90,118,118,80,92,98,116,90 ; 'PRESS FIRE'
 txt_b1 .byte 84,122,120,120,110,108,80,62,80,80,124,122,104,86,82,108 ; 'BUTTON 1  VULCAN'
 txt_b2 .byte 84,122,120,120,110,108,80,64,80,80,118,126,110,116,88 ; 'BUTTON 2  SWORD'
 txt_credit .byte 64,60,64,72,80,100,82,118,110,108,80,116,110,126,90 ; '2026 JASON ROWE'
-txt_demake .byte 82,92,120,90,116,80,106,90,94,82,94,82,106,106,82,92,110,116,86,90 ; 'AFTER MEGAGAMMAFORCE'
 txt_warning .byte 126,82,116,108,98,108,94 ; 'WARNING'
 txt_boss .byte 94,82,106,106,82,80,86,110,116,90 ; 'GAMMA CORE'
 txt_clear .byte 118,120,82,94,90,80,86,104,90,82,116 ; 'STAGE CLEAR'
 txt_over .byte 94,82,106,90,80,110,124,90,116 ; 'GAME OVER'
 txt_ready .byte 118,120,82,94,90,80,62 ; 'STAGE 1'
-txtlo .byte <txt_atari,<txt_push,<txt_b1,<txt_b2,<txt_credit,<txt_demake,<txt_warning,<txt_boss
-  .byte <txt_clear,<txt_over,<txt_ready
-txthi .byte >txt_atari,>txt_push,>txt_b1,>txt_b2,>txt_credit,>txt_demake,>txt_warning,>txt_boss
-  .byte >txt_clear,>txt_over,>txt_ready
-txtlen .byte 5,10,16,15,15,20,7,10,11,9,7
+txtlo .byte <txt_atari,<txt_push,<txt_b1,<txt_b2,<txt_credit,<txt_warning,<txt_boss,<txt_clear
+  .byte <txt_over,<txt_ready
+txthi .byte >txt_atari,>txt_push,>txt_b1,>txt_b2,>txt_credit,>txt_warning,>txt_boss,>txt_clear
+  .byte >txt_over,>txt_ready
+txtlen .byte 5,10,16,15,15,7,10,11,9,7
 
 ; P0C1..P7C3, in register order
 palettedata

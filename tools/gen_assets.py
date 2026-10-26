@@ -197,7 +197,6 @@ SCREEN_TEXTS = {
     "b1": "BUTTON 1  VULCAN",
     "b2": "BUTTON 2  SWORD",
     "credit": "2026 JASON ROWE",
-    "demake": "AFTER MEGAGAMMAFORCE",
     "warning": "WARNING",
     "boss": "GAMMA CORE",
     "clear": "STAGE CLEAR",
@@ -385,10 +384,43 @@ def row_runs(pals):
     return runs
 
 
+# Stage 1's map, rearranged from MegaGammaForce's (stage order, row 0 at the
+# start): runs of its rows, in order. Its 32 rows of open sea at the start
+# are cut to 14, so the first islet comes in within a second; the fortress's
+# second half (rows 95-141, full-width deck at both ends, so the joins are
+# seamless) is repeated, so the fortress runs on almost to the boss; then
+# its tapering end, a little sea, and the 16-row boss loop. Same 208 rows.
+STAGE1_RUNS = [(18, 141), (95, 141), (142, 162), (192, 207)]
+
+
+def stage1_map():
+    meta = json.loads((MGF / "stage1.json").read_text())
+    cols, rows = meta["cols"], meta["rows"]
+    src = np.frombuffer((MGF / "stage1_map.bin").read_bytes(), dtype=np.uint8).reshape(rows, cols)
+    m = np.concatenate([src[a:b + 1] for a, b in STAGE1_RUNS])
+    assert m.shape[0] == rows and STAGE1_RUNS[-1][1] - STAGE1_RUNS[-1][0] + 1 == meta["loop_rows"]
+    return m
+
+
+def stage1_ground():
+    """The ground turrets (on the big hatches) moved with their rows, and
+    repeated with a repeated run: (centre y up from the map's start, x in
+    16-pixel tiles), in order of y."""
+    g = json.loads((MGF / "stage1.json").read_text())["ground"]
+    out, start = [], 0
+    for a, b in STAGE1_RUNS:
+        for y, c in g:
+            r = y // 16 - 1                  # the hatch's lower row
+            if a <= r and r + 1 <= b:
+                out.append([(r - a + start + 1) * 16, c])
+        start += b - a + 1
+    return sorted(out)
+
+
 def build_stage(t_pals):
     meta = json.loads((MGF / "stage1.json").read_text())
     cols, rows = meta["cols"], meta["rows"]
-    m = np.frombuffer((MGF / "stage1_map.bin").read_bytes(), dtype=np.uint8).reshape(rows, cols)
+    m = stage1_map()
     lines = []
     lines.append(f"S1_ROWS = {rows}")
     lines.append(f"S1_LOOP_ROWS = {meta['loop_rows']}")
@@ -508,8 +540,7 @@ def wave_table(consts):
 def ground_table(consts):
     """Stage 1's ground turrets: when to spawn (scroll position), x, and the
     offset that puts their sprite at the right line for any scroll."""
-    meta = json.loads((MGF / "stage1.json").read_text())
-    g = meta["ground"]
+    g = stage1_ground()
     trig, xs, base = [], [], []
     for y, c in g:
         # Screen line of world height y is spos + 208 - y; the sprite's top

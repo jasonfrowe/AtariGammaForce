@@ -8,12 +8,11 @@
   const TXT_B1 = 2
   const TXT_B2 = 3
   const TXT_CREDIT = 4
-  const TXT_DEMAKE = 5
-  const TXT_WARNING = 6
-  const TXT_BOSS = 7
-  const TXT_CLEAR = 8
-  const TXT_OVER = 9
-  const TXT_READY = 10
+  const TXT_WARNING = 5
+  const TXT_BOSS = 6
+  const TXT_CLEAR = 7
+  const TXT_OVER = 8
+  const TXT_READY = 9
   const IMG_SHIP = 0
   const IMG_VULCAN = 1
   const IMG_DART = 2
@@ -37,7 +36,7 @@
   const IMG_LOGO_GAMMA = 20
   const IMG_LOGO_FORCE = 21
   const WAVES = 32
-  const GROUNDS = 15
+  const GROUNDS = 25
   const CH_SPACE = 80
   const CH_X = 128
   const CH_I = 98
