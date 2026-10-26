@@ -323,55 +323,82 @@ pf_zone14
      sta zonehi+14
      lda pfz14row,x
      cmp pfrow14
-     beq pf_zone14_hi
+     bne pf_zone14_new
+     jmp pf_zone14_hi
+pf_zone14_new
      lda pfrow14
      sta pfz14row,x
      tay
      lda stg_rowshift,y
      jsr pf_rowshift
-     lda stg_charlo,y
+     lda stg_rowlo,y
      sta pfp
-     lda stg_charhi,y
+     lda stg_rowhi,y
      sta pfp+1
-     ; One object per tile that isn't background (open sea, say: the
-     ; background color): lo = character, palette|width, hi, x. The row
-     ; holds the map's used columns, col0 to col1-1.
-     lda stg_col0
-     sta pft1                ; tile column
+     ; One direct-mode object per tile of the row's background objects (the
+     ; runs of tiles that aren't background: open sea, say): lo = character,
+     ; palette|width, hi, x. Each run object is lo, hi = its characters,
+     ; palette|width, x; its tiles are 8 pixels apart.
+     ldy #0
+     lda (pfp),y
+     sta pft4                ; the row's object bytes
      lda #0
-     sta pft3                ; object offset
+     sta pft3                ; output offset
+     ldy #1
+pf_zone14_obj
+     sty sp_y                ; this object's offset
+     lda pft4
+     cmp sp_y
+     bcc pf_zone14_end       ; past the last
+     lda (pfp),y
+     sta sp_lo               ; its characters
+     iny
+     iny
+     lda (pfp),y
+     sta sp_hi
+     iny
+     lda (pfp),y             ; palette | -width & 31
+     pha
+     and #$E0
+     ora #(-2)&31            ; a tile: 2 bytes wide
+     sta sp_pw
+     pla
+     eor #$FF                ; width = -(pw & 31) & 31
+     clc
+     adc #1
+     and #31
+     sta sp_h
+     iny
+     lda (pfp),y
+     jsr pf_shiftx
+     sta sp_x
+     iny
+     sty sp_y
+     ldy #0
 pf_zone14_tile
-     lda pft1
-     sec
-     sbc stg_col0
-     tay
-     lda (pfp),y             ; character
-     cmp stg_blank
-     bcc pf_zone14_skip
+     sty pft1
+     lda (sp_lo),y           ; the character
      ldy pft3
      sta (pfq),y
-     sec                     ; its palette: by tile, (character - font) / 2
-     sbc #NFONTCHARS
-     lsr
-     tax
      iny
-     lda stg_tilepw,x
+     lda sp_pw
      sta (pfq),y
      iny
      iny                     ; hi is set below, every frame
-     lda pft1
-     asl
-     asl
-     asl
-     jsr pf_shiftx
-     sta (pfq),y             ; x = column * 8, shifted
+     lda sp_x
+     sta (pfq),y
+     clc
+     adc #8
+     sta sp_x
      iny
      sty pft3
-pf_zone14_skip
-     inc pft1
-     lda pft1
-     cmp stg_col1
-     bne pf_zone14_tile
+     ldy pft1
+     iny
+     cpy sp_h
+     bcc pf_zone14_tile
+     ldy sp_y
+     jmp pf_zone14_obj
+pf_zone14_end
      ldx pfz14back
      lda pft3
      sta pfz14bg,x

@@ -132,9 +132,11 @@ same addresses, so stage code has no stage numbers in it. Code for one
 stage only (its boss) goes in its bank too, called from the shared code
 by `if stage = n`: the fixed bank has room only for what every stage uses.
 
-A map row stores the characters of its used columns (stages 1 and 2 use
-columns 4-15; outside is background) and its ready-made background
-objects; rows that are the same are stored once. Each row also has a shift
+A map row stores its ready-made background objects (one per run of drawn
+tiles sharing a palette; background tiles, like open sea, aren't drawn)
+and those runs' characters, packed together; rows that are the same are
+stored once. Zone 14 builds its one-object-a-tile list from the same
+objects (`pf_zone14`). Each row also has a shift
 byte (`stg_rowshift`): a whole-row shift in tiles, and a gap opened at x 80
 that moves everything right of it on (`pf_rowshift`, applied as a row is
 copied into its zone and to zone 14's tiles). Stage 2's city winds and
@@ -152,7 +154,21 @@ hole at $B000.
 | 1 ($4000, fixed) | the game, the engine, the shared boss code and results |
 | 2 | stage 1: header, map, songs, the GAMMA CORE's code (`src/boss1.bas`), the title song (the title shows with stage 1's bank in) |
 | 3 | stage 2: header, map, boss tune copy, SPIRE WARDEN's code (`src/boss2.bas`), graphics ($A000), song ($B000) |
+| 4 | stage 3: header, map, boss tune, LEVIATHAN's code (`src/boss3.bas`), graphics ($A000), song and LEVIATHAN's tables ($B000) |
 | 9 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo, the shared sprites |
+
+## A boss that is part of the map
+
+Stage 3's battleship, LEVIATHAN, is longer than the screen. Its hull is
+map rows (after the stage's last open sea), so it costs no sprites, and
+the boss moves it by the scroll: the open sea is the background color, so
+a change of scroll speed shows nowhere but on the ship. It comes in at the
+stage's speed, crawls while the fight goes on, stops once the reactor is in
+reach, and the scroll runs on to carry it away as it sinks. Its guns,
+bridge, reactor and turrets are sprites pinned to map rows like ground
+units: each part's line is `spos + 240 -` the world height of its top
+(16 bits; off the screen it is parked off to the right). Later stages'
+hull bosses can work the same way.
 
 ## Memory
 

@@ -128,6 +128,42 @@ def main():
         "note": "stage order: row 0 = first seen (bottom of screen); pads are (row, col) of the pad's lower row",
     }, indent=1) + "\n")
 
+    # Stage 3, IRON TIDE: open ocean with islands (20 columns), as four
+    # 30-row chunks from MegaGammaForce's ocean.py (open sea at both ends
+    # of each, so any can follow any; gen_assets.py strings them), with
+    # their bunkers (turrets) and open water (gunboats); and LEVIATHAN, the
+    # battleship: its hull map (ship.py, rows from the stern down) and
+    # where its parts sit. The cloud layer is left out.
+    import ocean  # noqa: E402
+    import ship  # noqa: E402
+    _, ids3 = ocean.ground_tileset()
+    ocean.COLS = COLS  # the full 20-column width: the islands keep to the sides
+    chunks, bunk3, water3 = [], [], []
+    for k, seed in enumerate((7, 8, 9, 10)):
+        m3, b3, w3 = ocean.ground_map(30, ids3, seed=seed)
+        chunks.append(m3)
+        bunk3 += [[k, int(r), int(c)] for r, c in b3]
+        water3 += [[k, int(r), int(c)] for r, c in w3]
+    (OUT / "stage3_chunks.bin").write_bytes(np.concatenate(chunks).astype(np.uint8).tobytes())
+    _, hids = ship.hull_tileset()
+    hull = ship.hull_map(hids)
+    (OUT / "stage3_hull.bin").write_bytes(hull.astype(np.uint8).tobytes())
+    (OUT / "stage3.json").write_text(json.dumps({
+        "cols": int(chunks[0].shape[1]),
+        "chunk_rows": 30,
+        "chunks": len(chunks),
+        "tile_ids": {k: int(v) for k, v in ids3.items()},
+        "bunkers": bunk3,
+        "water": water3,
+        "hull_w": int(hull.shape[1]),
+        "hull_h": int(hull.shape[0]),
+        "hull_tile_ids": {k: int(v) for k, v in hids.items()},
+        "hull_parts": {k: list(v) for k, v in ship.PARTS.items()},
+        "waves": waves.S3_WAVES,
+        "note": "chunks: stage order (row 0 first); bunkers/water: (chunk, row, col); "
+                "hull: rows from the stern (top) down to the bow; parts: (col, row, w, h) in hull tiles",
+    }, indent=1) + "\n")
+
     # The palettes the sheets were drawn with, for the converters.
     pals = {k: v for k, v in vars(palettes).items() if k.isupper() and isinstance(v, list)}
     (OUT / "palettes.json").write_text(json.dumps(pals) + "\n")

@@ -477,6 +477,16 @@ en_update_live
      beq en_update_ground
      cmp #ET_TOWER
      beq en_update_ground
+     cmp #ET_GUNBOAT
+     bne en_update_notboat
+     ; gunboats sail up against the scroll: a line every 4 frames
+     lda tick
+     and #3
+     bne en_update_ground
+     dec eparam,x
+     jmp en_update_ground
+en_update_notboat
+     lda etype,x
      cmp #ET_TANK
      bne en_update_air
      ; tanks drive along their road, and leave at the screen's edge
@@ -910,7 +920,7 @@ en_draw_live
      beq en_draw_gnd
      cmp #ET_TANK
      bcc en_draw_side
-     cmp #ET_TOWER+1
+     cmp #ET_GUNBOAT+1
      bcs en_draw_side
 en_draw_gnd
      ldy #0
@@ -1223,8 +1233,13 @@ en_think_5
      jmp en_think_done
 en_think_6
      cmp #ET_TANK
-     bne en_think_done
+     bne en_think_7
      jsr think_tank
+     jmp en_think_done
+en_think_7
+     cmp #ET_GUNBOAT
+     bne en_think_done
+     jsr think_gunboat
 en_think_done
      ldx thi
 en_think_next
@@ -1347,6 +1362,46 @@ think_tank
      sta fspd
      jmp bul_fire
 th_tank_rts
+     rts
+
+; Gunboat: sails up against the scroll (en_update); an aimed blue fan of
+; three, then later a pink ring of eight, every two seconds or so.
+think_gunboat
+     lda eyh,x
+     cmp #40
+     bcc th_boat_rts
+     cmp #200
+     bcs th_boat_rts
+     lda plvuln
+     beq th_boat_rts
+     lda etimer,x
+     and #127
+     beq th_boat_fan
+     cmp #64
+     bne th_boat_rts
+     lda #BK_PINK
+     sta fkind
+     lda #34
+     sta fspd
+     lda #8
+     sta fcount
+     lda #32
+     sta fstep
+     lda tick
+     sta fang
+     jmp bul_fan
+th_boat_fan
+     jsr th_aim
+     lda #BK_BLUE
+     sta fkind
+     lda #44
+     sta fspd
+     lda #3
+     sta fcount
+     lda #14
+     sta fstep
+     jmp bul_fan
+th_boat_rts
      rts
 
 ; Stops, fires a blue ring then a pink ring, and leaves.

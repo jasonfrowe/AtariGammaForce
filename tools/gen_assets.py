@@ -207,8 +207,10 @@ SCREEN_TEXTS = {
     # the stages' names (TXT_NAME1 + stage - 1), and the title's choice
     "name1": "SKY FORTRESS",
     "name2": "NEON SPIRES",
+    "name3": "IRON TIDE",
     "sel1": "<   STAGE 1   >",
     "sel2": "<   STAGE 2   >",
+    "sel3": "<   STAGE 3   >",
 }
 # Playfield texts that are lines of RAM (20 characters, written by the
 # game): the results screen's figures. Templates below fill them.
@@ -279,6 +281,12 @@ SPRITES = [
     ("b2coreb", "boss2", 0, 0, None, None, 0),
     ("b2pod", "boss2", 0, 0, None, None, 0),
     ("b2cannon", "boss2", 0, 0, None, None, 0),
+    # Stage 3's: the gunboat, and LEVIATHAN's parts (in its bank)
+    ("gunboat", "boss3", 0, 0, None, None, 5),
+    ("b3bridget", "boss3", 0, 0, None, None, 0),
+    ("b3bridgeb", "boss3", 0, 0, None, None, 0),
+    ("b3reactor", "boss3", 0, 0, None, None, 0),
+    ("b3gun", "boss3", 0, 0, None, None, 0),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -295,10 +303,13 @@ SPRITES = [
     ("logo_gamma", "logo", 0, 0, None, None, 4),
     ("logo_force", "logo", 0, 0, None, None, 4),
 ]
-BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2")}
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3")} - {"gunboat"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
 STAGE2_SPRITES = {"tower", "b2coret", "b2coreb", "b2pod", "b2cannon"}
+STAGE3_SPRITES = {"gunboat", "b3bridget", "b3bridgeb", "b3reactor", "b3gun"}
+STAGE3_STRIPS = {"gunboat0", "gunboat1", "b3bridget0", "b3bridget1", "b3bridgeb0", "b3bridgeb1",
+                 "b3reactor0", "b3reactor1", "b3gun"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -402,6 +413,9 @@ def build_sprites():
         elif fn == "boss2":
             import boss7800
             conv = boss7800.parts2()[name]
+        elif fn == "boss3":
+            import boss7800
+            conv = boss7800.parts3()[name]
         elif fn == "logo":
             import logo7800
             conv = [logo7800.words()[name]]
@@ -475,7 +489,7 @@ def stg_layout():
     for name, size in (("stg_rows", 1), ("stg_loop", 1), ("stg_charbase", 1), ("stg_blank", 1),
                        ("stg_nwaves", 1), ("stg_nground", 1), ("stg_bg", 1), ("stg_pal", 9),
                        ("stg_song", 1), ("stg_bosssong", 1), ("stg_col0", 1), ("stg_col1", 1),
-                       ("stg_number", 1)):
+                       ("stg_number", 1), ("stg_bossat", 1)):
         lay[name] = (off, size)
         off += size
     off = 32
@@ -485,8 +499,7 @@ def stg_layout():
     for f in GROUND_FIELDS:
         lay[f] = (off, MAX_GROUND)
         off += MAX_GROUND
-    for name, size in (("stg_tilepw", MAX_TILES), ("stg_rowlo", MAX_ROWS), ("stg_rowhi", MAX_ROWS),
-                       ("stg_charlo", MAX_ROWS), ("stg_charhi", MAX_ROWS), ("stg_rowshift", MAX_ROWS)):
+    for name, size in (("stg_rowlo", MAX_ROWS), ("stg_rowhi", MAX_ROWS), ("stg_rowshift", MAX_ROWS)):
         lay[name] = (off, size)
         off += size
     lay["stg_end"] = (off, 0)
@@ -499,17 +512,22 @@ STG = stg_layout()
 SPLIT_COL = 10   # the column at x 80, where a row's gap opens (pf_shiftx)
 
 
-def row_runs(pals, split=None):
+def row_runs(pals, split=None, drawn=None):
+    """Runs of tiles that share a palette (and are drawn: drawn[c] false
+    for background), at most MAX_RUNS."""
     runs = []
     for c, p in enumerate(pals):
-        if runs and runs[-1][2] == p and c != split:
+        if drawn is not None and not drawn[c]:
+            continue
+        if runs and runs[-1][2] == p and c != split and runs[-1][0] + runs[-1][1] == c:
             runs[-1][1] += 1
         else:
             runs.append([c, 1, p])
     # Too many objects for one zone: fold the shortest run into a neighbor
-    # (taking the neighbor's palette), never across the split.
+    # it touches (taking the longer one's palette), never across the split.
     while len(runs) > MAX_RUNS:
-        pairs = [a for a in range(len(runs) - 1) if runs[a + 1][0] != split]
+        pairs = [a for a in range(len(runs) - 1) if runs[a + 1][0] != split
+                 and runs[a][0] + runs[a][1] == runs[a + 1][0]]
         a = min(pairs, key=lambda k: min(runs[k][1], runs[k + 1][1]))
         keep = runs[a] if runs[a][1] >= runs[a + 1][1] else runs[a + 1]
         runs[a] = [runs[a][0], runs[a][1] + runs[a + 1][1], keep[2]]
@@ -554,17 +572,13 @@ def stage_bank(st):
              f"stage{n}_header"]
     hdr = [rows, st["loop"], f">{st['charset']}", chars(len(blank)),
            len(st["waves"]["watl"]), len(st["ground"]["gtl"]), st["bg"]] + list(st["pals"]) + \
-          [st["song"], st["bosssong"], col0, col1, n]
+          [st["song"], st["bosssong"], col0, col1, n, st.get("bossat", 12)]
     lines.append("  .byte " + ",".join(str(v) for v in hdr))
     lines.append(f"  ds {32 - len(hdr)},0")
     for f in WAVE_FIELDS:
         lines += table(f"{p}_{f}", st["waves"][f], MAX_WAVES, per=20)
     for f in GROUND_FIELDS:
         lines += table(f"{p}_{f}", st["ground"][f], MAX_GROUND)
-    pw = [(pal << 5) | ((-2) & 31) for pal in t_pals]
-    lines.append("; Direct-mode palette|width byte for each tile (zone 14 draws its")
-    lines.append("; tiles as one 2-byte-wide object each).")
-    lines += table(f"{p}_tilepw", pw, MAX_TILES)
 
     # Rows: the same row is stored once.
     uniq, which = {}, []
@@ -573,7 +587,7 @@ def stage_bank(st):
         if key not in uniq:
             uniq[key] = len(uniq)
         which.append(uniq[key])
-    for part, op, lab in (("rowlo", "<", "o"), ("rowhi", ">", "o"), ("charlo", "<", "r"), ("charhi", ">", "r")):
+    for part, op, lab in (("rowlo", "<", "o"), ("rowhi", ">", "o")):
         lines.append(f"{p}_{part}")
         for r in range(0, rows, 8):
             lines.append("  .byte " + ",".join(f"{op}{p}{lab}{which[k]}" for k in range(r, min(rows, r + 8))))
@@ -589,18 +603,24 @@ def stage_bank(st):
     lines.append("    err")
     lines.append("  endif")
     lines.append("")
-    lines.append(f"; Row u's characters, columns {col0}-{col1 - 1} (2 bytes a tile: doublewide).")
+    lines.append("; Row u's characters: those of its runs of drawn tiles, one after the")
+    lines.append("; other (2 bytes a tile: doublewide). Background tiles aren't drawn.")
     obj_lines = []
     max_bytes = 0
     for key, u in uniq.items():
-        lines.append(f"{p}r{u} .byte " + ",".join(str(chars(t)) for t in key))
-        runs = row_runs([t_pals[t] for t in key], split=SPLIT_COL - col0)
         # background tiles are the background color: no objects
-        runs = [rn for rn in runs if not all(key[c] in blank for c in range(rn[0], rn[0] + rn[1]))]
+        runs = row_runs([t_pals[t] for t in key], split=SPLIT_COL - col0,
+                        drawn=[t not in blank for t in key])
+        packed, at = [], []
+        for start, k, pal in runs:
+            at.append(len(packed))
+            packed += [chars(t) for t in key[start:start + k]]
+        if packed:
+            lines.append(f"{p}r{u} .byte " + ",".join(str(v) for v in packed))
         max_bytes = max(max_bytes, 5 * len(runs))
         obj_lines.append(f"{p}o{u} .byte {5 * len(runs)}")
-        for start, k, pal in runs:  # one object a line: dasm allows 32 operators a line
-            obj_lines.append(f"  .byte <({p}r{u}+{start}),$60,>({p}r{u}+{start}),{(pal << 5) | ((-k) & 31)},"
+        for (start, k, pal), off in zip(runs, at):  # one object a line: dasm allows 32 operators a line
+            obj_lines.append(f"  .byte <({p}r{u}+{off}),$60,>({p}r{u}+{off}),{(pal << 5) | ((-k) & 31)},"
                              f"{(start + col0) * TILE_W}")
     lines.append("")
     lines.append("; Row u's background objects: a length byte, then the 5-byte headers.")
@@ -692,14 +712,15 @@ def chain_table():
 # MegaGammaForce coordinates to ours: its playfield is 192 x 240, ours is
 # 160 x 209 (y stored + 32).
 ENEMY_TYPES = {"ET_DART": 1, "ET_SAUCER": 2, "ET_DRONE": 3, "ET_GUNSHIP": 4, "ET_TURRET": 5,
-               "ET_WASP": 6, "ET_TANK": 7, "ET_TOWER": 8}
+               "ET_WASP": 6, "ET_TANK": 7, "ET_TOWER": 8, "ET_GUNBOAT": 9}
 ENEMY_WIDTH = {"ET_GUNSHIP": 16}
 COLOR_PAL = {"COL_RED": 4, "COL_BLUE": 5, "COL_YELLOW": 6, "COL_GRAY": 2}
 
 
-def wave_cols(data):
-    """MegaGammaForce air waves -> our wave table fields."""
-    data = [w for w in data if w[1] in ENEMY_TYPES]
+def wave_cols(data, scale=1.0):
+    """MegaGammaForce air waves -> our wave table fields (their scroll
+    positions times scale)."""
+    data = [[round(w[0] * scale)] + list(w[1:]) for w in data if w[1] in ENEMY_TYPES]
     cols = {k: [] for k in WAVE_FIELDS}
     for at, typ, color, x, dx, count, gap, param in data:
         w = ENEMY_WIDTH.get(typ, 8)
@@ -718,6 +739,11 @@ def wave_cols(data):
     return cols
 
 
+# ground units 32 lines tall: their y is 8 below their top (as for the
+# 16-line ones), and they spawn 16 lines sooner
+TALL_UNITS = ("ET_TOWER", "ET_GUNBOAT")
+
+
 def ground_cols(units):
     """Ground units: (y up from the map's start, centre x in our pixels,
     type, palette, param) -> the ground table fields: when to spawn
@@ -727,7 +753,7 @@ def ground_cols(units):
     for y, x, typ, pal, param in sorted(units):
         # Screen line of world height y is spos + 208 - y; the sprite's top
         # is 8 above its centre, stored + 32: eyh = spos + 232 - y.
-        t = max(0, y - 216 - (16 if typ == "ET_TOWER" else 0))
+        t = max(0, y - 216 - (16 if typ in TALL_UNITS else 0))
         cols["gtl"].append(t & 255)
         cols["gth"].append(t >> 8)
         cols["gtx"].append(max(0, min(152, x - 4)))
@@ -860,6 +886,127 @@ def stage2():
             "pal_codes": [[nearest(c) for c in p] for p in STAGE2_PALETTES]}
 
 
+# Stage 3, IRON TIDE: the open ocean (the background), islands, and
+# LEVIATHAN's hull, which is part of the map: the scroll brings it in, crawls
+# while it closes, stops, and runs on to carry it away as it sinks (open
+# sea shows no movement, so only the ship seems to move).
+STAGE3_BG = (10, 40, 96)
+STAGE3_PALETTES = [
+    [(34, 40, 52), (150, 160, 178), (210, 60, 40)],      # P0 the boss: dark steel, steel, naval red
+    [(40, 44, 56), (96, 104, 120), (164, 172, 188)],     # P1 steel: the hull, the bunkers
+    [(24, 60, 30), (60, 130, 50), (210, 190, 130)],      # P2 islands: shade, jungle, sand
+]
+STAGE3_ORDER = [0, 1, 2, 3, 1]       # island chunks (30 rows each)
+STAGE3_GAP = 16                      # open sea before the ship
+HULL_COL = 5                         # the hull's left column (10 wide, centred)
+
+
+def stage3():
+    import tiles7800
+    meta = json.loads((MGF / "stage3.json").read_text())
+    cols, cr = meta["cols"], meta["chunk_rows"]
+    i_tiles, i_pals, i_lut = tiles7800.island_tiles(meta["tile_ids"])
+    h_tiles, h_pals, h_lut, h_clear = tiles7800.hull_tiles(meta["hull_tile_ids"])
+    base = len(i_tiles)
+    t_slots, t_pals = i_tiles + h_tiles, i_pals + h_pals
+    chunks = np.frombuffer((MGF / "stage3_chunks.bin").read_bytes(), dtype=np.uint8).reshape(-1, cols).copy()
+    ids = meta["tile_ids"]
+    land = {ids["land1"], ids["land2"]}
+    # More bunkers: on solid land, now and then, apart from each other.
+    bunkers = [tuple(b) for b in meta["bunkers"]]
+    for k in range(meta["chunks"]):
+        for r in range(k * cr + 1, (k + 1) * cr - 2):
+            for c in range(cols - 1):
+                if all(int(chunks[r + dy, c + dx]) in land for dy in (0, 1) for dx in (0, 1)) and \
+                        all(abs((bk * cr + br) - r) > 4 or abs(bc - c) > 3 for bk, br, bc in bunkers) and \
+                        (r * 7 + c * 3) % 5 == 0:
+                    chunks[r + 1, c], chunks[r + 1, c + 1] = ids["bunker0"], ids["bunker1"]
+                    chunks[r, c], chunks[r, c + 1] = ids["bunker2"], ids["bunker3"]
+                    bunkers.append((k, r - k * cr, c))
+    body = np.concatenate([chunks[k * cr:(k + 1) * cr] for k in STAGE3_ORDER])
+    hull = np.frombuffer((MGF / "stage3_hull.bin").read_bytes(), dtype=np.uint8).reshape(meta["hull_h"], meta["hull_w"])
+    hh, hw = hull.shape
+    loop = 16
+    rows = body.shape[0] + STAGE3_GAP + hh + loop
+    assert rows == 208, rows
+    m = np.zeros((rows, 20), dtype=np.uint8)
+    m[:body.shape[0], :] = np.vectorize(lambda t: i_lut[int(t)])(body)
+    bow = body.shape[0] + STAGE3_GAP                 # the hull's first row (its bow)
+    stern = bow + hh - 1
+    for r in range(hh):                              # hull row r (from the stern) is map row stern - r
+        for c in range(hw):
+            t = int(hull[r, c])
+            if t != h_clear:
+                m[stern - r, HULL_COL + c] = base + h_lut[t]
+
+    # Ground units: turrets on the bunkers, gunboats in open water.
+    units = []
+    for i, (k, r, c) in enumerate(sorted(bunkers)):
+        for n, kk in enumerate(STAGE3_ORDER):
+            if kk == k:
+                y = (n * cr + r + 1) * 16
+                units.append((y, (c + 1) * 8, "ET_TURRET", 4 + (i + n) % 3, 0))
+    for j, (k, r, c) in enumerate(meta["water"]):
+        for n, kk in enumerate(STAGE3_ORDER):
+            if kk == k and (n + j) % 2 == 0:
+                y = (n * cr + r) * 16 + 16           # (32 tall: 8 below its top)
+                if 500 < y:
+                    units.append((y, c * 8, "ET_GUNBOAT", 4 + (j // 2) % 3, 0))
+
+    # The ship's numbers for its boss code: where each part is (x, and the
+    # world height of its top edge: a sprite's line is spos + 240 - it),
+    # and the scroll positions where the fight starts (the hull's middle a
+    # little below the top), where the ship stops (the reactor in reach),
+    # and where it has sunk away (its stern below the screen).
+    parts = meta["hull_parts"]
+    def top(name, dy=0):
+        c, r, w, h = parts[name]
+        return (stern - r + 1) * 16 - dy
+    hull_mid = (bow * 16 + (stern + 1) * 16) // 2
+    reactor_mid = top("REACTOR") - 16
+    b3 = {
+        "b3_fight": hull_mid - 208 + 14,
+        "b3_final": reactor_mid - 208 + 66,
+        "b3_gone": (stern + 1) * 16 + 8,
+    }
+    # slots: 0-1 main guns, 2-3 the bridge (top, bottom), 5 the reactor,
+    # 7-10 deck turrets (the bow's and the stern's)
+    slot = {0: ("GUN_A", 0, 2), 1: ("GUN_B", 0, 2), 2: ("BRIDGE", 0, 0), 3: ("BRIDGE", 32, 0),
+            5: ("REACTOR", 0, 0), 7: ("TUR0", 0, 0), 8: ("TUR1", 0, 0), 9: ("TUR4", 0, 0), 10: ("TUR5", 0, 0)}
+    xs, ylo, yhi = [], [], []
+    for k in range(11):
+        if k in slot:
+            name, dy, dx = slot[k]
+            xs.append(8 * (HULL_COL + parts[name][0]) + dx)
+            y = top(name, dy)
+        else:
+            xs.append(0)
+            y = 0
+        ylo.append(y & 255)
+        yhi.append(y >> 8)
+    bays = [(8 * (HULL_COL + parts[b][0]), top(b)) for b in ("BAY_L", "BAY_R")]
+    b3_asm = ["; Generated by tools/gen_assets.py. Do not edit.",
+              "; LEVIATHAN's parts: x, and the world height of each one's top (lo, hi)."]
+    b3_asm.append("b3_x .byte " + ",".join(str(v) for v in xs))
+    b3_asm.append("b3_ylo .byte " + ",".join(str(v) for v in ylo))
+    b3_asm.append("b3_yhi .byte " + ",".join(str(v) for v in yhi))
+    b3_asm.append("b3_bayx .byte " + ",".join(str(x) for x, _ in bays))
+    b3_asm.append("b3_bayylo .byte " + ",".join(str(y & 255) for _, y in bays))
+    b3_asm.append("b3_bayyhi .byte " + ",".join(str(y >> 8) for _, y in bays))
+    for name, v in b3.items():
+        b3_asm.append(f"{name.upper()} = {v}")
+    (GEN / "boss3tab.asm").write_text("\n".join(b3_asm) + "\n")
+
+    # the warning when the bow is about 9 rows above the screen
+    bossat = (bow * 16 - 208 - 144) >> 8
+    return {"n": 3, "map": m, "t_slots": t_slots, "t_pals": t_pals,
+            "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
+            "charset": "charset3", "pals": [nearest(c) for p in STAGE3_PALETTES for c in p],
+            "bg": nearest(STAGE3_BG), "song": "SONG_STAGE3", "bosssong": "SONG_BOSS3", "bossat": bossat,
+            "waves": wave_cols(meta["waves"], 0.8), "ground": ground_cols(units),
+            "pal_codes": [[nearest(c) for c in p] for p in STAGE3_PALETTES]}
+
+
 def trig_tables():
     """cos8: cos of angle a (256 per turn) x 127, signed. atan32[t]: the
     angle (256 per turn) of a slope t/32, t = 0..32."""
@@ -882,9 +1029,10 @@ def main():
     PREVIEW.mkdir(parents=True, exist_ok=True)
 
     font_base = 0
-    stages = [stage1(), stage2()]
+    stages = [stage1(), stage2(), stage3()]
     build_charset("charset", stages[0]["t_slots"], 1)
     build_charset("charset2", stages[1]["t_slots"], 1)
+    build_charset("charset3", stages[2]["t_slots"], 1)
     table, incs, previews = build_sprites()
     max_bg = 0
     for st in stages:
@@ -903,14 +1051,15 @@ def main():
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in in_chars]
     bas += ["  newblock"]
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs
-            if n not in in_chars and n not in STAGE2_STRIPS]
+            if n not in in_chars and n not in STAGE2_STRIPS and n not in STAGE3_STRIPS]
     (GEN / "gfx.bas").write_text("\n".join(bas) + "\n")
-    # gfx2.bas: stage 2's graphics block, in its bank at $A000: the font and
-    # the city's tiles, then the stage's own sprites.
-    bas2 = ["  rem Generated by tools/gen_assets.py. Do not edit.",
-            "  incgraphic gfx/charset2.png 160A 0 1 2 3"]
-    bas2 += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs if n in STAGE2_STRIPS]
-    (GEN / "gfx2.bas").write_text("\n".join(bas2) + "\n")
+    # gfxN.bas: stage N's graphics block, in its bank at $A000: the font
+    # and the stage's tiles, then its own sprites.
+    for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS)):
+        bn = ["  rem Generated by tools/gen_assets.py. Do not edit.",
+              f"  incgraphic gfx/charset{n}.png 160A 0 1 2 3"]
+        bn += [f"  incgraphic gfx/{s}.png 160A 0 1 2 3" for s in incs if s in strips]
+        (GEN / f"gfx{n}.bas").write_text("\n".join(bn) + "\n")
 
     consts = ["  rem Generated by tools/gen_assets.py. Do not edit.",
               "  rem Constants shared by BASIC and the assembly (const lands in both)."]

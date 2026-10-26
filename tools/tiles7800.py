@@ -321,3 +321,171 @@ def city_tiles(ids):
     # tiles of our own (no MegaGammaForce name): the boss plaza's lamps
     lut["lamp"] = add("lamp", _lamp(), LIGHTS)
     return tiles, pals, lut
+
+
+# ---------------------------------------------------------------------------
+# Stage 3, IRON TIDE: islands in the open ocean (the sea is the background
+# color), and LEVIATHAN's hull, which is part of the map. Palettes: P2
+# islands (1 dark green, 2 jungle, 3 sand), P1 steel (1 dark, 2 steel,
+# 3 light: the hull, the bunkers' concrete), P0 the boss's (1 dark steel,
+# 2 light steel, 3 naval red: lamps, the engines, the bays).
+
+ISLAND, STEEL, BOSSPAL = 2, 1, 0
+
+
+def _jungle(seed):
+    t = np.full((H, W), 2, dtype=np.uint8)
+    rng = np.random.default_rng(seed)
+    for _ in range(9):
+        x, y = int(rng.integers(0, W)), int(rng.integers(0, H - 1))
+        t[y:y + 2, x] = 1                   # shade between the trees
+    return t
+
+
+def _island_edge(corners, seed):
+    """Marching-squares shore: corners (tl, tr, br, bl), 1 = land. A sand
+    rim along the water, jungle inside, a dark lip where it faces down or
+    right."""
+    tl, tr, br, bl = corners
+    t = np.zeros((H, W), dtype=np.uint8)
+    inner = _jungle(seed)
+    for y in range(H):
+        for x in range(W):
+            u, v = (x + 0.5) / W, (y + 0.5) / H
+            f = tl * (1 - u) * (1 - v) + tr * u * (1 - v) + br * u * v + bl * (1 - u) * v
+            if f >= 0.62:
+                t[y, x] = inner[y, x]
+            elif f >= 0.5:
+                t[y, x] = 3
+    return t
+
+
+def _bunker():
+    """A 2x2 concrete bunker (16 px by 32 lines) for a turret."""
+    big = np.full((32, 16), 2, dtype=np.uint8)
+    big[0:2, :] = 3
+    big[:, 0] = 3
+    big[30:32, :] = 1
+    big[:, 15] = 1
+    for y in range(32):
+        for x in range(16):
+            d = math.hypot((x + 0.5 - 8) * 2, y + 0.5 - 16)
+            if d < 10:
+                big[y, x] = 1
+            if d < 7:
+                big[y, x] = 2
+    return big
+
+
+def island_tiles(ids):
+    """Tiles for MegaGammaForce's ocean names (ocean.py). Returns (tiles,
+    palettes, lut); tile 0 is blank (open sea)."""
+    tiles, pals, lut = [np.zeros((H, W), dtype=np.uint8)], [ISLAND], {}
+    bunker = _quarters(_bunker())
+    for name, i in ids.items():
+        if name.startswith("sea"):
+            lut[i] = 0
+            continue
+        lut[i] = len(tiles)
+        if name.startswith("edge"):
+            cfg = int(name[4:])
+            tiles.append(_island_edge(((cfg >> 3) & 1, (cfg >> 2) & 1, (cfg >> 1) & 1, cfg & 1), cfg))
+            pals.append(ISLAND)
+        elif name.startswith("land"):
+            tiles.append(_jungle(40 + int(name[4:])))
+            pals.append(ISLAND)
+        elif name.startswith("bunker"):
+            tiles.append(bunker[int(name[6:])])
+            pals.append(STEEL)
+    return tiles, pals, lut
+
+
+def _plate(seed):
+    t = np.full((H, W), 2, dtype=np.uint8)
+    t[0, :] = 3
+    t[H - 1, :] = 1
+    t[7 + seed, 1:W - 1:3] = 1                # rivets
+    return t
+
+
+def hull_tiles(ids):
+    """LEVIATHAN's hull, for MegaGammaForce's hull names (ship.py). Returns
+    (tiles, palettes, lut). The sockets under its guns are left plain
+    (the guns sit over them), and the craters are not used (the map is
+    ROM: destroyed parts leave wrecks)."""
+    tiles, pals, lut = [], [], {}
+
+    def add(key, t, pal):
+        if key not in lut:
+            lut[key] = len(tiles)
+            tiles.append(t)
+            pals.append(pal)
+        return lut[key]
+
+    deck0, deck1 = _plate(0), _plate(4)
+    walk = np.full((H, W), 1, dtype=np.uint8)
+    walk[:, 1:W - 1] = 2
+    walk[::3, 1:W - 1] = 1                      # grating
+    vent = _plate(0)
+    vent[3:13, 1:7] = 1
+    vent[4:12:2, 2:6] = 2
+    lamp = _plate(0)
+    lamp[6:10, 2:6] = 1
+    lamp[7:9, 3:5] = 3                          # red (the boss palette)
+    port = _plate(2)
+    port[:, 0] = 1
+    port[:, 1] = 3
+    stbd = _plate(2)
+    stbd[:, W - 1] = 1
+    stbd[:, W - 2] = 1
+    stern = np.full((H, W), 2, dtype=np.uint8)
+    stern[0:4, :] = 0
+    stern[4, :] = 1
+    stern[5, :] = 3
+    engine = stern.copy()
+    engine[8:14, 1:7] = 1
+    engine[9:13, 2:6] = 3                       # glow (red)
+    stern_l = stern.copy()
+    for y in range(H):
+        for x in range(W):
+            if x + y < 6:
+                stern_l[y, x] = 0
+        stern_l[y, max(0, 6 - y):max(0, 6 - y) + 1] = 1 if y >= 4 else 0
+    stern_l[6:, 0] = 1
+    stern_r = stern_l[:, ::-1].copy()
+    bow_l = np.zeros((H, W), dtype=np.uint8)    # the hull narrows a tile a row
+    bow_r = np.zeros((H, W), dtype=np.uint8)
+    for y in range(H):
+        e = y * W // H                          # the cut goes down and inward
+        bow_l[y, e:] = 2
+        bow_l[y, e] = 1
+        bow_l[y, min(W - 1, e + 1)] = 3
+        bow_r[y, :W - e] = 2
+        bow_r[y, W - 1 - e] = 1
+    mark = _plate(0)
+    for y in range(2, 14):
+        mark[y, max(0, 3 - (y - 2) // 4):min(W, 5 + (y - 2) // 4)] = 3
+    socket = _plate(0)
+    socket[2:14, 1:7] = 1
+    bay0 = np.full((H, W), 1, dtype=np.uint8)
+    for y in range(1, H):
+        for x in range(1, W - 1):
+            bay0[y, x] = 3 if ((x + y) // 3) % 2 == 0 else 1   # hazard (red)
+    bay1 = bay0[::-1].copy()
+    out = {}
+    for name, i in ids.items():
+        if name == "clear":
+            continue
+        if name.startswith("deck"):
+            out[i] = add("deck" + str(int(name[4:]) % 2), deck0 if int(name[4:]) % 2 == 0 else deck1, STEEL)
+        elif name in ("walk", "vent", "port", "stbd", "stern", "stern_l", "stern_r", "bow_l", "bow_r"):
+            out[i] = add(name, locals()[name], STEEL)
+        elif name in ("lamp", "engine"):
+            out[i] = add(name, locals()[name], BOSSPAL)
+        elif name == "bow_mark":
+            out[i] = add(name, mark, STEEL)
+        elif name.startswith("big") or name == "small":
+            out[i] = add("socket", socket, STEEL)
+        elif name in ("bay0", "bay1"):
+            out[i] = add(name, bay0 if name == "bay0" else bay1, BOSSPAL)
+    return tiles, pals, out, ids.get("clear")

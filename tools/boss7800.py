@@ -220,3 +220,92 @@ def parts2():
     shut, op = core2(False)[0], core2(True)[0]
     return {"b2coret": [shut[:32], op[:32]], "b2coreb": [shut[32:], op[32:]],
             "b2pod": pod(), "b2cannon": cannon2()}
+
+
+# ---------------------------------------------------------------------------
+# LEVIATHAN, the stage 3 battleship: the parts that ride its hull (the hull
+# itself is map tiles). Palette P0 in stage 3: 1 dark steel, 2 steel, 3 red.
+
+def bridge3():
+    """The bridge: 32 px by 64 lines, stepped decks, a radar dish, a mast,
+    lit windows."""
+    c = Canvas(32, 64)
+    outer = poly([(8, 60), (8, 18), (16, 6), (48, 6), (56, 18), (56, 60)])
+    c.fill(outer, 2)
+    c.outline(1)
+    c.fill(lambda x, y: outer(x, y) and x > 48, 1)                      # the shaded side
+    c.fill(lambda x, y: 14 <= x < 50 and 22 <= y < 56 and (abs(x - 14) < 1.5 or abs(y - 22) < 1), 1)
+    c.fill(lambda x, y: 20 <= x < 44 and 28 <= y < 50 and (abs(x - 43) < 1.5 or abs(y - 49) < 1), 1)
+    c.fill(lambda x, y: 22 <= x < 42 and 44 <= y < 47 and int(x) % 4 < 2, 3)  # windows
+    c.fill(ring(32, 15, 5, 8), 1)                                        # the radar dish
+    c.fill(lambda x, y: abs(x - 32) < 1.5 and 2 <= y < 15, 1)            # the mast
+    c.fill(circle(32, 3, 2), 3)
+    c.fill(lambda x, y: 10 <= x < 54 and 56 <= y < 59, 1)
+    return [c.a]
+
+
+def reactor3():
+    """The reactor: 16 px by 32 lines, a red core under an armored ring;
+    frames: it pulses."""
+    frames = []
+    for hot in (False, True):
+        c = Canvas(16, 32)
+        c.fill(circle(16, 16, 15), 2)
+        c.outline(1)
+        for a in range(0, 360, 60):
+            x, y = 16 + math.cos(math.radians(a)) * 11, 16 + math.sin(math.radians(a)) * 11
+            c.fill(circle(x, y, 2.5), 1)
+        c.fill(circle(16, 16, 8), 1)
+        c.fill(circle(16, 16, 7 if hot else 5), 3)
+        frames.append(c.a)
+    return frames
+
+
+def gun3():
+    """A main gun: 12 px by 16 lines, twin barrels aimed in 8 directions
+    (frame 0 down, turning clockwise as the aim angle grows)."""
+    frames = []
+    for k in range(8):
+        a = math.pi / 2 + k * math.pi / 4
+        dx, dy = math.cos(a), math.sin(a)
+        c = Canvas(12, 16)
+        for side in (-2.5, 2.5):
+            ox, oy = -dy * side, dx * side
+            def barrel(x, y, ox=ox, oy=oy):
+                px, py = x - 12 - ox, y - 8 - oy
+                t = px * dx + py * dy
+                return 0 <= t <= 10 and abs(px * dy - py * dx) < 1.4
+            c.fill(barrel, 2)
+        c.fill(circle(12, 8, 6.5), 2)
+        c.outline(1)
+        c.fill(circle(12, 8, 2.5), 3)
+        frames.append(c.a)
+    return frames
+
+
+def gunboat():
+    """A gunboat (stage 3): 16 px by 32 lines, sailing up the screen: a
+    pointed hull, a deck gun, a wake that churns (two frames)."""
+    frames = []
+    for f in range(2):
+        c = Canvas(16, 32)
+        hull = poly([(16, 1), (26, 10), (26, 26), (22, 30), (10, 30), (6, 26), (6, 10)])
+        c.fill(hull, 2)
+        c.outline(1)
+        c.fill(lambda x, y: hull(x, y) and x > 21, 1)
+        c.fill(circle(16, 12, 4.5), 1)                                    # the gun
+        c.fill(circle(16, 12, 2.5), 3)
+        c.fill(lambda x, y: abs(x - 16) < 1.2 and 3 <= y < 9, 3)
+        c.fill(lambda x, y: 11 <= x < 21 and 19 <= y < 25, 1)             # the wheelhouse
+        c.fill(lambda x, y: 13 <= x < 19 and 20 <= y < 22, 3)
+        for k in range(3):                                                # wake
+            y = 30 + (k + f) % 2
+            c.fill(lambda x, yy, y=y, k=k: int(yy) == y and abs(x - 16) > 6 + k * 2 and abs(x - 16) < 9 + k * 2, 3)
+        frames.append(c.a)
+    return frames
+
+
+def parts3():
+    br = bridge3()[0]
+    return {"b3bridget": [br[:32]], "b3bridgeb": [br[32:]], "b3reactor": reactor3(), "b3gun": gun3(),
+            "gunboat": gunboat()}

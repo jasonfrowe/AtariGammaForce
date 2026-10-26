@@ -2,8 +2,8 @@
 ; Stage 2's bank: switched in at $8000 for the whole stage.
 ; The header has the same layout in every stage bank (STG_ consts).
 stage2_header
-  .byte 208,16,>charset2,82,23,34,0,96,100,90,1,4,9,1,4,42,SONG_STAGE2,SONG_BOSS2,4,16,2
-  ds 11,0
+  .byte 208,16,>charset2,82,23,34,0,96,100,90,1,4,9,1,4,42,SONG_STAGE2,SONG_BOSS2,4,16,2,12
+  ds 10,0
 s2_watl
   .byte 164,200,4,152,28,244,228,92,252,196,226,126,140,24,160,132,12,212,4,56
   .byte 10,50,210,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -59,13 +59,6 @@ s2_gparam
   .byte 0,0,0,0,0,10,0,0,0,138,0,0,0,0,0,0
   .byte 0,0,10,0,0,0,0,0,138,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0
-; Direct-mode palette|width byte for each tile (zone 14 draws its
-; tiles as one 2-byte-wide object each).
-s2_tilepw
-  .byte 62,94,94,94,62,62,94,94,62,62,94,94,62,62,94,94
-  .byte 62,62,94,94,94,62,94,94,94,94,30,30,30,30,94,0
-  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 s2_rowlo
   .byte <s2o0,<s2o1,<s2o2,<s2o3,<s2o4,<s2o5,<s2o6,<s2o7
   .byte <s2o8,<s2o9,<s2o10,<s2o11,<s2o12,<s2o13,<s2o14,<s2o15
@@ -120,60 +113,6 @@ s2_rowhi
   .byte >s2o44,>s2o45,>s2o46,>s2o47,>s2o48,>s2o49,>s2o49,>s2o50
   .byte >s2o57,>s2o58,>s2o59,>s2o58,>s2o58,>s2o60,>s2o58,>s2o58
   .byte >s2o57,>s2o58,>s2o61,>s2o58,>s2o58,>s2o62,>s2o58,>s2o58
-s2_charlo
-  .byte <s2r0,<s2r1,<s2r2,<s2r3,<s2r4,<s2r5,<s2r6,<s2r7
-  .byte <s2r8,<s2r9,<s2r10,<s2r11,<s2r12,<s2r13,<s2r14,<s2r15
-  .byte <s2r16,<s2r17,<s2r18,<s2r19,<s2r20,<s2r21,<s2r22,<s2r23
-  .byte <s2r24,<s2r25,<s2r26,<s2r27,<s2r28,<s2r28,<s2r28,<s2r29
-  .byte <s2r30,<s2r31,<s2r32,<s2r33,<s2r34,<s2r34,<s2r34,<s2r35
-  .byte <s2r36,<s2r37,<s2r38,<s2r39,<s2r40,<s2r41,<s2r42,<s2r43
-  .byte <s2r44,<s2r45,<s2r46,<s2r47,<s2r48,<s2r49,<s2r49,<s2r50
-  .byte <s2r16,<s2r17,<s2r18,<s2r19,<s2r20,<s2r21,<s2r22,<s2r23
-  .byte <s2r8,<s2r9,<s2r10,<s2r11,<s2r12,<s2r13,<s2r14,<s2r15
-  .byte <s2r51,<s2r52,<s2r53,<s2r54,<s2r55,<s2r55,<s2r55,<s2r56
-  .byte <s2r0,<s2r1,<s2r2,<s2r3,<s2r4,<s2r5,<s2r6,<s2r7
-  .byte <s2r51,<s2r52,<s2r53,<s2r54,<s2r55,<s2r55,<s2r55,<s2r56
-  .byte <s2r24,<s2r25,<s2r26,<s2r27,<s2r28,<s2r28,<s2r28,<s2r29
-  .byte <s2r36,<s2r37,<s2r38,<s2r39,<s2r40,<s2r41,<s2r42,<s2r43
-  .byte <s2r8,<s2r9,<s2r10,<s2r11,<s2r12,<s2r13,<s2r14,<s2r15
-  .byte <s2r30,<s2r31,<s2r32,<s2r33,<s2r34,<s2r34,<s2r34,<s2r35
-  .byte <s2r36,<s2r37,<s2r38,<s2r39,<s2r40,<s2r41,<s2r42,<s2r43
-  .byte <s2r24,<s2r25,<s2r26,<s2r27,<s2r28,<s2r28,<s2r28,<s2r29
-  .byte <s2r44,<s2r45,<s2r46,<s2r47,<s2r48,<s2r49,<s2r49,<s2r50
-  .byte <s2r0,<s2r1,<s2r2,<s2r3,<s2r4,<s2r5,<s2r6,<s2r7
-  .byte <s2r51,<s2r52,<s2r53,<s2r54,<s2r55,<s2r55,<s2r55,<s2r56
-  .byte <s2r0,<s2r1,<s2r2,<s2r3,<s2r4,<s2r5,<s2r6,<s2r7
-  .byte <s2r30,<s2r31,<s2r32,<s2r33,<s2r34,<s2r34,<s2r34,<s2r35
-  .byte <s2r44,<s2r45,<s2r46,<s2r47,<s2r48,<s2r49,<s2r49,<s2r50
-  .byte <s2r57,<s2r58,<s2r59,<s2r58,<s2r58,<s2r60,<s2r58,<s2r58
-  .byte <s2r57,<s2r58,<s2r61,<s2r58,<s2r58,<s2r62,<s2r58,<s2r58
-s2_charhi
-  .byte >s2r0,>s2r1,>s2r2,>s2r3,>s2r4,>s2r5,>s2r6,>s2r7
-  .byte >s2r8,>s2r9,>s2r10,>s2r11,>s2r12,>s2r13,>s2r14,>s2r15
-  .byte >s2r16,>s2r17,>s2r18,>s2r19,>s2r20,>s2r21,>s2r22,>s2r23
-  .byte >s2r24,>s2r25,>s2r26,>s2r27,>s2r28,>s2r28,>s2r28,>s2r29
-  .byte >s2r30,>s2r31,>s2r32,>s2r33,>s2r34,>s2r34,>s2r34,>s2r35
-  .byte >s2r36,>s2r37,>s2r38,>s2r39,>s2r40,>s2r41,>s2r42,>s2r43
-  .byte >s2r44,>s2r45,>s2r46,>s2r47,>s2r48,>s2r49,>s2r49,>s2r50
-  .byte >s2r16,>s2r17,>s2r18,>s2r19,>s2r20,>s2r21,>s2r22,>s2r23
-  .byte >s2r8,>s2r9,>s2r10,>s2r11,>s2r12,>s2r13,>s2r14,>s2r15
-  .byte >s2r51,>s2r52,>s2r53,>s2r54,>s2r55,>s2r55,>s2r55,>s2r56
-  .byte >s2r0,>s2r1,>s2r2,>s2r3,>s2r4,>s2r5,>s2r6,>s2r7
-  .byte >s2r51,>s2r52,>s2r53,>s2r54,>s2r55,>s2r55,>s2r55,>s2r56
-  .byte >s2r24,>s2r25,>s2r26,>s2r27,>s2r28,>s2r28,>s2r28,>s2r29
-  .byte >s2r36,>s2r37,>s2r38,>s2r39,>s2r40,>s2r41,>s2r42,>s2r43
-  .byte >s2r8,>s2r9,>s2r10,>s2r11,>s2r12,>s2r13,>s2r14,>s2r15
-  .byte >s2r30,>s2r31,>s2r32,>s2r33,>s2r34,>s2r34,>s2r34,>s2r35
-  .byte >s2r36,>s2r37,>s2r38,>s2r39,>s2r40,>s2r41,>s2r42,>s2r43
-  .byte >s2r24,>s2r25,>s2r26,>s2r27,>s2r28,>s2r28,>s2r28,>s2r29
-  .byte >s2r44,>s2r45,>s2r46,>s2r47,>s2r48,>s2r49,>s2r49,>s2r50
-  .byte >s2r0,>s2r1,>s2r2,>s2r3,>s2r4,>s2r5,>s2r6,>s2r7
-  .byte >s2r51,>s2r52,>s2r53,>s2r54,>s2r55,>s2r55,>s2r55,>s2r56
-  .byte >s2r0,>s2r1,>s2r2,>s2r3,>s2r4,>s2r5,>s2r6,>s2r7
-  .byte >s2r30,>s2r31,>s2r32,>s2r33,>s2r34,>s2r34,>s2r34,>s2r35
-  .byte >s2r44,>s2r45,>s2r46,>s2r47,>s2r48,>s2r49,>s2r49,>s2r50
-  .byte >s2r57,>s2r58,>s2r59,>s2r58,>s2r58,>s2r60,>s2r58,>s2r58
-  .byte >s2r57,>s2r58,>s2r61,>s2r58,>s2r58,>s2r62,>s2r58,>s2r58
 s2_rowshift
   .byte 0,0,0,0,0,0,0,0,240,240,240,240,240,240,240,240
   .byte 224,224,224,224,224,224,224,224,208,208,208,208,208,208,208,208
@@ -188,12 +127,13 @@ s2_rowshift
   .byte 200,200,200,200,200,200,200,200,200,200,200,200,200,200,200,200
   .byte 224,224,224,224,224,224,224,224,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  if . - stage2_header != 1776
+  if . - stage2_header != 1296
     echo "ERROR: stage 2 header layout"
     err
   endif
 
-; Row u's characters, columns 4-15 (2 bytes a tile: doublewide).
+; Row u's characters: those of its runs of drawn tiles, one after the
+; other (2 bytes a tile: doublewide). Background tiles aren't drawn.
 s2r0 .byte 86,82,82,82,82,82,86,82,82,82,82,82
 s2r1 .byte 84,94,92,92,92,100,84,94,92,92,92,100
 s2r2 .byte 84,106,104,104,104,112,84,90,136,138,120,96
@@ -252,11 +192,11 @@ s2r54 .byte 90,88,88,88,124,126,84,90,88,88,124,126
 s2r55 .byte 90,88,88,88,88,96,84,90,88,88,88,96
 s2r56 .byte 106,104,104,104,104,112,84,106,104,104,104,112
 s2r57 .byte 86,82,82,82,82,82,82,82,82,82,82,86
-s2r58 .byte 84,80,80,80,80,80,80,80,80,80,80,84
-s2r59 .byte 84,80,80,140,80,80,80,80,140,80,80,84
-s2r60 .byte 84,80,80,80,80,140,80,80,80,80,80,84
-s2r61 .byte 84,80,140,80,80,80,80,80,80,140,80,84
-s2r62 .byte 84,80,80,80,80,80,140,80,80,80,80,84
+s2r58 .byte 84,84
+s2r59 .byte 84,140,140,84
+s2r60 .byte 84,140,84
+s2r61 .byte 84,140,140,84
+s2r62 .byte 84,140,84
 
 ; Row u's background objects: a length byte, then the 5-byte headers.
 s2o0 .byte 10
@@ -577,20 +517,22 @@ s2o57 .byte 10
   .byte <(s2r57+6),$60,>(s2r57+6),90,80
 s2o58 .byte 10
   .byte <(s2r58+0),$60,>(s2r58+0),95,32
-  .byte <(s2r58+11),$60,>(s2r58+11),95,120
-s2o59 .byte 15
-  .byte <(s2r59+0),$60,>(s2r59+0),60,32
-  .byte <(s2r59+8),$60,>(s2r59+8),95,96
-  .byte <(s2r59+11),$60,>(s2r59+11),95,120
+  .byte <(s2r58+1),$60,>(s2r58+1),95,120
+s2o59 .byte 20
+  .byte <(s2r59+0),$60,>(s2r59+0),95,32
+  .byte <(s2r59+1),$60,>(s2r59+1),95,56
+  .byte <(s2r59+2),$60,>(s2r59+2),95,96
+  .byte <(s2r59+3),$60,>(s2r59+3),95,120
 s2o60 .byte 15
   .byte <(s2r60+0),$60,>(s2r60+0),95,32
-  .byte <(s2r60+5),$60,>(s2r60+5),95,72
-  .byte <(s2r60+11),$60,>(s2r60+11),95,120
-s2o61 .byte 15
-  .byte <(s2r61+0),$60,>(s2r61+0),93,32
-  .byte <(s2r61+9),$60,>(s2r61+9),95,104
-  .byte <(s2r61+11),$60,>(s2r61+11),95,120
+  .byte <(s2r60+1),$60,>(s2r60+1),95,72
+  .byte <(s2r60+2),$60,>(s2r60+2),95,120
+s2o61 .byte 20
+  .byte <(s2r61+0),$60,>(s2r61+0),95,32
+  .byte <(s2r61+1),$60,>(s2r61+1),95,48
+  .byte <(s2r61+2),$60,>(s2r61+2),95,104
+  .byte <(s2r61+3),$60,>(s2r61+3),95,120
 s2o62 .byte 15
   .byte <(s2r62+0),$60,>(s2r62+0),95,32
-  .byte <(s2r62+6),$60,>(s2r62+6),95,80
-  .byte <(s2r62+11),$60,>(s2r62+11),95,120
+  .byte <(s2r62+1),$60,>(s2r62+1),95,80
+  .byte <(s2r62+2),$60,>(s2r62+2),95,120

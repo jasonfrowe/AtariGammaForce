@@ -41,8 +41,9 @@
   rem Testing: start at the boss, and/or never get hit.
   rem const BOSSTEST = 1
   rem const CHEAT = 1
-  rem Start at stage 2.
+  rem Start at stage 2, or 3.
   rem const STAGE2TEST = 1
+  rem const STAGE3TEST = 1
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
@@ -58,6 +59,9 @@
   rem an obstacle (stage 2's towers): rides the map, can't be shot, and
   rem destroys the ship that flies into it
   const ET_TOWER = 8
+  const ET_GUNBOAT = 9
+  rem the stages, round and round
+  const NSTAGES = 3
   rem boss parts: types from ET_PART up are placed by the boss code
   const ET_PART = 10
   const ET_PCANNON = 10
@@ -310,7 +314,7 @@ end
   temp5 = (temp4 + 2) & 15 : P4C3 = temp5 * 16 + 13
   if selcd > 0 then selcd = selcd - 1 : goto title_fire
   if joy0left && selstage > 1 then selstage = selstage - 1 : selcd = 15
-  if joy0right && selstage < 2 then selstage = selstage + 1 : selcd = 15
+  if joy0right && selstage < NSTAGES then selstage = selstage + 1 : selcd = 15
 title_fire
   rem Start on a fresh press of either button (released first)
   temp3 = 0
@@ -325,14 +329,22 @@ title_fire
   lda #2
   sta stage
   endif
+  ifconst STAGE3TEST
+  lda #3
+  sta stage
+  endif
   lda #160
   sta pfspeed
   lda stage
   jsr pf_stage
   ifconst BOSSTEST
-  lda stg_rows
+  lda stg_bossat          ; a little before the boss: row bossat * 16 - 6
+  asl
+  asl
+  asl
+  asl
   sec
-  sbc #22
+  sbc #6
   sta pfstartrow
   endif
   jsr pf_reset
@@ -689,7 +701,9 @@ damage_next
 destroy
   temp1 = etype[i]
   temp7 = exh[i] : temp8 = eyh[i] : gosub spawn_fx
+  if temp1 = ET_GUNBOAT then goto destroy_big
   if temp1 <> ET_GUNSHIP then goto destroy_small
+destroy_big
   asm
   lda #SFX_BIGBOOM
   jsr sfx_play
@@ -838,10 +852,13 @@ boss
   rem After the last wave, once the sky is clear and the fortress is behind
 boss_wait
   if wn < stg_nwaves then return
-  if spos_hi < 12 then return
+  if spos_hi < stg_bossat then return
+  rem (stage 3's ship comes in with the map: it can't wait for a clear sky)
+  if stage = 3 then goto boss_go
   for k = 0 to NE1
     if etype[k] then return
   next
+boss_go
   bstate = 1 : btl = 0 : bth = 0
   asm
   lda stg_bosssong
@@ -859,6 +876,7 @@ boss_warning
   rem the stage's boss: its parts from its tables (stage 2's are in its bank)
   if stage = 1 then gosub boss1_build
   if stage = 2 then gosub boss2_build
+  if stage = 3 then gosub boss3_build
   bescape = 0
   for k = 0 to 10
     ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
@@ -869,6 +887,7 @@ boss_warning
   return
 
 boss_enter
+  if stage = 3 then goto boss3_enter
   by = by + 1
   gosub boss_place
   if by < 89 then return
@@ -876,6 +895,7 @@ boss_enter
   return
 
 boss_fight
+  if stage = 3 then goto boss3_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
   rem sway: x = 80 + 17 sin(t/2), y = 89 + 6 sin(t/4) (stage 2: 12, 7)
@@ -919,6 +939,7 @@ boss_nodive
   rem coming in from the top) is parked at 0, wholly above the screen,
   rem rather than wrapping round to the bottom.
 boss_place
+  if stage = 3 then goto boss3_place
   asm
   ldx #10
 boss_place_loop
@@ -958,6 +979,7 @@ boss_turrets
 
 boss_attack
   if stage = 2 then goto boss2_attack
+  if stage = 3 then goto boss3_attack
   goto boss1_attack
 
   rem Damage temp1 to boss part i. A wing's bottom half passes its hits
@@ -1023,6 +1045,8 @@ end
   next
   if temp3 = 0 then sadd2 = $02 : sadd1 = 0 : sadd0 = 0 : gosub boss_bonus
   bstate = 4 : btl = 0
+  rem stage 3's ship sinks: the scroll carries it away
+  if stage = 3 then pfspeed = 250
   return
 boss_bonus
   asm
@@ -1035,6 +1059,7 @@ boss_dying
   btl = btl + 1
   temp1 = btl & 7
   if temp1 = 0 then gosub boss_boom
+  if stage = 3 then gosub boss3_sinking
   if btl < 240 then gosub boss_place : return
   for k = 0 to 10 : etype[k] = 0 : next
   bstate = 5 : btl = 0
@@ -1123,7 +1148,7 @@ boss_clear_wait
   rem on to the next stage (after the last, round again)
   bstate = 0 : wn = 0 : gn = 0 : chmax = 0
   stage = stage + 1 : smsg = 180
-  if stage > 2 then stage = 1
+  if stage > NSTAGES then stage = 1
   asm
   lda #160
   sta pfspeed
@@ -1239,13 +1264,13 @@ end
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----
   rem hit points: the Vulcan does 3 a bolt pair, the sword 4 a strike
   data enemy_hp
-  0, 2, 8, 10, 60, 16, 9, 20, 255
+  0, 2, 8, 10, 60, 16, 9, 20, 255, 30
 end
   data enemy_score1
-  0, $01, $02, $03, $20, $03, $01, $04, 0
+  0, $01, $02, $03, $20, $03, $01, $04, 0, $15
 end
   data enemy_img
-  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP, IMG_TURRET, IMG_WASP, IMG_TANK, IMG_TOWER
+  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP, IMG_TURRET, IMG_WASP, IMG_TANK, IMG_TOWER, IMG_GUNBOAT
 end
 
   rem Assembly files are copied flat into the build directory (tools/build.sh).
@@ -1278,6 +1303,20 @@ end
   incbasic gen/gfx2.bas
   dmahole 0
   inline musicdata2.asm
+
+  rem ======================================================================
+  rem  Bank 4: stage 3 (map, waves, music, LEVIATHAN's code, its graphics
+  rem  block at $A000)
+  rem ======================================================================
+  bank 4
+  rem the stage header must come first: it is read at $8000
+  inline stage3.asm
+  inline musicdata3b.asm
+  incbasic boss3.bas
+  incbasic gen/gfx3.bas
+  dmahole 0
+  inline musicdata3.asm
+  incbasic boss3data.bas
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)
