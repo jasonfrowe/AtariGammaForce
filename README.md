@@ -18,6 +18,21 @@ bullets), the Hyper Sword, the color chain, score and lives work. See [docs/DESI
 [docs/ENGINE.md](docs/ENGINE.md) for how the scrolling and the stage banks
 work.
 
+## Screenshots
+
+| | |
+|---|---|
+| ![The title screen](docs/screenshots/title.png) | ![Stage 1, SKY FORTRESS](docs/screenshots/stage1.png) |
+| The title: the logo's palette cycles, as in Astro Wing | Stage 1, SKY FORTRESS |
+| ![The GAMMA CORE](docs/screenshots/boss1.png) | ![Stage 2, NEON SPIRES](docs/screenshots/stage2.png) |
+| The GAMMA CORE | Stage 2, NEON SPIRES: the city winds and splits |
+| ![The SPIRE WARDEN](docs/screenshots/boss2.png) | ![Stage 3, IRON TIDE](docs/screenshots/stage3.png) |
+| The SPIRE WARDEN | Stage 3, IRON TIDE |
+| ![LEVIATHAN](docs/screenshots/boss3.png) | ![The results](docs/screenshots/results.png) |
+| LEVIATHAN, the battleship, part of the map | The results after a boss |
+
+Screenshots from the A7800 emulator (`tools/play.sh`), at twice size.
+
 ## Controls
 
 | | |
