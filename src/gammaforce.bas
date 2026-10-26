@@ -203,8 +203,6 @@
 end
   asm
   jsr pf_init
-  lda #SONG_STAGE1
-  jsr mus_play
 end
 
   rem ======================================================================
@@ -221,6 +219,10 @@ end
   for i = 0 to NS1 : shy[i] = 0 : next
   for i = 0 to NX1 : xt[i] = 0 : next
   temp9 = 30
+  asm
+  lda #SONG_TITLE
+  jsr mus_play
+end
 title_loop
   asm
   jsr pf_frame
@@ -1281,6 +1283,7 @@ end
   inline objects.asm
   inline data.asm
   inline music.asm
+  inline musiccommon.asm
   inline sfx.asm
 
   rem ======================================================================
