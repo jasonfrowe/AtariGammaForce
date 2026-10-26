@@ -1186,3 +1186,188 @@ think_turret
      jmp bul_fire
 th_tur_rts
      rts
+
+; ---------------------------------------------------------------------------
+; pl_update: the ship for one frame. In: plfire (Vulcan held), plsword
+; (sword out, or Hyper running), hyper. Moves (slower firing, slower still
+; with the sword), banks, fires the Vulcan, sets the sword's box and its
+; damage this frame. The rest (Hyper trigger, absorbing, dying) is BASIC.
+pl_update
+     ; steps: idle 1 across / 2 down; firing 3/4 and 1-2; sword 1/2 and 1
+     lda #1
+     sta ob1                 ; horizontal step
+     lda #2
+     sta ob2                 ; vertical step
+     lda plfire
+     beq pl_u_sw
+     lda tick
+     and #1
+     clc
+     adc #1
+     sta ob2
+     lda tick
+     and #3
+     bne pl_u_sw
+     lda #0
+     sta ob1
+pl_u_sw
+     lda plsword
+     beq pl_u_move
+     lda #1
+     sta ob2
+     lda tick
+     and #1
+     sta ob1
+pl_u_move
+     lda #0
+     sta bank
+     bit sSWCHA
+     bvs pl_u_r              ; bit 6 clear = left
+     lda #1
+     sta bank
+     lda plx
+     cmp #3
+     bcc pl_u_r
+     sec
+     sbc ob1
+     sta plx
+pl_u_r
+     bit sSWCHA
+     bmi pl_u_u              ; bit 7 clear = right
+     lda #2
+     sta bank
+     lda plx
+     cmp #143
+     bcs pl_u_u
+     clc
+     adc ob1
+     sta plx
+pl_u_u
+     lda sSWCHA
+     and #$10                ; up
+     bne pl_u_d
+     lda ply
+     cmp #41
+     bcc pl_u_d
+     sec
+     sbc ob2
+     sta ply
+pl_u_d
+     lda sSWCHA
+     and #$20                ; down
+     bne pl_u_c
+     lda ply
+     cmp #214
+     bcs pl_u_c
+     clc
+     adc ob2
+     sta ply
+pl_u_c
+     lda plx
+     clc
+     adc #8
+     sta pcx
+     lda ply
+     clc
+     adc #12
+     sta pcy
+     ; Vulcan (not while the sword is out)
+     lda firecd
+     beq pl_u_f0
+     dec firecd
+pl_u_f0
+     lda plsword
+     bne pl_u_sword
+     lda plfire
+     beq pl_u_sword
+     lda firecd
+     bne pl_u_sword
+     ldx #NS-1
+pl_u_find
+     lda shy,x
+     beq pl_u_shot
+     dex
+     bpl pl_u_find
+     bmi pl_u_sword
+pl_u_shot
+     lda plx
+     clc
+     adc #6
+     sta shx,x
+     lda ply
+     sec
+     sbc #6
+     sta shy,x
+     lda #4                  ; the Vulcan only speeds up at level 4
+     ldx vlv
+     cpx #3
+     bcc pl_u_cd
+     lda #3
+pl_u_cd
+     sta firecd
+     lda #SFX_VULCAN
+     jsr sfx_play
+pl_u_sword
+     lda plsword
+     bne pl_u_sw1
+     rts
+pl_u_sw1
+     lda #1
+     sta swon
+     lda pcx
+     sec
+     sbc #12
+     sta swx0
+     clc
+     adc #24
+     sta swx1
+     lda pcy
+     sec
+     sbc #30
+     sta swy0
+     clc
+     adc #26
+     sta swy1
+     ; it strikes every 8 frames at level 1, every 4 at level 5, and harder
+     lda swcd
+     beq pl_u_strike
+     dec swcd
+     bne pl_u_hum
+pl_u_strike
+     lda slv
+     lsr
+     clc
+     adc #3
+     sta swdmg
+     lda #8
+     sec
+     sbc slv
+     sta swcd
+pl_u_hum
+     lda tick
+     and #15
+     bne pl_u_hyper
+     lda #SFX_SWORD
+     jsr sfx_play
+pl_u_hyper
+     lda hyper
+     beq pl_u_done
+     ; Hyper: a wider blade and a beam up the whole screen
+     lda pcx
+     sec
+     sbc #20
+     sta swx0
+     clc
+     adc #40
+     sta swx1
+     lda #24
+     sta swy0
+     lda #0
+     sta swdmg
+     lda tick
+     and #3
+     bne pl_u_done
+     lda #3
+     sta swdmg
+pl_u_done
+     rts

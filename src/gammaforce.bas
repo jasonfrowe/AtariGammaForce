@@ -162,6 +162,8 @@
   dim swcd = $2354
   dim lvmsg = $2355
   dim anyhit = $2356
+  dim plfire = $2357
+  dim plsword = $2358
   dim gn = $234D
   dim gcolor = $234E
   dim bstate = $2344
@@ -434,43 +436,11 @@ player
 player_nohyper
   if hyper > 0 then hyper = hyper - 1 : temp2 = 1
 
-  rem Movement: slower firing, slower still with the sword out.
-  rem temp4 = horizontal step, temp5 = vertical step
-  temp4 = 1 : temp5 = 2
-  if temp1 then temp5 = 1 + (tick & 1)
-  temp6 = tick & 3
-  if temp1 && temp6 = 0 then temp4 = 0
-  if temp2 then temp5 = 1 : temp4 = tick & 1
-  if joy0left && plx > 2 then plx = plx - temp4
-  if joy0right && plx < 143 then plx = plx + temp4
-  if joy0up && ply > 40 then ply = ply - temp5
-  if joy0down && ply < 214 then ply = ply + temp5
-  bank = 0
-  if joy0left then bank = 1
-  if joy0right then bank = 2
-  pcx = plx + 8 : pcy = ply + 12
-
-  rem Vulcan (not while the sword is out)
-  if firecd > 0 then firecd = firecd - 1
-  if temp2 = 0 && temp1 = 1 then gosub fire_vulcan
-
-  rem Radiant Sword: an arc above the ship that cuts and absorbs pink
-  if temp2 = 0 then goto player_nosword
-  swon = 1
-  swx0 = pcx - 12 : swx1 = pcx + 12
-  swy0 = pcy - 30 : swy1 = pcy - 4
-  rem it strikes every 8 frames at level 1, every 4 at level 5, and harder
-  if swcd > 0 then swcd = swcd - 1
-  if swcd = 0 then swdmg = 3 + slv / 2 : swcd = 8 - slv
-  temp6 = tick & 15
-  if temp6 = 0 then gosub sword_hum
-  if hyper = 0 then goto player_nosword
-  rem Hyper: a wider blade and a beam up the whole screen
-  swx0 = pcx - 20 : swx1 = pcx + 20 : swy0 = 24
-  swdmg = 0
-  temp6 = tick & 3
-  if temp6 = 0 then swdmg = 3
-player_nosword
+  rem Movement, the Vulcan and the sword's box: asm/objects.asm pl_update
+  plfire = temp1 : plsword = temp2
+  asm
+  jsr pl_update
+end
 
   rem Bullets the sword absorbed last frame: 10 points and gauge each
   if absorbed = 0 then goto player_noabsorb
@@ -505,12 +475,6 @@ player_dead
   gosub respawn
   return
 
-sword_hum
-  asm
-  lda #SFX_SWORD
-  jsr sfx_play
-end
-  return
 
 player_die
   asm
@@ -543,22 +507,6 @@ end
   sadd0 = temp8 * 32
   asm
   jsr score_add
-end
-  return
-
-fire_vulcan
-  if firecd > 0 then return
-  for i = 0 to NS1
-    if shy[i] = 0 then goto fire_slot
-  next
-  return
-fire_slot
-  shx[i] = plx + 6 : shy[i] = ply - 6 : firecd = 4
-  rem the Vulcan, already the strongest, only speeds up at level 4
-  if vlv >= 3 then firecd = 3
-  asm
-  lda #SFX_VULCAN
-  jsr sfx_play
 end
   return
 

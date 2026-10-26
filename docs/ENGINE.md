@@ -50,9 +50,9 @@ Zone 14 alternates between two DLs, one shown while the other is built,
 so its per-frame tile pointers and sprites never race the display.
 
 Open sea is the background color: runs of sea tiles get no objects at
-all (sea tiles are blank in the character set, so one caught inside a
-deck run still reads as sea). That keeps MARIA's DMA, which halts the CPU,
-low wherever the map is water.
+all (sea tiles are blank in the character set and have a palette of their
+own, so they never join a deck run). That keeps MARIA's DMA, which halts
+the CPU, low wherever the map is water.
 
 ## Frame order
 
@@ -129,18 +129,29 @@ Things that bit us:
 
 ## Testing
 
-`tools/test_scroll.sh` runs the ROM headless in the a7800 emulator, takes
+`tools/test_scroll.sh` builds an invulnerable test ROM, starts a game in
+the a7800 emulator headless, takes
 screenshots across every fine scroll value, several coarse steps and the
 boss loop, and `tools/check_scroll.py` compares every playfield line with
 the map. It should report 0 bad lines.
 
 ## Performance
 
-Over open sea the game holds 60 fps. Over the fortress deck, MARIA's DMA
-for a full row of characters (about 190 of the ~430 cycles it can use per
-line) halts the CPU for about 45% of the frame, and busy moments drop to
-40-55 fps. `const PROFILE = 1` times each part of the main loop
-(`tools/profile.py`); `tools/fps.py` measures the frame rate of a scripted
-run. Options if it needs to be faster: deck art built from a repeating
-plate drawn in direct mode (3 DMA cycles a byte instead of 4.5), more of
-the enemy logic in assembly, or fewer bullets.
+MARIA's DMA halts the CPU: a full row of background characters costs
+about 9 DMA cycles per 8 pixels (of ~430 per line), and every sprite object
+costs at least 11 cycles on each line of its zone, drawn or not. With no
+background at all the game holds 60 fps under full load, so the map is
+kept light: open sea is the background color (no objects), and the
+fortress is MegaGammaForce's own 12-column map in the middle of the sea.
+
+CPU side: each sprite object costs ~100 cycles of 6502 work (a 16-line
+strip that crosses a zone boundary is two objects), so the hot loops are
+assembly (objects.asm: enemy AI, movement, bullets, hits, the ship), the
+game keeps 12 enemy bullets and 4 explosions at most, and when a frame runs
+late enemies hold fire for a frame (`pflate`), which limits bullets exactly
+when it matters. `tools/fps_test.sh` measures stage 1 with an invulnerable
+ship: about 59 fps, with the busiest fortress stretch around 50-55.
+
+Tools: `const PROFILE = 1` times each part of the main loop (wall time,
+so MARIA and the NMIs count; `tools/profile.py`), and the `a7800dev`
+machine draws each line's DMA use at the left edge.

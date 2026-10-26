@@ -52,13 +52,21 @@ a7800 a7800 -cart build/gammaforce.a78
 | `src/asm/music.asm` | POKEY music player |
 | `tools/vgm2pokey.py` | MegaGammaForce's OPL2 VGM music to POKEY data |
 | `src/gfx/`, `src/gen/` | Generated graphics and data (committed; made by `tools/gen_assets.py`) |
-| `assets/mgf/` | Source art snapshotted from MegaGammaForce (`tools/import_mgf.py`) |
+| `assets/art7800.txt` | The sprites, drawn as text |
+| `assets/mgf/` | MegaGammaForce's maps, waves and music (`tools/import_mgf.py`) |
 | `src/asm/objects.asm` | Enemy bullets, enemy movement, hit tests, score |
 | `tools/7800basic/` | 7800basic v0.41 (stock) |
 | `tools/test_scroll.sh` | Headless engine regression test |
 | `tools/play.sh` | Headless scripted play (inputs, screenshots, memory peeks) |
-| `tests/` | Play scripts (`stage1_fps.txt` measures the frame rate with `tools/fps.py`) |
+| `tests/` | Play scripts (`tools/fps_test.sh` runs `stage1_fps.txt` for the frame rate) |
 | `docs/reference/` | Local copy of the 7800basic guide |
+
+The art is drawn for the 7800, not converted: sprites are text in
+`assets/art7800.txt` (one character per pixel, `.123`), the stage 1 tiles
+and the boss are drawn by `tools/tiles7800.py` and `tools/boss7800.py`.
+`tools/art_preview.py` shows the sprites in 7800 colors at the TV's 2:1
+pixel shape. The music is converted from MegaGammaForce's VGMs by
+`tools/gen_music.sh`.
 
 Regenerating the art needs Python with Pillow and numpy:
 
