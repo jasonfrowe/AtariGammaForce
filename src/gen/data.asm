@@ -9,7 +9,6 @@ hudclear .byte 86,104,90,82,116,90,88,80 ; 'CLEARED!'
 hudlevel .byte 104,90,124,90,104,80,122,112 ; 'LEVEL UP'
 ; Playfield texts for pf_text: TXT_ numbers index these.
 txt_atari .byte 82,120,82,116,98 ; 'ATARI'
-txt_gamma .byte 94,82,106,106,82,80,92,110,116,86,90 ; 'GAMMA FORCE'
 txt_push .byte 112,116,90,118,118,80,92,98,116,90 ; 'PRESS FIRE'
 txt_b1 .byte 84,122,120,120,110,108,80,62,80,80,124,122,104,86,82,108 ; 'BUTTON 1  VULCAN'
 txt_b2 .byte 84,122,120,120,110,108,80,64,80,80,118,126,110,116,88 ; 'BUTTON 2  SWORD'
@@ -20,11 +19,11 @@ txt_boss .byte 94,82,106,106,82,80,86,110,116,90 ; 'GAMMA CORE'
 txt_clear .byte 118,120,82,94,90,80,86,104,90,82,116 ; 'STAGE CLEAR'
 txt_over .byte 94,82,106,90,80,110,124,90,116 ; 'GAME OVER'
 txt_ready .byte 118,120,82,94,90,80,62 ; 'STAGE 1'
-txtlo .byte <txt_atari,<txt_gamma,<txt_push,<txt_b1,<txt_b2,<txt_credit,<txt_demake,<txt_warning
-  .byte <txt_boss,<txt_clear,<txt_over,<txt_ready
-txthi .byte >txt_atari,>txt_gamma,>txt_push,>txt_b1,>txt_b2,>txt_credit,>txt_demake,>txt_warning
-  .byte >txt_boss,>txt_clear,>txt_over,>txt_ready
-txtlen .byte 5,11,10,16,15,15,20,7,10,11,9,7
+txtlo .byte <txt_atari,<txt_push,<txt_b1,<txt_b2,<txt_credit,<txt_demake,<txt_warning,<txt_boss
+  .byte <txt_clear,<txt_over,<txt_ready
+txthi .byte >txt_atari,>txt_push,>txt_b1,>txt_b2,>txt_credit,>txt_demake,>txt_warning,>txt_boss
+  .byte >txt_clear,>txt_over,>txt_ready
+txtlen .byte 5,10,16,15,15,20,7,10,11,9,7
 
 ; P0C1..P7C3, in register order
 palettedata
@@ -40,18 +39,18 @@ palettedata
 ; Sprite images. IMG_x = image number; imglo/imghi = graphics of the
 ; first strip of frame 0; imgw = width in bytes; imgstrips = 16-line strips;
 ; imgframes = frame count. Frame f of strip s is at (strip label) + f*w.
-imglo .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship0,<turret,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0,<bwingrb0,<bcannon0,<bturret
-imghi .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret
-imglo2 .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret
-imghi2 .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret
-imgw .byte 4,1,2,2,2,1,1,1,2,4,2,6,8,8,4,4,4,4,4,2
-imgstrips .byte 2,1,1,1,1,1,1,1,1,2,1,2,2,2,2,2,2,2,2,1
-imgframes .byte 3,1,2,4,2,2,1,2,6,2,8,4,1,1,1,1,1,1,2,8
+imglo .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship0,<turret,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0,<bwingrb0,<bcannon0,<bturret,<logo_gamma0,<logo_force0
+imghi .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret,>logo_gamma0,>logo_force0
+imglo2 .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret,<logo_gamma1,<logo_force1
+imghi2 .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret,>logo_gamma1,>logo_force1
+imgw .byte 4,1,2,2,2,1,1,1,2,4,2,6,8,8,4,4,4,4,4,2,23,23
+imgstrips .byte 2,1,1,1,1,1,1,1,1,2,1,2,2,2,2,2,2,2,2,1,2,2
+imgframes .byte 3,1,2,4,2,2,1,2,6,2,8,4,1,1,1,1,1,1,2,8,1,1
 ; lines used in the image's last strip (the plotter skips the part
 ; of a strip that would only be empty lines)
-imgh .byte 7,8,15,10,12,4,6,4,9,11,10,14,16,16,16,16,16,16,16,16
+imgh .byte 7,8,15,10,12,4,6,4,9,11,10,14,16,16,16,16,16,16,16,16,16,16
 ; -width & 31, the width bits of a 4-byte header
-imgnegw .byte 28,31,30,30,30,31,31,31,30,28,30,26,24,24,28,28,28,28,28,30
+imgnegw .byte 28,31,30,30,30,31,31,31,30,28,30,26,24,24,28,28,28,28,28,30,9,9
 
 
 ; Trig: angles are 256 per turn, 0 = right, 64 = down.

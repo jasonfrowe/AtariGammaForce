@@ -112,21 +112,7 @@ ZONE11ADDRESS = RINGBASE+10*BUFSIZE
 pf_init
      lda #BGCOLOR
      sta BACKGRND
-     ldx #0
-     ldy #0
-pf_init_pal
-     lda palettedata,x
-     sta P0C1,y
-     inx
-     iny
-     tya
-     and #3
-     cmp #3
-     bne pf_init_pal1
-     iny                     ; skip the 4th register of each palette group
-pf_init_pal1
-     cpx #24
-     bne pf_init_pal
+     jsr pf_palettes
 
      ; HUD: one 20-character object in zone 0, reading hudtext live.
      ldx #19
@@ -437,6 +423,26 @@ pf_frame_old
      dex
      bne pf_frame_old
      jmp pf_restore
+
+; pf_palettes: load all eight palettes (the title cycles palette 4's hues,
+; so the game reloads them when it starts).
+pf_palettes
+     ldx #0
+     ldy #0
+pf_palettes_loop
+     lda palettedata,x
+     sta P0C1,y
+     inx
+     iny
+     tya
+     and #3
+     cmp #3
+     bne pf_palettes_next
+     iny                     ; skip the 4th register of each palette group
+pf_palettes_next
+     cpx #24
+     bne pf_palettes_loop
+     rts
 
 ; A = the map row after row A (past the end, loop the boss section).
 pf_nextrow

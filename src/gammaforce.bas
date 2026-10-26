@@ -183,6 +183,8 @@
   dim bspin = $234A
   dim bparts = $234B
   dim bmsg = $234C
+  dim bburst = $2359
+  dim bsrc = $235A
   dim tzone = $2342
   dim tpal = $2343
   dim pfspeed = $2233
@@ -239,21 +241,37 @@ title_loop
   jsr pf_frame
 end
   tick = tick + 1
+  rem the logo, GAMMA over FORCE, in palette 4
+  pframe = 0 : ppal = 4 : px = 34
+  pimg = IMG_LOGO_GAMMA : py = 70
+  asm
+  jsr pf_drawimg
+end
+  pimg = IMG_LOGO_FORCE : py = 104
+  asm
+  jsr pf_drawimg
+end
   tpal = 3
-  tzone = 3 : temp1 = TXT_ATARI : gosub text
-  tzone = 4 : temp1 = TXT_GAMMA : gosub text
+  tzone = 2 : temp1 = TXT_ATARI : gosub text
   tpal = 7
   temp2 = tick & 32
-  if temp2 then tzone = 7 : temp1 = TXT_PUSH : gosub text
+  if temp2 then tzone = 9 : temp1 = TXT_PUSH : gosub text
   tpal = 3
-  tzone = 9 : temp1 = TXT_B1 : gosub text
-  tzone = 10 : temp1 = TXT_B2 : gosub text
+  tzone = 10 : temp1 = TXT_B1 : gosub text
+  tzone = 11 : temp1 = TXT_B2 : gosub text
   tpal = 6
   tzone = 12 : temp1 = TXT_DEMAKE : gosub text
   tzone = 13 : temp1 = TXT_CREDIT : gosub text
   asm
   jsr pf_drawscreen
 end
+  rem Astrowing's rotating palette: each of the logo's colors steps
+  rem through the 16 hues (a step every 4 frames) at its own brightness:
+  rem a dark rim, the body, and the lit bevel a couple of hues ahead
+  temp4 = tick / 4
+  temp5 = temp4 & 15 : P4C1 = temp5 * 16 + 2
+  P4C2 = temp5 * 16 + 7
+  temp5 = (temp4 + 2) & 15 : P4C3 = temp5 * 16 + 13
   rem Start on a fresh press of either button (released first)
   temp3 = 0
   if joy0fire0 then temp3 = 1
@@ -262,6 +280,7 @@ end
   if temp3 = 0 then goto title_loop
   if temp9 > 0 then goto title_loop
   asm
+  jsr pf_palettes
   lda #160
   sta pfspeed
   ifconst BOSSTEST
@@ -808,7 +827,7 @@ boss_warning
   if btl < 180 then return
   bmsg = 0
   rem build the boss above the screen
-  bx = 80 : by = 0 : bspin = 0 : bcorehp = 225 : bparts = 0
+  bx = 80 : by = 0 : bspin = 0 : bcorehp = 225 : bparts = 0 : bburst = 0
   for k = 0 to 10
     etype[k] = boss_type[k] : eimg[k] = boss_img[k] : ehp[k] = boss_hp[k]
     ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
@@ -839,6 +858,19 @@ end
   jsr weave
 end
   by = 89 + woff
+  rem every third spell of 256 steps (about 4 seconds) it swoops down at
+  rem the player and back up: 0-72 lines lower, (1 - cos) shaped
+  temp1 = bth
+boss_mod3
+  if temp1 >= 3 then temp1 = temp1 - 3 : goto boss_mod3
+  if temp1 <> 2 then goto boss_nodive
+  temp6 = by
+  wang = btl : wamp = 36
+  asm
+  jsr weave
+end
+  by = temp6 + 36 - woff
+boss_nodive
   gosub boss_place
   rem 90 seconds and it escapes
   if bth >= 21 then bstate = 4 : btl = 200 : return
@@ -847,7 +879,10 @@ end
   return
 
   rem Part k's position from the boss centre (bx, by): offset tables in
-  rem MegaGammaForce pixels halved across (sprites are half width here)
+  rem MegaGammaForce pixels halved across (sprites are half width here).
+  rem A part above the centre whose y would go below 0 (the boss still
+  rem coming in from the top) is parked at 0, wholly above the screen,
+  rem rather than wrapping round to the bottom.
 boss_place
   asm
   ldx #10
@@ -858,9 +893,17 @@ boss_place_loop
   clc
   adc boss_dx,x
   sta exh,x
-  lda by
+  lda boss_dy,x
+  bpl boss_place_down
   clc
-  adc boss_dy,x
+  adc by
+  bcs boss_place_y
+  lda #0
+  beq boss_place_y
+boss_place_down
+  clc
+  adc by
+boss_place_y
   sta eyh,x
 boss_place_next
   dex
@@ -886,6 +929,7 @@ boss_turrets
   return
 
 boss_attack
+  gosub boss_burst
   rem turrets: aimed blue shots, staggered
   for k = 7 to 10
     if etype[k] = 0 then goto boss_att_next
@@ -927,6 +971,55 @@ end
   jsr bul_fire
 end
   bspin = bspin + 11
+  return
+
+  rem Concentrated fire: twice every 256 steps the part nearest the
+  rem player flashes (four times, a warning), then fires six fast aimed
+  rem shots at it, pink and blue in turn. bburst counts down every 4 steps.
+boss_burst
+  temp1 = btl & 127
+  if temp1 = 96 then gosub boss_pick
+  if bburst = 0 then return
+  temp1 = btl & 3
+  if temp1 then return
+  bburst = bburst - 1
+  k = bsrc
+  temp2 = etype[k]
+  if temp2 = 0 then bburst = 0 : return
+  if temp2 = ET_PWRECK then bburst = 0 : return
+  if bburst < 6 then goto boss_burst_fire
+  eflash[k] = 3
+  temp5 = k + 1
+  if temp2 = ET_PWING then eflash[temp5] = 3
+  if temp2 = ET_PCORE then eflash[temp5] = 3
+  return
+boss_burst_fire
+  fx = exh[k] + burst_dx[k] : fy = eyh[k] + burst_dy[k]
+  gosub aim
+  fkind = BK_BLUE : fspd = 64
+  temp1 = bburst & 1
+  if temp1 then fkind = BK_PINK
+  asm
+  jsr bul_fire
+end
+  return
+
+  rem the live part whose middle is nearest the player across
+boss_pick
+  temp3 = 255 : bsrc = 255
+  for k = 0 to 10
+    temp2 = etype[k]
+    if temp2 = 0 then goto boss_pick_next
+    if temp2 = ET_PARMOR then goto boss_pick_next
+    if temp2 = ET_PWRECK then goto boss_pick_next
+    if k = 6 then goto boss_pick_next
+    temp1 = exh[k] + burst_dx[k]
+    temp4 = temp1 - pcx
+    if temp1 < pcx then temp4 = pcx - temp1
+    if temp4 < temp3 then temp3 = temp4 : bsrc = k
+boss_pick_next
+  next
+  if bsrc < 255 then bburst = 10
   return
 
 boss_fan
@@ -1058,6 +1151,14 @@ end
 end
   data boss_dy
   28, 220, 252, 220, 252, 224, 0, 232, 254, 232, 254
+end
+  rem where each part fires its burst from, from its top left (the wings
+  rem from their bottom end, the core from its middle)
+  data burst_dx
+  8, 8, 0, 8, 0, 16, 16, 4, 4, 4, 4
+end
+  data burst_dy
+  30, 60, 0, 60, 0, 36, 0, 12, 12, 12, 12
 end
 
   rem ======================================================================
