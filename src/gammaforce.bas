@@ -857,12 +857,8 @@ boss_warning
   rem build the boss above the screen
   bx = 80 : by = 0 : bspin = 0 : bcorehp = 225 : bparts = 0 : bburst = 0
   rem the stage's boss: its parts from its tables (stage 2's are in its bank)
-  if stage = 2 then gosub boss2_build : goto boss_built
-  for k = 0 to 10
-    etype[k] = boss_type[k] : eimg[k] = boss_img[k] : ehp[k] = boss_hp[k]
-    bdx[k] = boss_dx[k] : bdy[k] = boss_dy[k] : bwt[k] = boss_wt[k]
-  next
-boss_built
+  if stage = 1 then gosub boss1_build
+  if stage = 2 then gosub boss2_build
   bescape = 0
   for k = 0 to 10
     ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
@@ -948,17 +944,8 @@ boss_place_next
   dex
   bpl boss_place_loop
 end
-  if stage = 2 then gosub boss2_frames : goto boss_turrets
-  rem shots pass through a wing's turret column while it has turrets
-  temp1 = etype[7] | etype[8]
-  eparam[1] = temp1 : eparam[2] = temp1
-  temp1 = etype[9] | etype[10]
-  eparam[3] = temp1 : eparam[4] = temp1
-  rem the cannon glows before it fires
-  eframe[0] = 0
-  if etype[0] <> ET_PCANNON then goto boss_turrets
-  temp1 = btl & 255
-  if temp1 >= 96 && temp1 < 128 then eframe[0] = (tick / 4) & 1
+  if stage = 1 then gosub boss1_frames
+  if stage = 2 then gosub boss2_frames
 boss_turrets
   rem turrets turn to face the player (8 directions), one a step
   k = (btl & 3) + 7
@@ -971,116 +958,7 @@ boss_turrets
 
 boss_attack
   if stage = 2 then goto boss2_attack
-  gosub boss_burst
-  rem turrets: aimed blue shots, staggered
-  for k = 7 to 10
-    if etype[k] = 0 then goto boss_att_next
-    temp1 = (btl + k * 17) & 63
-    if temp1 then goto boss_att_next
-    fx = exh[k] + 4 : fy = eyh[k] + 12
-    gosub aim
-    fkind = BK_BLUE : fspd = 52
-    asm
-    jsr bul_fire
-end
-boss_att_next
-  next
-  rem wings: pink fans, alternating sides
-  temp1 = btl & 127
-  if temp1 = 0 && etype[1] = ET_PWING then fx = exh[1] + 8 : fy = eyh[1] + 56 : fang = 72 : gosub boss_fan
-  if temp1 = 64 && etype[3] = ET_PWING then fx = exh[3] + 8 : fy = eyh[3] + 56 : fang = 56 : gosub boss_fan
-  rem cannon: three big pink orbs at the player. Absorb them!
-  temp1 = btl & 255
-  if temp1 = 128 && etype[0] = ET_PCANNON then gosub boss_cannon
-  rem core: spirals once a wing is gone, time drags on, or it is hurt
-  temp2 = 0
-  if etype[1] <> ET_PWING then temp2 = 1
-  if etype[3] <> ET_PWING then temp2 = temp2 + 1
-  temp3 = 0
-  if bcorehp < 112 then temp3 = 1
-  if temp2 = 0 && temp3 = 0 && bth < 6 then return
-  temp1 = btl & 7
-  if temp3 then temp1 = btl & 3
-  if temp1 then return
-  fx = bx + 2 : fy = by + 4 : fang = bspin : fspd = 42
-  fkind = BK_PINK
-  temp1 = btl & 16
-  if temp1 then fkind = BK_BLUE
-  asm
-  jsr bul_fire
-end
-  if temp2 = 2 then fang = bspin + 128 : asm
-  jsr bul_fire
-end
-  bspin = bspin + 11
-  return
-
-  rem Concentrated fire: twice every 256 steps the part nearest the
-  rem player flashes (four times, a warning), then fires six fast aimed
-  rem shots at it, pink and blue in turn. bburst counts down every 4 steps.
-boss_burst
-  temp1 = btl & 127
-  if temp1 = 96 then gosub boss_pick
-  if bburst = 0 then return
-  temp1 = btl & 3
-  if temp1 then return
-  bburst = bburst - 1
-  k = bsrc
-  temp2 = etype[k]
-  if temp2 = 0 then bburst = 0 : return
-  if temp2 = ET_PWRECK then bburst = 0 : return
-  if bburst < 6 then goto boss_burst_fire
-  eflash[k] = 3
-  temp5 = k + 1
-  if temp2 = ET_PWING then eflash[temp5] = 3
-  if temp2 = ET_PCORE then eflash[temp5] = 3
-  return
-boss_burst_fire
-  fx = exh[k] + burst_dx[k] : fy = eyh[k] + burst_dy[k]
-  gosub aim
-  fkind = BK_BLUE : fspd = 64
-  temp1 = bburst & 1
-  if temp1 then fkind = BK_PINK
-  asm
-  jsr bul_fire
-end
-  return
-
-  rem the live part whose middle is nearest the player across
-boss_pick
-  temp3 = 255 : bsrc = 255
-  for k = 0 to 10
-    temp2 = etype[k]
-    if temp2 = 0 then goto boss_pick_next
-    if temp2 = ET_PARMOR then goto boss_pick_next
-    if temp2 = ET_PWRECK then goto boss_pick_next
-    if k = 6 then goto boss_pick_next
-    temp1 = exh[k] + burst_dx[k]
-    temp4 = temp1 - pcx
-    if temp1 < pcx then temp4 = pcx - temp1
-    if temp4 < temp3 then temp3 = temp4 : bsrc = k
-boss_pick_next
-  next
-  if bsrc < 255 then bburst = 10
-  return
-
-boss_fan
-  fkind = BK_PINK : fspd = 49 : fcount = 3 : fstep = 12
-  asm
-  jsr bul_fan
-end
-  return
-
-boss_cannon
-  fx = exh[0] + 8 : fy = eyh[0] + 28
-  gosub aim
-  fkind = 3 : fspd = 38 : fcount = 3 : fstep = 18
-  asm
-  jsr bul_fan
-  lda #SFX_HIT
-  jsr sfx_play
-end
-  return
+  goto boss1_attack
 
   rem Damage temp1 to boss part i. A wing's bottom half passes its hits
   rem to the top half, the slot before it.
@@ -1273,36 +1151,6 @@ results_text
   if temp2 then tpal = 7 : tzone = 12 : temp1 = TXT_PUSH : gosub text
   return
 
-  rem ---- boss parts: type, image, hit points, offset from the centre ----
-  data boss_type
-  ET_PCANNON, ET_PWING, ET_PARMOR, ET_PWING, ET_PARMOR, ET_PCORE, ET_PCORE, ET_PTURRET, ET_PTURRET, ET_PTURRET, ET_PTURRET
-end
-  data boss_img
-  IMG_BCANNON, IMG_BWINGLT, IMG_BWINGLB, IMG_BWINGRT, IMG_BWINGRB, IMG_BCORET, IMG_BCOREB, IMG_BTURRET, IMG_BTURRET, IMG_BTURRET, IMG_BTURRET
-end
-  data boss_hp
-  150, 180, 255, 180, 255, 255, 255, 60, 60, 60, 60
-end
-  rem top-left x and y of each part relative to (bx, by), two's complement
-  data boss_dx
-  248, 224, 224, 16, 16, 240, 240, 228, 228, 20, 20
-end
-  data boss_dy
-  28, 220, 252, 220, 252, 224, 0, 232, 254, 232, 254
-end
-  rem each part's share of the boss (%; the core's 30 is counted apart)
-  data boss_wt
-  12, 15, 0, 15, 0, 0, 0, 7, 7, 7, 7
-end
-  rem where each part fires its burst from, from its top left (the wings
-  rem from their bottom end, the core from its middle)
-  data burst_dx
-  8, 8, 0, 8, 0, 16, 16, 4, 4, 4, 4
-end
-  data burst_dy
-  30, 60, 0, 60, 0, 36, 0, 12, 12, 12, 12
-end
-
   rem ======================================================================
   rem  HUD: score (0-6), chain (8-10), sword gauge (12-16), lives (18-19)
   rem ======================================================================
@@ -1409,11 +1257,15 @@ end
   inline sfx.asm
 
   rem ======================================================================
-  rem  Bank 2: stage 1 (map, waves, music). Switched in for the whole stage.
+  rem  Bank 2: stage 1 (map, waves, music, the GAMMA CORE's code; and the
+  rem  title's song: the title shows with stage 1's bank in).
+  rem  Switched in for the whole stage.
   rem ======================================================================
   bank 2
+  rem the stage header must come first: it is read at $8000
   inline stage1.asm
   inline musicdata.asm
+  incbasic boss1.bas
 
   rem ======================================================================
   rem  Bank 3: stage 2 (map, waves, music, and its graphics block at $A000)

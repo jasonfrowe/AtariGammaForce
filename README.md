@@ -70,7 +70,7 @@ The art is drawn for the 7800, not converted: sprites are text in
 `assets/art7800.txt` (one character per pixel, `.123`), the stages' tiles
 and the bosses are drawn by `tools/tiles7800.py` and `tools/boss7800.py`,
 and the title logo by `tools/logo7800.py`. Stage 2's boss code is
-`src/boss2.bas` (it lives in stage 2's bank).
+`src/boss1.bas` and `src/boss2.bas` (each lives in its stage's bank).
 `tools/art_preview.py` shows the sprites in 7800 colors at the TV's 2:1
 pixel shape. The music is converted from MegaGammaForce's VGMs by
 `tools/gen_music.sh`.

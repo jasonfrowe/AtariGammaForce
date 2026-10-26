@@ -8,5 +8,5 @@ M="$ROOT/assets/mgf/music"
 G="$ROOT/src/gen"
 "$ROOT/.venv/bin/python" "$ROOT/tools/vgm2pokey.py" \
     "$M/Stage1.vgm" "$M/Boss.vgm" "$M/Title.vgm" "$M/Stage2.vgm" "$M/Boss.vgm:boss2" \
-    -o "$G/musicdata.asm" --fixed "$G/musiccommon.asm" --fixed-songs Title \
+    -o "$G/musicdata.asm" --fixed "$G/musiccommon.asm" \
     --to "$G/musicdata2.asm=stage2" --to "$G/musicdata2b.asm=boss2"

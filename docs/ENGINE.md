@@ -128,7 +128,9 @@ non-background character, wave and ground-unit counts, background color,
 palettes 0-2, songs, the map's used columns; then fixed-size tables:
 waves, ground units, each character's palette, and each map row's
 pointers. The engine and the BASIC read whichever stage is in through the
-same addresses, so stage code has no stage numbers in it.
+same addresses, so stage code has no stage numbers in it. Code for one
+stage only (its boss) goes in its bank too, called from the shared code
+by `if stage = n`: the fixed bank has room only for what every stage uses.
 
 A map row stores the characters of its used columns (stages 1 and 2 use
 columns 4-15; outside is background) and its ready-made background
@@ -147,9 +149,9 @@ hole at $B000.
 
 | Bank | |
 |---|---|
-| 1 ($4000, fixed) | the game, the engine, the title song |
-| 2 | stage 1: header, map, songs |
-| 3 | stage 2: header, map, boss tune copy, SPIRE WARDEN's code, graphics ($A000), song ($B000) |
+| 1 ($4000, fixed) | the game, the engine, the shared boss code and results |
+| 2 | stage 1: header, map, songs, the GAMMA CORE's code (`src/boss1.bas`), the title song (the title shows with stage 1's bank in) |
+| 3 | stage 2: header, map, boss tune copy, SPIRE WARDEN's code (`src/boss2.bas`), graphics ($A000), song ($B000) |
 | 9 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo, the shared sprites |
 
 ## Memory
