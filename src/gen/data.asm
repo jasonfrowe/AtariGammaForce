@@ -30,11 +30,11 @@ txtlen .byte 5,11,10,16,15,15,20,7,10,11,9,7
 palettedata
   .byte $03,$0A,$46 ; P0
   .byte $02,$05,$0A ; P1
-  .byte $04,$1B,$37 ; P2
+  .byte $02,$05,$FA ; P2
   .byte $83,$0A,$0F ; P3
-  .byte $43,$07,$3A ; P4
-  .byte $83,$07,$9C ; P5
-  .byte $F7,$07,$1F ; P6
+  .byte $41,$35,$3D ; P4
+  .byte $90,$86,$9E ; P5
+  .byte $F3,$1A,$0F ; P6
   .byte $56,$85,$0F ; P7
 
 ; Sprite images. IMG_x = image number; imglo/imghi = graphics of the
@@ -44,14 +44,14 @@ imglo .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,
 imghi .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret
 imglo2 .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret
 imghi2 .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret
-imgw .byte 3,1,2,2,2,1,1,1,2,4,2,6,8,8,4,4,4,4,4,2
+imgw .byte 4,1,2,2,2,1,1,1,2,4,2,6,8,8,4,4,4,4,4,2
 imgstrips .byte 2,1,1,1,1,1,1,1,1,2,1,2,2,2,2,2,2,2,2,1
 imgframes .byte 3,1,2,4,2,2,1,2,6,2,8,4,1,1,1,1,1,1,2,8
 ; lines used in the image's last strip (the plotter skips the part
 ; of a strip that would only be empty lines)
-imgh .byte 8,12,16,15,16,8,6,8,16,16,16,14,16,16,16,13,16,13,16,16
+imgh .byte 7,8,15,10,12,4,6,4,9,11,10,14,16,16,16,13,16,13,16,16
 ; -width & 31, the width bits of a 4-byte header
-imgnegw .byte 29,31,30,30,30,31,31,31,30,28,30,26,24,24,28,28,28,28,28,30
+imgnegw .byte 28,31,30,30,30,31,31,31,30,28,30,26,24,24,28,28,28,28,28,30
 
 
 ; Trig: angles are 256 per turn, 0 = right, 64 = down.

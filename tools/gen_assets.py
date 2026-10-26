@@ -34,6 +34,8 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
@@ -65,12 +67,13 @@ PALETTES = [
                                                          # (open sea is the background color,
                                                          # so the sea tiles don't need P0)
     [(52, 56, 72), (96, 104, 124), (160, 168, 188)],     # P1 deck
-    [(82, 88, 108), (230, 190, 60), (255, 60, 60)],      # P2 deck detail
-    [(48, 70, 150), (156, 168, 196), (235, 245, 255)],   # P3 player
-    [(150, 20, 30), (120, 126, 144), (255, 150, 110)],   # P4 red
-    [(30, 70, 200), (120, 126, 144), (160, 215, 255)],   # P5 blue
-    [(190, 140, 0), (120, 126, 144), (255, 240, 150)],   # P6 yellow
-    [(230, 40, 150), (40, 110, 255), (255, 255, 255)],   # P7 bullets
+    [(52, 56, 72), (96, 104, 124), (240, 170, 40)],      # P2 deck detail, gray enemies: P1's dark and
+                                                         # plate, and amber
+    [(40, 60, 150), (170, 180, 200), (250, 250, 255)],   # P3 player: blue, silver, white
+    [(100, 10, 20), (220, 40, 40), (255, 200, 150)],     # P4 red enemies: dark, red, glow
+    [(10, 30, 110), (50, 120, 255), (190, 240, 255)],    # P5 blue enemies
+    [(110, 60, 0), (240, 200, 0), (255, 255, 200)],      # P6 yellow enemies
+    [(230, 40, 150), (40, 110, 255), (255, 255, 255)],   # P7 bullets: pink, blue, white; the sword
 ]
 BG_CODE = nearest(BACKGROUND)
 PAL_CODES = [[nearest(c) for c in p] for p in PALETTES]
@@ -151,18 +154,16 @@ def tile_palette(tile):
     return 1
 
 
+def stage_tiles():
+    """Stage 1's tiles (drawn for the 7800, tools/tiles7800.py) and the
+    palette each uses."""
+    import tiles7800
+    ids = json.loads((MGF / "stage1.json").read_text())["tile_ids"]
+    return tiles7800.tiles(ids)
+
+
 def build_charset():
-    tiles = frames_of(MGF / "stage1_tiles.png", 16, 16)
-    t_slots, t_pals = [], []
-    for k, t in enumerate(tiles):
-        p = tile_palette(t)
-        t_pals.append(p)
-        if SKIP_SEA and k in SEA_TILES:
-            # Open sea is the background color. Its tiles stay in the set as
-            # blanks, so a sea tile caught inside a run of deck draws as sea.
-            t_slots.append(np.zeros((TILE_H, TILE_W), dtype=np.uint8))
-        else:
-            t_slots.append(halve(t, TILE_SLOTS[p], prefer_solid=False))
+    t_slots, t_pals = stage_tiles()
 
     # Font: Astrowing's 8-pixel glyphs (7 lines tall), placed on lines 4-10.
     font = np.array(Image.open(ASSETS / "font_astrowing.png"))
@@ -237,22 +238,27 @@ HAND_DRAWN = {
     "needle": [_art([".1..", ".1..", ".3..", ".3..", ".3..", ".1.."] + ["...."] * 10)],
 }
 
+# Palette for each sprite drawn in assets/art7800.txt
+SPRITE_PAL = {"ship": 3, "vulcan": 3, "dart": 4, "saucer": 5, "drone": 6, "gunship": 2,
+              "pinkbullet": 7, "bluebullet": 7, "needle": 7, "expl": 4, "turret": 4, "sword": 7}
+
 BOSS_SLOTS = {1: 1, 2: 1, 3: 1, 4: 1, 5: 2, 6: 2, 7: 1, 8: 2, 9: 3, 10: 3, 11: 3, 12: 1, 13: 1, 14: 2, 15: 2}
 
 SPRITES = [
     # name, file, fw, fh, frames (None = all), slots, preview palette
-    ("ship", "player.png", 24, 24, None, PLAYER_SLOTS, 3),
-    ("vulcan", None, 4, 16, None, None, 3),
-    ("dart", "enemy16.png", 16, 16, [0, 1], ENEMY_SLOTS, 4),
-    ("saucer", "enemy16.png", 16, 16, [2, 3, 4, 5], ENEMY_SLOTS, 5),
-    ("drone", "enemy16.png", 16, 16, [6, 7], ENEMY_SLOTS, 6),
-    ("pinkbullet", "bullet8.png", 8, 8, [0, 1], PINK_SLOTS, 7),
-    ("needle", None, 4, 16, None, None, 7),
-    ("bluebullet", "bullet8.png", 8, 8, [0, 1], BLUE_SLOTS, 7),
-    ("expl", "expl16.png", 16, 16, None, EXPL_SLOTS, 4),
-    ("gunship", "enemy32.png", 32, 32, [0, 1], ENEMY_SLOTS, 2),
-    ("turret", "enemy16.png", 16, 16, list(range(8, 16)), ENEMY_SLOTS, 4),
-    ("sword", "sword.png", 48, 32, None, SWORD_SLOTS, 7),
+    # "art" = drawn for the 7800 in assets/art7800.txt
+    ("ship", "art", 0, 0, None, None, 3),
+    ("vulcan", "art", 0, 0, None, None, 3),
+    ("dart", "art", 0, 0, None, None, 4),
+    ("saucer", "art", 0, 0, None, None, 5),
+    ("drone", "art", 0, 0, None, None, 6),
+    ("pinkbullet", "art", 0, 0, None, None, 7),
+    ("needle", "art", 0, 0, None, None, 7),
+    ("bluebullet", "art", 0, 0, None, None, 7),
+    ("expl", "art", 0, 0, None, None, 4),
+    ("gunship", "art", 0, 0, None, None, 2),
+    ("turret", "art", 0, 0, None, None, 4),
+    ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss. Its 64-line parts are drawn as top and
     # bottom halves (the plotter does two strips), the right wing mirrored.
     ("bcoret", "stage1_boss_core.png", 64, 64, None, BOSS_SLOTS, 0, (0, 32)),
@@ -266,6 +272,33 @@ SPRITES = [
 ]
 
 
+def sword_frames():
+    """The Radiant Sword: an arc over the ship, 24 pixels by 32 lines (48 x
+    32 on screen). Blue edges (2), a white blade (3), and a pink glint (1)
+    that runs along it from frame to frame."""
+    frames = []
+    W, H = 24, 32
+    cx, cy = 11.75, 30.0      # arc centre in pixels/lines (visual x = 2 * px)
+    for f in range(4):
+        a = np.zeros((H, W), dtype=np.uint8)
+        glint = math.pi * (0.15 + 0.7 * f / 3)
+        for y in range(H):
+            for x in range(W):
+                dx, dy = (x - cx) * 2, (y - cy) * 1.0
+                r = math.hypot(dx, dy)
+                ang = math.atan2(-dy, dx)
+                if not (0.05 < ang < math.pi - 0.05):
+                    continue
+                if 19 <= r < 22.5:
+                    a[y, x] = 2
+                if 20.5 <= r < 22:
+                    a[y, x] = 3
+                if 19 <= r < 23 and abs(ang - glint) < 0.12:
+                    a[y, x] = 1
+        frames.append(a)
+    return frames
+
+
 def build_sprites():
     """Returns the image table: list of (label, width_bytes, strips)."""
     table = []
@@ -275,7 +308,11 @@ def build_sprites():
         name, fn, fw, fh, pick, slots, pal = entry[:7]
         rows = entry[7] if len(entry) > 7 else None
         flip = entry[8] if len(entry) > 8 else False
-        if fn is None:
+        if fn == "art":
+            conv = ART[name]
+        elif fn == "sword":
+            conv = sword_frames()
+        elif fn is None:
             conv = [np.array(f, dtype=np.uint8) for f in HAND_DRAWN[name]]
         else:
             frames = frames_of(MGF / fn, fw, fh)
@@ -484,6 +521,10 @@ def trig_tables():
         lines.append("  .byte " + ",".join(str(v) for v in cos8[i:i + 16]))
     lines.append("atan32 .byte " + ",".join(str(v) for v in atan32))
     return lines
+
+
+import art7800  # noqa: E402
+ART = art7800.load()
 
 
 def main():

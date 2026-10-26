@@ -2,7 +2,7 @@
   rem Constants shared by BASIC and the assembly (const lands in both).
   const BGCOLOR = $91
   const FONTBASE = 60
-  const BGMAXBYTES = 30
+  const BGMAXBYTES = 25
   const TXT_ATARI = 0
   const TXT_GAMMA = 1
   const TXT_PUSH = 2
@@ -36,7 +36,7 @@
   const IMG_BCANNON = 18
   const IMG_BTURRET = 19
   const WAVES = 32
-  const GROUNDS = 39
+  const GROUNDS = 15
   const CH_SPACE = 80
   const CH_X = 128
   const CH_I = 98

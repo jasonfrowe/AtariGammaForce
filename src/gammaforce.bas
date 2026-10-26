@@ -24,16 +24,16 @@
 
   rem ---- sizes ----
   const NE = 12
-  const NB = 16
+  const NB = 12
   const NS = 6
-  const NX = 6
+  const NX = 4
   const NSP = 3
   rem 7800basic drops arithmetic in a for loop's limit ("to NE1" runs to
   rem NE), so loops use these.
   const NE1 = 11
-  const NB1 = 15
+  const NB1 = 11
   const NS1 = 5
-  const NX1 = 5
+  const NX1 = 3
   const NSP1 = 2
 
   rem Uncomment to time the main loop's sections (tools/profile.py).
@@ -161,6 +161,7 @@
   dim slv = $2353
   dim swcd = $2354
   dim lvmsg = $2355
+  dim anyhit = $2356
   dim gn = $234D
   dim gcolor = $234E
   dim bstate = $2344
@@ -318,7 +319,9 @@ end
   jsr prof_mark
   endif
 end
-  gosub think
+  asm
+  jsr en_think
+end
   asm
   ifconst PROFILE
   lda #3
@@ -335,7 +338,7 @@ end
   jsr prof_mark
   endif
 end
-  gosub damage
+  if anyhit then anyhit = 0 : gosub damage
   asm
   ifconst PROFILE
   lda #5
@@ -439,13 +442,13 @@ player_nohyper
   if temp1 && temp6 = 0 then temp4 = 0
   if temp2 then temp5 = 1 : temp4 = tick & 1
   if joy0left && plx > 2 then plx = plx - temp4
-  if joy0right && plx < 145 then plx = plx + temp4
+  if joy0right && plx < 143 then plx = plx + temp4
   if joy0up && ply > 40 then ply = ply - temp5
   if joy0down && ply < 214 then ply = ply + temp5
   bank = 0
   if joy0left then bank = 1
   if joy0right then bank = 2
-  pcx = plx + 6 : pcy = ply + 12
+  pcx = plx + 8 : pcy = ply + 12
 
   rem Vulcan (not while the sword is out)
   if firecd > 0 then firecd = firecd - 1
@@ -550,7 +553,7 @@ fire_vulcan
   next
   return
 fire_slot
-  shx[i] = plx + 4 : shy[i] = ply - 6 : firecd = 4
+  shx[i] = plx + 6 : shy[i] = ply - 6 : firecd = 4
   rem the Vulcan, already the strongest, only speeds up at level 4
   if vlv >= 3 then firecd = 3
   asm
@@ -616,128 +619,7 @@ spawn_slot
   if temp1 = ET_SAUCER then ewamp[k] = spparam[j]
   return
 
-  rem ======================================================================
-  rem  Enemy behavior (MegaGammaForce's enemies.c think(), scaled: speeds
-  rem  are 1/32 pixel per frame, so its 1/16 values are roughly x1.75).
-  rem  Each enemy thinks every other frame (its timer counts in twos, so
-  rem  timer tests use even numbers); movement and weaving run every frame
-  rem  in asm (en_update).
-  rem ======================================================================
-think
-  for i = 0 to NE1
-    temp1 = etype[i]
-    if temp1 = 0 then goto think_next
-    if temp1 >= ET_PART then goto think_next
-    temp2 = (i ^ tick) & 1
-    if temp2 then goto think_next
-    etimer[i] = etimer[i] + 2
-    fx = exh[i] + 4 : fy = eyh[i] + 8
-    if temp1 = ET_DART then gosub think_dart
-    if temp1 = ET_SAUCER then gosub think_saucer
-    if temp1 = ET_DRONE then gosub think_drone
-    if temp1 = ET_GUNSHIP then gosub think_gunship
-    if temp1 = ET_TURRET then gosub think_turret
-think_next
-  next
-  return
-
-  rem Dives to its line, then turns on the player and fires once.
-think_dart
-  if estate[i] then return
-  evy[i] = 70
-  if eyh[i] < eparam[i] then return
-  estate[i] = 1
-  gosub aim
-  fspd = 77
-  asm
-  jsr ang_vel
-end
-  evx[i] = velx : evy[i] = vely
-  if plvuln = 0 then return
-  fkind = BK_PINK : fspd = 63
-  asm
-  jsr bul_fire
-end
-  return
-
-  rem Weaves down; every so often a 3-way pink fan at the player.
-think_saucer
-  evy[i] = 24
-  temp2 = etimer[i] & 63
-  if temp2 <> 40 then return
-  if eyh[i] > 200 then return
-  if plvuln = 0 then return
-  gosub aim
-  fkind = BK_PINK : fspd = 52 : fcount = 3 : fstep = 14
-  asm
-  jsr bul_fan
-end
-  return
-
-  rem Stops, fires a blue ring then a pink ring, and leaves.
-think_drone
-  if estate[i] = 0 then goto drone_in
-  if estate[i] = 1 then goto drone_hold
-  evy[i] = 214
-  return
-drone_in
-  evy[i] = 49
-  if eyh[i] < eparam[i] then return
-  estate[i] = 1 : etimer[i] = 0 : evy[i] = 0
-  return
-drone_hold
-  temp2 = etimer[i]
-  if temp2 = 20 then fkind = BK_BLUE : fang = 112 : goto drone_ring
-  if temp2 = 70 then fkind = BK_PINK : fang = 128 : goto drone_ring
-  if temp2 > 120 then estate[i] = 2
-  return
-drone_ring
-  if plvuln = 0 then return
-  fspd = 45 : fcount = 8 : fstep = 32
-  asm
-  jsr bul_fan
-end
-  return
-
-  rem Big, strafes, drops needles and aimed blue fans; leaves after a while.
-think_gunship
-  fx = exh[i] + 8 : fy = eyh[i] + 24
-  if estate[i] = 0 then goto gunship_in
-  if estate[i] = 3 then evy[i] = 228 : return
-  evy[i] = 0
-  if etimer[i] = 254 then estate[i] = estate[i] + 1
-  if plvuln = 0 then return
-  temp2 = etimer[i] & 63
-  if temp2 = 24 then gosub gunship_needles
-  temp2 = etimer[i] & 127
-  if temp2 <> 60 then return
-  gosub aim
-  fkind = BK_BLUE : fspd = 42 : fcount = 3 : fstep = 20
-  asm
-  jsr bul_fan
-end
-  return
-gunship_in
-  evy[i] = 21
-  if eyh[i] < eparam[i] then return
-  rem start strafing: x = base + sin(t) * 40 (sin = cos 64 steps behind)
-  estate[i] = 1 : etimer[i] = 0 : ewamp[i] = 33 : ewang[i] = 192 : ewstep[i] = 1
-  return
-gunship_needles
-  fang = 64 : fspd = 70 : fkind = BK_NEEDLE
-  fx = fx - 7
-  asm
-  jsr bul_fire
-end
-  fx = fx + 7
-  asm
-  jsr bul_fire
-end
-  fx = fx + 7
-  asm
-  jsr bul_fire
-end
-  return
+  rem Enemy behavior is in asm/objects.asm (en_think).
 
   rem fang = angle from (fx, fy) to the player
 aim
@@ -920,20 +802,6 @@ ground_slot
   evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0 : eframe[k] = 0
   return
 
-  rem Turns to face the player; a blue shot every so often
-think_turret
-  if eyh[i] < 40 then return
-  if eyh[i] > 210 then return
-  gosub aim
-  eframe[i] = (fang - 48) / 32 & 7
-  temp2 = etimer[i] & 127
-  if temp2 then return
-  if plvuln = 0 then return
-  fkind = BK_BLUE : fspd = 49
-  asm
-  jsr bul_fire
-end
-  return
 
   rem ======================================================================
   rem  GAMMA CORE, the stage 1 boss (MegaGammaForce's boss1.c, thinned).
@@ -1193,12 +1061,17 @@ end
   rem ======================================================================
   rem  HUD: score (0-6), chain (8-10), sword gauge (12-16), lives (18-19)
   rem ======================================================================
+  rem One part of the HUD a frame, so no frame pays for all of it.
 hud
   temp1 = tick & 3
-  if temp1 then return
+  if temp1 = 1 then goto hud_chain
+  if temp1 = 2 then goto hud_middle
+  if temp1 = 3 then goto hud_lives
   asm
   jsr hud_score
 end
+  return
+hud_chain
   hudtext[7] = CH_SPACE
   hudtext[8] = CH_X
   temp1 = chlevel : temp2 = 0
@@ -1208,6 +1081,8 @@ hud_tens
   hudtext[9] = FONTBASE + temp2 * 2
   hudtext[10] = FONTBASE + temp1 * 2
   hudtext[11] = CH_SPACE
+  return
+hud_middle
   if overt > 0 then goto hud_over
   if bmsg = 1 then goto hud_warning
   if bmsg = 2 then goto hud_clear
@@ -1220,14 +1095,18 @@ hud_tens
     temp5 = 12 + k
     hudtext[temp5] = temp4
   next
-  goto hud_lives
+  return
 hud_hyper
   hudtext[12] = CH_H : hudtext[13] = CH_Y : hudtext[14] = CH_P
   hudtext[15] = CH_E : hudtext[16] = CH_R
   temp6 = tick & 8
-  if temp6 = 0 then goto hud_lives
+  if temp6 = 0 then return
   for k = 12 to 16 : hudtext[k] = CH_SPACE : next
+  return
 hud_lives
+  if overt > 0 then return
+  if bmsg > 0 then return
+  if lvmsg > 0 then return
   hudtext[17] = CH_SPACE
   hudtext[18] = CH_X
   hudtext[19] = FONTBASE + lives * 2

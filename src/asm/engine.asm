@@ -64,6 +64,9 @@ pfz14bg     = $223A ; [2] background bytes in each zone 14 buffer
 pfstartrow  = $223C ; map row pf_reset starts at (0 = the beginning)
 zonebuf     = $2290 ; [15] which DL buffer zone k uses (0-13 ring, 14-15 zone 14)
 oldend      = $22A0 ; [16] each buffer's object count as last terminated
+zoneold     = $22B0 ; [15] oldend of the buffer each zone uses this frame
+pfframe     = $22C0 ; framecounter when this frame's logic started
+pflate      = $22C1 ; nonzero: the last frame's logic ran past its frame
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
 
 RINGN       = 14
@@ -359,6 +362,8 @@ z14hi .byte >Z14BASE, >(Z14BASE+Z14SIZE)
 ; up, advances the scroll by pfspeed, rotates the zones on a 16 pixel
 ; boundary, readies zone 14, and empties the zones of last frame's sprites.
 pf_frame
+     lda framecounter
+     sta pfframe
      lda pfsparedirty
      beq pf_frame_scroll
      ldx pfhead              ; spare = head + 1, mod 14
@@ -414,6 +419,14 @@ pf_frame_fine
      eor #15
      sta pfs
      jsr pf_zone14
+     ; each zone's DL as MARIA shows it now (see pf_object)
+     ldx #14
+pf_frame_old
+     ldy zonebuf,x
+     lda oldend,y
+     sta zoneold,x
+     dex
+     bne pf_frame_old
      jmp pf_restore
 
 ; A = the map row after row A (past the end, loop the boss section).
@@ -515,10 +528,9 @@ pf_plot
      lsr
      lsr
      tax                     ; zone
+     beq pf_plot_lower       ; zone 0: the top part would be in the HUD
      cpx #15
      bcs pf_plot_out
-     cpx #0
-     beq pf_plot_lower       ; the top part would be in the HUD
      lda sp_hi
      ora pft2                ; upper part: hi + line
      jsr pf_object
@@ -540,80 +552,82 @@ pf_plot_lower
 pf_plot_out
      rts
 
-; pf_object: append a 4-byte object with high byte A to zone X.
+; pf_object: add a 4-byte object with graphics high byte A to zone X.
+;
+; MARIA rereads a DL every line, and this one may be on screen now (the
+; frame is built while the last one shows), so the list must be valid after
+; every single store:
+; - past the end the DL had last frame there is no terminator to stop
+;   MARIA running into old bytes, so a terminator goes in first and the
+;   palette|width byte, which makes the object exist, goes in last;
+; - over one of last frame's objects, the slot is hidden first (x = 160 is
+;   off the right edge) and the real x goes in last.
 pf_object
+     cpx #14
+     bne pf_object_ptr
+     clc
+     adc pfshift             ; zone 14 shows its row's top lines
+pf_object_ptr
      sta pft3
-     lda zonelo,x
+     ldy dlend,x
+     tya
+     cmp zonecap,x
+     bcs pf_object_full
+     adc #4                  ; (carry clear) the new end
+     sta dlend,x
+     tya                     ; pfp = the slot itself, so the stores below
+     clc                     ; use fixed offsets
+     adc zonelo,x
      sta pfp
      lda zonehi,x
+     adc #0
      sta pfp+1
-     ldy dlend,x
-     cpx #14
-     bne pf_object_ring
-     cpy #Z14CAP
-     bcs pf_object_full
-     lda pft3
-     clc
-     adc pfshift             ; zone 14 shows its row's top lines
-     sta pft3
-     jmp pf_object_full
-     lda pft3
-     clc
-     adc pfshift             ; zone 14 shows its row's top lines
-     sta pft3
-     jmp pf_object_put
-pf_object_ring
-     cpy #PFCAP
-     bcs pf_object_full
-pf_object_put
-     ; MARIA rereads a DL every line, and this one may be on screen now, so
-     ; the list must stay valid after every single store. Past the end it
-     ; had last frame there is no terminator to stop MARIA running into old
-     ; bytes, so one goes after the new object first.
-     sty pft5
-     lda zonebuf,x
-     tay
-     lda oldend,y
-     ldy pft5
-     cmp pft5
-     beq pf_object_term      ; appending at the old end...
-     bcs pf_object_body      ; ...or before it: old objects follow
-pf_object_term
-     iny
-     iny
-     iny
-     iny
-     iny
+     tya
+     cmp zoneold,x
+     bcc pf_object_over
+     ; appending
+     ldy #5
      lda #0
-     sta (pfp),y             ; the next object's palette|width: end of list
-     ldy pft5
-pf_object_body
-     ; Hide the slot first (x = 160 is off the right edge), so that while
-     ; the other bytes change MARIA only ever sees an invisible object or
-     ; the finished one; the real x goes in last.
-     iny
-     iny
-     iny
-     lda #160
+     sta (pfp),y             ; terminator after the new object
+     ldy #3
+     lda sp_x
      sta (pfp),y
      dey
      lda pft3
      sta (pfp),y
+     ldy #0
+     lda sp_lo
+     sta (pfp),y
+     iny
+     lda sp_pw
+     sta (pfp),y             ; now it exists
+     rts
+pf_object_over
+     ldy #3
+     lda #160
+     sta (pfp),y             ; hide the old object
      dey
-     dey
+     lda pft3
+     sta (pfp),y
+     ldy #0
      lda sp_lo
      sta (pfp),y
      iny
      lda sp_pw
      sta (pfp),y
-     iny
-     iny
+     ldy #3
      lda sp_x
-     sta (pfp),y
-     iny
-     sty dlend,x
+     sta (pfp),y             ; and show the new one
 pf_object_full
      rts
+
+; Capacity per zone: the last offset a 4-byte object (+ terminator) fits.
+zonecap
+     .byte 0
+     REPEAT 13
+     .byte PFCAP
+     REPEND
+     .byte Z14CAP
 
 ; ---------------------------------------------------------------------------
 ; pf_text: text string A (TXT_ number) centred in zone tzone (1-13), in
@@ -687,6 +701,15 @@ pf_drawscreen
          lda #$FF
          sta interrupthold
      endif
+     ; Late? The frame started in vblank, one top-of-screen NMI ago; two or
+     ; more means the logic ran into the next frame.
+     lda framecounter
+     sec
+     sbc pfframe
+     cmp #2
+     lda #0
+     rol                     ; carry set: late
+     sta pflate
      jsr waitforvblankstart  ; the start of MARIA's vblank (a full frame if late)
      lda #3
      sta interruptindex

@@ -103,12 +103,15 @@ weave
 ; Enemy bullets.
 
 bul_fire
+     lda pflate              ; the last frame was late: hold fire this frame,
+     bne bul_fire_none       ; which keeps the bullet count (and the load) down
      ldx #NB-1
 bul_fire_find
      lda bkind,x
      beq bul_fire_slot
      dex
      bpl bul_fire_find
+bul_fire_none
      rts                     ; all in use: the bullet is never fired
 bul_fire_slot
      stx obi
@@ -455,7 +458,12 @@ en_update_live
      bcs en_update_kill
      jmp en_update_next
 en_update_air
+     cmp #ET_PART
+     bcc en_update_move
+     jmp en_update_next      ; boss parts: placed by the boss code, never culled
+en_update_move
      lda evx,x
+     beq en_update_y         ; most enemies have no sideways speed
      jsr ob_x8
      clc
      lda exl,x
@@ -464,7 +472,9 @@ en_update_air
      lda exh,x
      adc ob2
      sta exh,x
+en_update_y
      lda evy,x
+     beq en_update_ycheck
      jsr ob_x8
      clc
      lda eyl,x
@@ -473,21 +483,25 @@ en_update_air
      lda eyh,x
      adc ob2
      sta eyh,x
-     lda etype,x
-     cmp #ET_PART
-     bcs en_update_next      ; boss parts: placed by the boss code, never culled
+en_update_ycheck
      lda eyh,x
      cmp #250
      bcs en_update_kill
      cmp #4
      bcc en_update_kill
-     ; weaving: x = base + cos(angle) * amplitude / 128, angle stepping
+     ; weaving: x = base + cos(angle) * amplitude / 128. The multiply is the
+     ; dear part, so each enemy does it every other frame, at twice the step.
      lda ewamp,x
      beq en_update_xcheck
      sta fspd
-     lda ewang,x
+     txa
+     eor tick
+     lsr
+     bcs en_update_xcheck
+     lda ewstep,x
+     asl
      clc
-     adc ewstep,x
+     adc ewang,x
      sta ewang,x
      tay
      lda cos8,y
@@ -561,9 +575,9 @@ en_hits_shot
      lda shx,y
      cmp ob2
      bcs en_hits_shotnext
-     lda shy,y               ; and y..y+11
+     lda shy,y               ; and y..y+7
      clc
-     adc #11
+     adc #7
      cmp eyh,x
      bcc en_hits_shotnext
      lda shy,y
@@ -573,6 +587,7 @@ en_hits_shot
      clc
      adc vdmg
      sta ehit,x
+     sta anyhit
      lda #0
      sta shy,y
 en_hits_shotnext
@@ -598,6 +613,7 @@ en_hits_sword
      clc
      adc swdmg
      sta ehit,x
+     sta anyhit
 en_hits_ship
      ; Ship: its centre inside the box shrunk by 2
      lda plvuln
@@ -801,7 +817,7 @@ sh_update
      sta sp_hi
      lda #(3<<5)|31          ; palette 3, 1 byte wide
      sta sp_pw
-     lda #12
+     lda #8
      sta sp_h
      ldx #NS-1
 sh_update_loop
@@ -866,4 +882,307 @@ fx_update_live
 fx_update_next
      dex
      bpl fx_update_loop
+     rts
+
+; ---------------------------------------------------------------------------
+; en_think: enemy behavior (MegaGammaForce's enemies.c think(), scaled:
+; speeds are 1/32 pixel per frame, so its 1/16 values are about x1.75).
+; Each enemy thinks every other frame, its timer counting in twos; movement
+; and weaving run every frame in en_update. Boss parts (ET_PART and up) are
+; the boss code's business.
+thi         = $C6   ; the enemy being thought about (the bullet routines use X)
+
+en_think
+     ldx #NE-1
+en_think_loop
+     lda etype,x
+     beq en_think_next
+     cmp #ET_PART
+     bcs en_think_next
+     txa
+     eor tick
+     lsr
+     bcs en_think_next       ; the other half thinks next frame
+     inc etimer,x
+     inc etimer,x
+     stx thi
+     lda exh,x
+     clc
+     adc #4
+     sta fx
+     lda eyh,x
+     clc
+     adc #8
+     sta fy
+     lda etype,x
+     cmp #ET_DART
+     bne en_think_1
+     jsr think_dart
+     jmp en_think_done
+en_think_1
+     cmp #ET_SAUCER
+     bne en_think_2
+     jsr think_saucer
+     jmp en_think_done
+en_think_2
+     cmp #ET_DRONE
+     bne en_think_3
+     jsr think_drone
+     jmp en_think_done
+en_think_3
+     cmp #ET_GUNSHIP
+     bne en_think_4
+     jsr think_gunship
+     jmp en_think_done
+en_think_4
+     cmp #ET_TURRET
+     bne en_think_done
+     jsr think_turret
+en_think_done
+     ldx thi
+en_think_next
+     dex
+     bmi en_think_out
+     jmp en_think_loop
+en_think_out
+     rts
+
+; fang = angle from (fx, fy) to the player
+th_aim
+     jsr aim_player
+     lda aimang
+     sta fang
+     rts
+
+; Dives to its line, then turns on the player and fires once.
+think_dart
+     lda estate,x
+     bne th_rts
+     lda #70
+     sta evy,x
+     lda eyh,x
+     cmp eparam,x
+     bcc th_rts
+     lda #1
+     sta estate,x
+     jsr th_aim
+     lda #77
+     sta fspd
+     jsr ang_vel
+     ldx thi
+     lda velx
+     sta evx,x
+     lda vely
+     sta evy,x
+     lda plvuln
+     beq th_rts
+     lda #BK_PINK
+     sta fkind
+     lda #63
+     sta fspd
+     jmp bul_fire
+th_rts
+     rts
+
+; Weaves down (en_update); every so often a 3-way pink fan at the player.
+think_saucer
+     lda #24
+     sta evy,x
+     lda etimer,x
+     and #63
+     cmp #40
+     bne th_rts
+     lda eyh,x
+     cmp #201
+     bcs th_rts
+     lda plvuln
+     beq th_rts
+     jsr th_aim
+     lda #BK_PINK
+     sta fkind
+     lda #52
+     sta fspd
+     lda #3
+     sta fcount
+     lda #14
+     sta fstep
+     jmp bul_fan
+
+; Stops, fires a blue ring then a pink ring, and leaves.
+think_drone
+     lda estate,x
+     beq th_drone_in
+     cmp #1
+     beq th_drone_hold
+     lda #214                ; -42: away up the screen
+     sta evy,x
+     rts
+th_drone_in
+     lda #49
+     sta evy,x
+     lda eyh,x
+     cmp eparam,x
+     bcc th_drone_rts
+     lda #1
+     sta estate,x
+     lda #0
+     sta etimer,x
+     sta evy,x
+     rts
+th_drone_hold
+     lda etimer,x
+     cmp #20
+     bne th_drone_h2
+     lda #BK_BLUE
+     sta fkind
+     lda #112
+     bne th_drone_ring
+th_drone_h2
+     cmp #70
+     bne th_drone_h3
+     lda #BK_PINK
+     sta fkind
+     lda #128
+     bne th_drone_ring
+th_drone_h3
+     cmp #121
+     bcc th_drone_rts
+     lda #2
+     sta estate,x
+     rts
+th_drone_ring
+     sta fang
+     lda plvuln
+     beq th_drone_rts
+     lda #45
+     sta fspd
+     lda #8
+     sta fcount
+     lda #32
+     sta fstep
+     jmp bul_fan
+
+th_drone_rts
+     rts
+
+; Big, strafes (weave in en_update), drops needles and aimed blue fans;
+; leaves after a while.
+think_gunship
+     lda exh,x
+     clc
+     adc #8
+     sta fx
+     lda eyh,x
+     clc
+     adc #24
+     sta fy
+     lda estate,x
+     bne th_gun_on
+     lda #21
+     sta evy,x
+     lda eyh,x
+     cmp eparam,x
+     bcc th_rts2
+     lda #1                  ; start strafing: x = base + 33 sin(t)
+     sta estate,x
+     sta ewstep,x
+     lda #0
+     sta etimer,x
+     lda #33
+     sta ewamp,x
+     lda #192
+     sta ewang,x
+th_rts2
+     rts
+th_gun_on
+     cmp #3
+     bne th_gun_fight
+     lda #228                ; -28: away
+     sta evy,x
+     rts
+th_gun_fight
+     lda #0
+     sta evy,x
+     lda etimer,x
+     cmp #254
+     bne th_gun_f1
+     inc estate,x
+th_gun_f1
+     lda plvuln
+     beq th_rts2
+     lda etimer,x
+     and #63
+     cmp #24
+     bne th_gun_f2
+     lda #64                 ; three needles straight down
+     sta fang
+     lda #70
+     sta fspd
+     lda #BK_NEEDLE
+     sta fkind
+     lda fx
+     sec
+     sbc #7
+     sta fx
+     jsr bul_fire
+     lda fx
+     clc
+     adc #7
+     sta fx
+     jsr bul_fire
+     lda fx
+     clc
+     adc #7
+     sta fx
+     jsr bul_fire
+     lda fx
+     sec
+     sbc #7
+     sta fx
+     ldx thi
+th_gun_f2
+     lda etimer,x
+     and #127
+     cmp #60
+     bne th_rts2
+     jsr th_aim
+     lda #BK_BLUE
+     sta fkind
+     lda #42
+     sta fspd
+     lda #3
+     sta fcount
+     lda #20
+     sta fstep
+     jmp bul_fan
+
+; Ground turret: turns to face the player, a blue shot every so often.
+think_turret
+     lda eyh,x
+     cmp #40
+     bcc th_tur_rts
+     cmp #211
+     bcs th_tur_rts
+     jsr th_aim
+     ldx thi
+     lda fang
+     sec
+     sbc #48
+     lsr
+     lsr
+     lsr
+     lsr
+     lsr
+     sta eframe,x            ; 8 directions
+     lda etimer,x
+     and #127
+     bne th_tur_rts
+     lda plvuln
+     beq th_tur_rts
+     lda #BK_BLUE
+     sta fkind
+     lda #49
+     sta fspd
+     jmp bul_fire
+th_tur_rts
      rts

@@ -36,10 +36,7 @@ def expected_lines(spos, tiles, pals, m):
             t = int(m[r, c])
             cols = [ga.rgb_of(ga.BG_CODE)] + [ga.rgb_of(x) for x in ga.PAL_CODES[pals[t]]]
             for x in range(8):
-                if ga.SKIP_SEA and t in ga.SEA_TILES:
-                    out[L, c * 8 + x] = ga.rgb_of(ga.BG_CODE)  # open sea: background
-                else:
-                    out[L, c * 8 + x] = cols[tiles[t][line, x]]
+                out[L, c * 8 + x] = cols[tiles[t][line, x]]
     return out
 
 
@@ -50,9 +47,7 @@ def main():
     d = Path(sys.argv[1])
     meta = json.loads((ga.MGF / "stage1.json").read_text())
     m = np.frombuffer((ga.MGF / "stage1_map.bin").read_bytes(), dtype=np.uint8).reshape(meta["rows"], meta["cols"])
-    tiles_src = ga.frames_of(ga.MGF / "stage1_tiles.png", 16, 16)
-    pals = [ga.tile_palette(t) for t in tiles_src]
-    tiles = [ga.halve(t, ga.TILE_SLOTS[p], prefer_solid=False) for t, p in zip(tiles_src, pals)]
+    tiles, pals = ga.stage_tiles()
     ok = True
     # play.sh log: "<frame> 2231 <lo> <hi>" per screenshot, in order
     probes = [l.split() for l in (d / "play.txt").read_text().split("\n") if l.split()[1:2] == ["2231"]]

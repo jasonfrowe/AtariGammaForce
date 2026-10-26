@@ -23,6 +23,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "assets" / "mgf"
 COLS = 20  # 160 px screen / 8 px tiles
+MGF_COLS = 12  # MegaGammaForce's playfield width in tiles
 
 SPRITE_SHEETS = [
     "player.png", "enemy16.png", "enemy32.png", "bullet8.png", "bullet16.png",
@@ -60,9 +61,17 @@ def main():
     # Stage 1 at 20 columns. tiles.stage1() returns the map top row first;
     # we store it in stage order (row 0 is where the stage starts, at the
     # bottom of the screen) because that is the order the 7800 reads it.
-    tiles.COLS = COLS
+    # The fortress is generated at MegaGammaForce's own 12 columns and set in
+    # the middle of a 20-column sea: it keeps its size next to the ship, and
+    # the deck (a full row of characters costs MARIA ~190 DMA cycles a line,
+    # which halts the CPU) covers 60% of a row at most.
+    tiles.COLS = MGF_COLS
     tl, ids, top_first, hatches = tiles.stage1()
-    stage_order = top_first[::-1].copy()
+    narrow = top_first[::-1].copy()
+    pad = (COLS - MGF_COLS) // 2
+    stage_order = np.full((narrow.shape[0], COLS), ids["sea0"], dtype=np.uint8)
+    stage_order[:, pad:pad + MGF_COLS] = narrow
+    hatches = [(r, c + pad) for r, c in hatches]
     save_indexed(OUT / "stage1_tiles.png", tl, palettes.TILES)
     (OUT / "stage1_map.bin").write_bytes(stage_order.astype(np.uint8).tobytes())
     meta = {
