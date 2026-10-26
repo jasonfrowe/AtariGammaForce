@@ -1,4 +1,6 @@
-# Hold the Vulcan through stage 1, weaving; measures frame rate.
+# Start a game, hold the Vulcan through stage 1 weaving left and right; tick ($2312) every 10 frames. Run with tools/fps_test.sh (an invulnerable build).
+300 press P1 Button 2
+310 release P1 Button 2
 350 press P1 Button 1
 350 press P1 Left
 440 release P1 Left

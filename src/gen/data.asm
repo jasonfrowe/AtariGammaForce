@@ -49,7 +49,7 @@ imgstrips .byte 2,1,1,1,1,1,1,1,1,2,1,2,2,2,2,2,2,2,2,1
 imgframes .byte 3,1,2,4,2,2,1,2,6,2,8,4,1,1,1,1,1,1,2,8
 ; lines used in the image's last strip (the plotter skips the part
 ; of a strip that would only be empty lines)
-imgh .byte 7,8,15,10,12,4,6,4,9,11,10,14,16,16,16,13,16,13,16,16
+imgh .byte 7,8,15,10,12,4,6,4,9,11,10,14,16,14,16,14,16,14,15,16
 ; -width & 31, the width bits of a 4-byte header
 imgnegw .byte 28,31,30,30,30,31,31,31,30,28,30,26,24,24,28,28,28,28,28,30
 

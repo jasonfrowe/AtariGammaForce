@@ -259,16 +259,16 @@ SPRITES = [
     ("gunship", "art", 0, 0, None, None, 2),
     ("turret", "art", 0, 0, None, None, 4),
     ("sword", "sword", 0, 0, None, None, 7),
-    # GAMMA CORE, the stage 1 boss. Its 64-line parts are drawn as top and
-    # bottom halves (the plotter does two strips), the right wing mirrored.
-    ("bcoret", "stage1_boss_core.png", 64, 64, None, BOSS_SLOTS, 0, (0, 32)),
-    ("bcoreb", "stage1_boss_core.png", 64, 64, None, BOSS_SLOTS, 0, (32, 64)),
-    ("bwinglt", "stage1_boss_wing.png", 32, 64, None, BOSS_SLOTS, 0, (0, 32)),
-    ("bwinglb", "stage1_boss_wing.png", 32, 64, None, BOSS_SLOTS, 0, (32, 64)),
-    ("bwingrt", "stage1_boss_wing.png", 32, 64, None, BOSS_SLOTS, 0, (0, 32), True),
-    ("bwingrb", "stage1_boss_wing.png", 32, 64, None, BOSS_SLOTS, 0, (32, 64), True),
-    ("bcannon", "stage1_boss_cannon.png", 32, 32, None, BOSS_SLOTS, 0),
-    ("bturret", "stage1_boss_turret.png", 16, 16, None, BOSS_SLOTS, 0),
+    # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
+    # top and bottom halves (the plotter does two strips).
+    ("bcoret", "boss", 0, 0, None, None, 0),
+    ("bcoreb", "boss", 0, 0, None, None, 0),
+    ("bwinglt", "boss", 0, 0, None, None, 0),
+    ("bwinglb", "boss", 0, 0, None, None, 0),
+    ("bwingrt", "boss", 0, 0, None, None, 0),
+    ("bwingrb", "boss", 0, 0, None, None, 0),
+    ("bcannon", "boss", 0, 0, None, None, 0),
+    ("bturret", "boss", 0, 0, None, None, 0),
 ]
 
 
@@ -289,11 +289,11 @@ def sword_frames():
                 ang = math.atan2(-dy, dx)
                 if not (0.05 < ang < math.pi - 0.05):
                     continue
-                if 19 <= r < 22.5:
+                if 15.5 <= r < 23:
                     a[y, x] = 2
-                if 20.5 <= r < 22:
+                if 17.5 <= r < 21.5:
                     a[y, x] = 3
-                if 19 <= r < 23 and abs(ang - glint) < 0.12:
+                if 15.5 <= r < 23 and abs(ang - glint) < 0.14:
                     a[y, x] = 1
         frames.append(a)
     return frames
@@ -310,6 +310,9 @@ def build_sprites():
         flip = entry[8] if len(entry) > 8 else False
         if fn == "art":
             conv = ART[name]
+        elif fn == "boss":
+            import boss7800
+            conv = boss7800.parts()[name]
         elif fn == "sword":
             conv = sword_frames()
         elif fn is None:
