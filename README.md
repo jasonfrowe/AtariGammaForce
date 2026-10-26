@@ -7,6 +7,8 @@ Sword; a color chain; weapons that level up; bosses taken apart piece by
 piece. Written in [7800basic](https://github.com/7800-devtools/7800basic)
 with an assembly display engine for smooth vertical scrolling.
 
+![Atari Gamma Force: the title, three stages and their bosses](docs/gameplay.gif)
+
 **Status:** playable through three stages, round and round. Stage 1 (the
 fortress at sea, and the GAMMA CORE) and stage 2 (NEON SPIRES, a city at
 night that winds and splits, with wasps, tanks, towers to fly around and
@@ -31,7 +33,8 @@ work.
 | ![LEVIATHAN](docs/screenshots/boss3.png) | ![The results](docs/screenshots/results.png) |
 | LEVIATHAN, the battleship, part of the map | The results after a boss |
 
-Screenshots from the A7800 emulator (`tools/play.sh`), at twice size.
+Screenshots and the GIF above are from the A7800 emulator (`tools/play.sh`;
+`tools/make_gif.py` records the GIF), at twice size.
 
 ## Controls
 
