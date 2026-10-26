@@ -5,24 +5,32 @@
 hudinit .byte 20,58,26,50,56,30,20,0,0,0,0,0,0,0,20,20,20,68,6,20 ; ' SCORE 0000000   x3 '
 hudover .byte 34,22,46,30,50,64,30,56 ; 'GAMEOVER'
 hudwarn .byte 66,22,56,48,38,48,34 ; 'WARNING'
-hudclear .byte 26,44,30,22,56,30,28,20 ; 'CLEARED!'
 hudstage .byte 58,60,22,34,30,20 ; 'STAGE '
 ; Playfield texts for pf_text: TXT_ numbers index these.
 txt_atari .byte 22,60,22,56,38 ; 'ATARI'
 txt_push .byte 52,56,30,58,58,20,32,38,56,30 ; 'PRESS FIRE'
-txt_b1 .byte 24,62,60,60,50,48,20,2,20,20,64,62,44,26,22,48 ; 'BUTTON 1  VULCAN'
-txt_b2 .byte 24,62,60,60,50,48,20,4,20,20,58,66,50,56,28 ; 'BUTTON 2  SWORD'
+txt_b1 .byte 24,2,20,64,62,44,26,22,48,20,20,24,4,20,58,66,50,56,28 ; 'B1 VULCAN  B2 SWORD'
 txt_credit .byte 4,0,4,12,20,40,22,58,50,48,20,56,50,66,30 ; '2026 JASON ROWE'
-txt_warning .byte 66,22,56,48,38,48,34 ; 'WARNING'
-txt_boss .byte 34,22,46,46,22,20,26,50,56,30 ; 'GAMMA CORE'
-txt_clear .byte 58,60,22,34,30,20,26,44,30,22,56 ; 'STAGE CLEAR'
 txt_over .byte 34,22,46,30,20,50,64,30,56 ; 'GAME OVER'
-txt_ready .byte 58,60,22,34,30,20,2 ; 'STAGE 1'
-txtlo .byte <txt_atari,<txt_push,<txt_b1,<txt_b2,<txt_credit,<txt_warning,<txt_boss,<txt_clear
-  .byte <txt_over,<txt_ready
-txthi .byte >txt_atari,>txt_push,>txt_b1,>txt_b2,>txt_credit,>txt_warning,>txt_boss,>txt_clear
-  .byte >txt_over,>txt_ready
-txtlen .byte 5,10,16,15,15,7,10,11,9,7
+txt_clear .byte 58,60,22,34,30,20,26,44,30,22,56 ; 'STAGE CLEAR'
+txt_escaped .byte 24,50,58,58,20,30,58,26,22,52,30,28 ; 'BOSS ESCAPED'
+txt_perfect .byte 52,30,56,32,30,26,60,20,28,30,58,60,56,62,26,60,38,50,48 ; 'PERFECT DESTRUCTION'
+txt_name1 .byte 58,42,70,20,32,50,56,60,56,30,58,58 ; 'SKY FORTRESS'
+txt_name2 .byte 48,30,50,48,20,58,52,38,56,30,58 ; 'NEON SPIRES'
+txt_sel1 .byte 74,20,20,20,58,60,22,34,30,20,2,20,20,20,76 ; '<   STAGE 1   >'
+txt_sel2 .byte 74,20,20,20,58,60,22,34,30,20,4,20,20,20,76 ; '<   STAGE 2   >'
+txt_resa = $23A0 ; a RAM line
+txt_resb = $23B4 ; a RAM line
+txt_resc = $23C8 ; a RAM line
+; the results lines' templates, copied into their RAM lines
+restmpl .byte 28,30,58,60,56,62,26,60,38,50,48,20,0,0,0,78,20,20,20,20
+  .byte 46,22,68,20,26,36,22,38,48,20,20,20,20,0,0,0,20,20,20,20
+  .byte 24,50,48,62,58,20,20,20,20,20,20,0,0,0,0,0,20,20,20,20
+txtlo .byte <txt_atari,<txt_push,<txt_b1,<txt_credit,<txt_over,<txt_clear,<txt_escaped,<txt_perfect
+  .byte <txt_name1,<txt_name2,<txt_sel1,<txt_sel2,<txt_resa,<txt_resb,<txt_resc
+txthi .byte >txt_atari,>txt_push,>txt_b1,>txt_credit,>txt_over,>txt_clear,>txt_escaped,>txt_perfect
+  .byte >txt_name1,>txt_name2,>txt_sel1,>txt_sel2,>txt_resa,>txt_resb,>txt_resc
+txtlen .byte 5,10,19,15,9,11,12,19,12,11,15,15,16,16,16
 
 ; P0C1..P7C3, in register order
 palettedata

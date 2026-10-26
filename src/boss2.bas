@@ -12,7 +12,7 @@
 boss2_build
   for k = 0 to 10
     etype[k] = boss2_type[k] : eimg[k] = boss2_img[k] : ehp[k] = boss2_hp[k]
-    bdx[k] = boss2_dx[k] : bdy[k] = boss2_dy[k]
+    bdx[k] = boss2_dx[k] : bdy[k] = boss2_dy[k] : bwt[k] = boss2_wt[k]
   next
   bcorehp = 250 : borbit = 0 : bsweep = 0 : bsdir = 1 : bring = 0
   return
@@ -168,4 +168,8 @@ end
 end
   data boss2_dy
   21, 231, 231, 0, 0, 224, 0, 0, 0, 0, 0
+end
+  rem each part's share of the boss (%; the core's 30 is counted apart)
+  data boss2_wt
+  20, 7, 7, 0, 0, 0, 0, 0, 12, 12, 12
 end

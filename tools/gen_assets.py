@@ -134,7 +134,13 @@ def preview(slots, pal_codes, scale=4, bg=None):
 # Character block: background tiles, then the font.
 
 TILE_W, TILE_H = 8, 16
-FONT_CHARS = "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ"  # x is drawn as X
+FONT_CHARS = "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ<>%"  # x is drawn as X
+# Glyphs Astrowing's font doesn't have, 8 x 7 like it
+EXTRA_GLYPHS = {
+    "<": ["....11..", "...11...", "..11....", ".11.....", "..11....", "...11...", "....11.."],
+    ">": ["..11....", "...11...", "....11..", ".....11.", "....11..", "...11...", "..11...."],
+    "%": [".11...1.", ".11..11.", "....11..", "...11...", "..11....", ".11..11.", ".1...11."],
+}
 
 # MegaGammaForce stage 1 tile indices (palettes.TILES) -> 160A slot, per
 # palette. Index 1 (darkest sea) and 10 (shadow) fall to the background.
@@ -158,9 +164,12 @@ def font_glyphs():
     """Astrowing's 8-pixel glyphs (7 lines tall), placed on lines 4-10."""
     font = np.array(Image.open(ASSETS / "font_astrowing.png"))
     glyphs = []
-    for i, _ch in enumerate(FONT_CHARS):
+    for i, ch in enumerate(FONT_CHARS):
         g = np.zeros((TILE_H, TILE_W), dtype=np.uint8)
-        src = font[0:7, i * 8:(i + 1) * 8]
+        if ch in EXTRA_GLYPHS:
+            src = np.array([[c == "1" for c in r] for r in EXTRA_GLYPHS[ch]])
+        else:
+            src = font[0:7, i * 8:(i + 1) * 8]
         g[4:11, :] = np.where(src > 0, 3, 0)  # one color: slot 3
         glyphs.append(g)
     return glyphs
@@ -181,7 +190,6 @@ TEXTS = {
     "hudinit": " SCORE 0000000   x3 ",
     "hudover": "GAMEOVER",
     "hudwarn": "WARNING",
-    "hudclear": "CLEARED!",
     "hudstage": "STAGE ",
 }
 
@@ -190,15 +198,25 @@ TEXTS = {
 SCREEN_TEXTS = {
     "atari": "ATARI",
     "push": "PRESS FIRE",
-    "b1": "BUTTON 1  VULCAN",
-    "b2": "BUTTON 2  SWORD",
+    "b1": "B1 VULCAN  B2 SWORD",
     "credit": "2026 JASON ROWE",
-    "warning": "WARNING",
-    "boss": "GAMMA CORE",
-    "clear": "STAGE CLEAR",
     "over": "GAME OVER",
-    "ready": "STAGE 1",
+    "clear": "STAGE CLEAR",
+    "escaped": "BOSS ESCAPED",
+    "perfect": "PERFECT DESTRUCTION",
+    # the stages' names (TXT_NAME1 + stage - 1), and the title's choice
+    "name1": "SKY FORTRESS",
+    "name2": "NEON SPIRES",
+    "sel1": "<   STAGE 1   >",
+    "sel2": "<   STAGE 2   >",
 }
+# Playfield texts that are lines of RAM (20 characters, written by the
+# game): the results screen's figures. Templates below fill them.
+SCREEN_RAM = {"resa": 0x23A0, "resb": 0x23B4, "resc": 0x23C8}
+# 16 shown of each 20-character RAM line (digits written by the game at
+# rtline 12, 33 and 51)
+RESULT_LINES = ["DESTRUCTION 000%    ", "MAX CHAIN    000    ", "BONUS      00000    "]
+RESULT_LEN = 16
 
 
 def char_index(ch, font_base=0):
@@ -910,14 +928,22 @@ def main():
     for i, (label, text) in enumerate(SCREEN_TEXTS.items()):
         asm.append(f"txt_{label} .byte " + ",".join(str(char_index(ch, font_base)) for ch in text) + f" ; {text!r}")
         consts.append(f"  const TXT_{label.upper()} = {i}")
-    names = list(SCREEN_TEXTS)
+    for i, (label, addr) in enumerate(SCREEN_RAM.items()):
+        asm.append(f"txt_{label} = ${addr:04X} ; a RAM line")
+        consts.append(f"  const TXT_{label.upper()} = {len(SCREEN_TEXTS) + i}")
+    asm.append("; the results lines' templates, copied into their RAM lines")
+    asm.append("restmpl .byte " + ",".join(str(char_index(ch, font_base)) for ch in RESULT_LINES[0]))
+    for line in RESULT_LINES[1:]:
+        asm.append("  .byte " + ",".join(str(char_index(ch, font_base)) for ch in line))
+    lens = {**{k: len(v) for k, v in SCREEN_TEXTS.items()}, **{k: RESULT_LEN for k in SCREEN_RAM}}
+    names = list(SCREEN_TEXTS) + list(SCREEN_RAM)
     asm.append("txtlo .byte " + ",".join(f"<txt_{n}" for n in names[:8]))
     for i in range(8, len(names), 8):
         asm.append("  .byte " + ",".join(f"<txt_{n}" for n in names[i:i + 8]))
     asm.append("txthi .byte " + ",".join(f">txt_{n}" for n in names[:8]))
     for i in range(8, len(names), 8):
         asm.append("  .byte " + ",".join(f">txt_{n}" for n in names[i:i + 8]))
-    asm.append("txtlen .byte " + ",".join(str(len(SCREEN_TEXTS[n])) for n in names))
+    asm.append("txtlen .byte " + ",".join(str(lens[n]) for n in names))
     asm.append("")
     asm.append("; P0C1..P7C3, in register order")
     asm.append("palettedata")
@@ -952,7 +978,7 @@ def main():
             "imgnegw .byte " + ",".join(str((-int(x)) & 31) for x in w), ""]
     asm += trig_tables()
     asm += chain_table()
-    for ch, name in ((" ", "SPACE"), ("X", "X"), ("I", "I"), ("H", "H"), ("Y", "Y"), ("P", "P"),
+    for ch, name in ((" ", "SPACE"), ("X", "X"), ("I", "I"), ("H", "H"), ("Y", "Y"), ("P", "P"), ("0", "0"),
                      ("E", "E"), ("R", "R"), ("C", "C")):
         consts.append(f"  const CH_{name} = {char_index(ch, font_base)}")
     (GEN / "data.asm").write_text("\n".join(asm) + "\n")

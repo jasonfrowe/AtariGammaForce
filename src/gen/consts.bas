@@ -3,7 +3,7 @@
   const BGCOLOR = $91
   const FONTBASE = 0
   const BGMAXBYTES = 30
-  const NFONTCHARS = 74
+  const NFONTCHARS = 80
   rem The stage header: the same addresses in every stage bank ($8000).
   dim stg_rows = $8000
   dim stg_loop = $8001
@@ -43,13 +43,18 @@
   const TXT_ATARI = 0
   const TXT_PUSH = 1
   const TXT_B1 = 2
-  const TXT_B2 = 3
-  const TXT_CREDIT = 4
-  const TXT_WARNING = 5
-  const TXT_BOSS = 6
-  const TXT_CLEAR = 7
-  const TXT_OVER = 8
-  const TXT_READY = 9
+  const TXT_CREDIT = 3
+  const TXT_OVER = 4
+  const TXT_CLEAR = 5
+  const TXT_ESCAPED = 6
+  const TXT_PERFECT = 7
+  const TXT_NAME1 = 8
+  const TXT_NAME2 = 9
+  const TXT_SEL1 = 10
+  const TXT_SEL2 = 11
+  const TXT_RESA = 12
+  const TXT_RESB = 13
+  const TXT_RESC = 14
   const IMG_SHIP = 0
   const IMG_VULCAN = 1
   const IMG_DART = 2
@@ -85,6 +90,7 @@
   const CH_H = 36
   const CH_Y = 70
   const CH_P = 52
+  const CH_0 = 0
   const CH_E = 30
   const CH_R = 56
   const CH_C = 26

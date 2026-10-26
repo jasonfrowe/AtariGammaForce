@@ -199,6 +199,19 @@
   dim smsg = $235F
   rem stage 2's boss: bullets of the core's ring still to fire
   dim bring = $2380
+  rem the stage chosen on the title
+  dim selstage = $2390
+  dim selcd = $2391
+  rem the results: % of the boss destroyed, bonus (in hundreds) still to
+  rem count, the boss got away, fire released, the longest chain
+  dim bdestr = $2392
+  dim bbonus = $2393
+  dim bescape = $2394
+  dim bready = $2395
+  dim chmax = $2396
+  rem the results' three lines of text (60 characters), each part's weight
+  dim rtline = $23A0
+  dim bwt = $23E0
   rem each boss part's offset from the boss centre (from the boss's tables)
   dim bdx = $2360
   dim bdy = $2370
@@ -251,6 +264,7 @@ end
   for i = 0 to NS1 : shy[i] = 0 : next
   for i = 0 to NX1 : xt[i] = 0 : next
   temp9 = 30
+  if selstage = 0 then selstage = 1
   asm
   lda #SONG_TITLE
   jsr mus_play
@@ -272,12 +286,16 @@ end
 end
   tpal = 3
   tzone = 2 : temp1 = TXT_ATARI : gosub text
+  rem the starting stage: left and right choose
+  tpal = 6
+  tzone = 9 : temp1 = TXT_SEL1 + selstage - 1 : gosub text
+  tpal = 3
+  tzone = 10 : temp1 = TXT_NAME1 + selstage - 1 : gosub text
   tpal = 7
   temp2 = tick & 32
-  if temp2 then tzone = 9 : temp1 = TXT_PUSH : gosub text
+  if temp2 then tzone = 11 : temp1 = TXT_PUSH : gosub text
   tpal = 3
-  tzone = 10 : temp1 = TXT_B1 : gosub text
-  tzone = 11 : temp1 = TXT_B2 : gosub text
+  tzone = 12 : temp1 = TXT_B1 : gosub text
   tpal = 6
   tzone = 13 : temp1 = TXT_CREDIT : gosub text
   asm
@@ -290,6 +308,10 @@ end
   temp5 = temp4 & 15 : P4C1 = temp5 * 16 + 2
   P4C2 = temp5 * 16 + 7
   temp5 = (temp4 + 2) & 15 : P4C3 = temp5 * 16 + 13
+  if selcd > 0 then selcd = selcd - 1 : goto title_fire
+  if joy0left && selstage > 1 then selstage = selstage - 1 : selcd = 15
+  if joy0right && selstage < 2 then selstage = selstage + 1 : selcd = 15
+title_fire
   rem Start on a fresh press of either button (released first)
   temp3 = 0
   if joy0fire0 then temp3 = 1
@@ -297,7 +319,7 @@ end
   if temp3 = 0 && temp9 > 0 then temp9 = temp9 - 1
   if temp3 = 0 then goto title_loop
   if temp9 > 0 then goto title_loop
-  stage = 1 : smsg = 180
+  stage = selstage : smsg = 180
   asm
   ifconst STAGE2TEST
   lda #2
@@ -322,7 +344,7 @@ end
 newgame
   for i = 0 to 3 : score_bcd[i] = 0 : next
   lives = 3 : gauge = 0 : hyper = 0
-  chlevel = 0 : chcount = 0 : chcolor = 255
+  chlevel = 0 : chcount = 0 : chcolor = 255 : chmax = 0
   vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0 : gn = 0 : gcolor = 0
   swcd = 0
   for i = 0 to NE1 : etype[i] = 0 : next
@@ -356,6 +378,7 @@ end
   if pflate then pfnodraw = 1 : gosub step : pfnodraw = 0
   gosub step
   if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
+  if bstate = 5 then gosub results_text
   asm
   jsr pf_drawscreen
 end
@@ -705,6 +728,7 @@ chain_new
 chain_check
   if chcount < 3 then return
   if chlevel < 99 then chlevel = chlevel + 1
+  if chlevel > chmax then chmax = chlevel
   temp3 = chlevel
   if temp3 > 41 then temp3 = 41
   sadd2 = chainb2[temp3] : sadd1 = chainb1[temp3] : sadd0 = chainb0[temp3]
@@ -836,9 +860,10 @@ boss_warning
   if stage = 2 then gosub boss2_build : goto boss_built
   for k = 0 to 10
     etype[k] = boss_type[k] : eimg[k] = boss_img[k] : ehp[k] = boss_hp[k]
-    bdx[k] = boss_dx[k] : bdy[k] = boss_dy[k]
+    bdx[k] = boss_dx[k] : bdy[k] = boss_dy[k] : bwt[k] = boss_wt[k]
   next
 boss_built
+  bescape = 0
   for k = 0 to 10
     ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
     evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0
@@ -886,7 +911,7 @@ boss_nodive
   if stage = 2 then gosub boss2_orbit
   gosub boss_place
   rem 90 seconds and it escapes
-  if bth >= 21 then bstate = 4 : btl = 200 : return
+  if bth >= 21 then bescape = 1 : gosub boss_tally : bstate = 4 : btl = 200 : return
   if plvuln = 0 then return
   gosub boss_attack
   return
@@ -1106,6 +1131,8 @@ part_core_open
   temp1 = temp1 / 2 + 1
   if bcorehp > temp1 then bcorehp = bcorehp - temp1 : return
   bcorehp = 0
+  gosub boss_tally
+  bdestr = bdestr + 30
   rem the core: 10,000, and 20,000 more for taking every other part first
   sadd2 = $01 : sadd1 = 0 : sadd0 = 0
   asm
@@ -1133,6 +1160,7 @@ boss_dying
   if btl < 240 then gosub boss_place : return
   for k = 0 to 10 : etype[k] = 0 : next
   bstate = 5 : btl = 0
+  gosub results_start
   return
 boss_boom
   temp7 = bx - 20 + (rand & 31) : temp8 = by - 24 + (rand & 31)
@@ -1143,16 +1171,84 @@ boss_boom
 end
   return
 
-  rem STAGE CLEAR in the HUD, then round again from the start
+  rem How much of the boss was destroyed (%): the weights of the parts
+  rem that are gone (the core's 30 is added when it falls)
+boss_tally
+  bdestr = 0
+  for k = 0 to 10
+    temp1 = etype[k]
+    if temp1 = 0 then bdestr = bdestr + bwt[k]
+    if temp1 = ET_PWRECK then bdestr = bdestr + bwt[k]
+  next
+  return
+
+  rem ======================================================================
+  rem  The results (MegaGammaForce's): the stage, how much of the boss was
+  rem  destroyed, the longest chain, and a bonus (100 a percent, 10,000
+  rem  more for all of it) counted into the score. Then fire starts the
+  rem  next stage. The scroll stands still meanwhile, for the text.
+  rem ======================================================================
+results_start
+  bmsg = 0 : bready = 0 : bth = 0
+  bbonus = bdestr
+  if bdestr >= 100 then bbonus = bdestr + 100
+  for k = 0 to 59 : rtline[k] = restmpl[k] : next
+  temp1 = bdestr : temp5 = 12 : gosub put3
+  temp1 = chmax : temp5 = 33 : gosub put3
+  gosub results_bonus
+  pfspeed = 0
+  asm
+  jsr mus_stop
+  lda #SFX_HYPER
+  jsr sfx_play
+end
+  return
+
+  rem the bonus still to count, in hundreds: "xxx00"
+results_bonus
+  temp1 = bbonus : temp5 = 51
+  rem 3 digits of temp1 into rtline from temp5
+put3
+  temp2 = 0 : temp3 = 0
+put3_h
+  if temp1 >= 100 then temp1 = temp1 - 100 : temp2 = temp2 + 1 : goto put3_h
+put3_t
+  if temp1 >= 10 then temp1 = temp1 - 10 : temp3 = temp3 + 1 : goto put3_t
+  rtline[temp5] = CH_0 + temp2 * 2 : temp5 = temp5 + 1
+  rtline[temp5] = CH_0 + temp3 * 2 : temp5 = temp5 + 1
+  rtline[temp5] = CH_0 + temp1 * 2
+  return
+
 boss_clear
   btl = btl + 1
-  bmsg = 2
-  if btl < 240 then return
-  bmsg = 0 : bstate = 0 : wn = 0 : gn = 0
+  if btl = 0 then bth = bth + 1
+  if btl < 60 && bth = 0 then return
+  if bbonus = 0 then goto boss_clear_wait
+  rem count the bonus in, 500 a step
+  temp1 = 5
+  if bbonus < 5 then temp1 = bbonus
+  bbonus = bbonus - temp1
+  sadd2 = 0 : sadd1 = temp1 : sadd0 = 0
+  asm
+  jsr score_add
+end
+  gosub results_bonus
+  return
+boss_clear_wait
+  if btl < 240 && bth = 0 then return
+  rem a fresh press of fire (released first) goes on
+  temp3 = 0
+  if joy0fire0 then temp3 = 1
+  if joy0fire1 then temp3 = 1
+  if temp3 = 0 then bready = 1 : return
+  if bready = 0 then return
   rem on to the next stage (after the last, round again)
+  bstate = 0 : wn = 0 : gn = 0 : chmax = 0
   stage = stage + 1 : smsg = 180
   if stage > 2 then stage = 1
   asm
+  lda #160
+  sta pfspeed
   lda #0
   sta pfstartrow
   lda stage
@@ -1160,6 +1256,21 @@ boss_clear
   lda stg_song
   jsr mus_play
 end
+  return
+
+results_text
+  tpal = 3 : tzone = 3 : temp1 = TXT_NAME1 + stage - 1 : gosub text
+  tpal = 6 : temp1 = TXT_CLEAR
+  if bescape then temp1 = TXT_ESCAPED : tpal = 4
+  tzone = 4 : gosub text
+  tpal = 3 : tzone = 6 : temp1 = TXT_RESA : gosub text
+  tzone = 7 : temp1 = TXT_RESB : gosub text
+  tpal = 6 : tzone = 8 : temp1 = TXT_RESC : gosub text
+  if bdestr >= 100 then tpal = 7 : tzone = 10 : temp1 = TXT_PERFECT : gosub text
+  if bbonus > 0 then return
+  if btl < 240 && bth = 0 then return
+  temp2 = tick & 32
+  if temp2 then tpal = 7 : tzone = 12 : temp1 = TXT_PUSH : gosub text
   return
 
   rem ---- boss parts: type, image, hit points, offset from the centre ----
@@ -1178,6 +1289,10 @@ end
 end
   data boss_dy
   28, 220, 252, 220, 252, 224, 0, 232, 254, 232, 254
+end
+  rem each part's share of the boss (%; the core's 30 is counted apart)
+  data boss_wt
+  12, 15, 0, 15, 0, 0, 0, 7, 7, 7, 7
 end
   rem where each part fires its burst from, from its top left (the wings
   rem from their bottom end, the core from its middle)
@@ -1215,7 +1330,6 @@ hud_tens
 hud_middle
   if overt > 0 then goto hud_over
   if bmsg = 1 then goto hud_warning
-  if bmsg = 2 then goto hud_clear
   if smsg > 0 then goto hud_stage
   if gauge >= GAUGE_MAX then goto hud_hyper
   temp3 = gauge / 8
@@ -1260,12 +1374,6 @@ hud_stage
   hudtext[18] = FONTBASE + stage * 2
   hudtext[19] = CH_SPACE
   return
-hud_clear
-  for k = 0 to 7
-    temp5 = 12 + k
-    hudtext[temp5] = hudclear[k]
-  next
-  return
 hud_over
   for k = 0 to 7
     temp5 = 12 + k
@@ -1283,7 +1391,7 @@ end
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----
   rem hit points: the Vulcan does 3 a bolt pair, the sword 4 a strike
   data enemy_hp
-  0, 2, 6, 9, 60, 16, 9, 20, 255
+  0, 2, 8, 10, 60, 16, 9, 20, 255
 end
   data enemy_score1
   0, $01, $02, $03, $20, $03, $01, $04, 0
