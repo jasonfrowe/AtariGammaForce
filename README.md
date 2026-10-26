@@ -7,13 +7,15 @@ Sword; a color chain; weapons that level up; bosses taken apart piece by
 piece. Written in [7800basic](https://github.com/7800-devtools/7800basic)
 with an assembly display engine for smooth vertical scrolling.
 
-![Atari Gamma Force: the title, three stages and their bosses](docs/gameplay.gif)
+![Atari Gamma Force: the title, four stages and their bosses](docs/gameplay.gif)
 
-**Status:** playable through three stages, round and round. Stage 1 (the
-fortress at sea, and the GAMMA CORE) and stage 2 (NEON SPIRES, a city at
+**Status:** playable through four stages, round and round. Stage 1 (the
+fortress at sea, and the GAMMA CORE), stage 2 (NEON SPIRES, a city at
 night that winds and splits, with wasps, tanks, towers to fly around and
-the SPIRE WARDEN), and stage 3 (IRON TIDE: islands, gunboats, and
-LEVIATHAN, a battleship longer than the screen) scroll pixel-exact to
+the SPIRE WARDEN), stage 3 (IRON TIDE: islands, gunboats, and LEVIATHAN,
+a battleship longer than the screen) and stage 4 (SCORCHED SANDS: rock
+plateaus, oases, armored trains on a railway, and DUNE WYRM, a sandworm
+winding a figure of eight) scroll pixel-exact to
 MegaGammaForce's music converted to POKEY, with its enemy waves, ground
 units and bullet patterns; the Vulcan, the Radiant Sword (absorbing pink
 bullets), the Hyper Sword, the color chain, score and lives work. See [docs/DESIGN.md](docs/DESIGN.md) for the plan and
@@ -30,8 +32,10 @@ work.
 | The GAMMA CORE | Stage 2, NEON SPIRES: the city winds and splits |
 | ![The SPIRE WARDEN](docs/screenshots/boss2.png) | ![Stage 3, IRON TIDE](docs/screenshots/stage3.png) |
 | The SPIRE WARDEN | Stage 3, IRON TIDE |
-| ![LEVIATHAN](docs/screenshots/boss3.png) | ![The results](docs/screenshots/results.png) |
-| LEVIATHAN, the battleship, part of the map | The results after a boss |
+| ![LEVIATHAN](docs/screenshots/boss3.png) | ![Stage 4, SCORCHED SANDS](docs/screenshots/stage4.png) |
+| LEVIATHAN, the battleship, part of the map | Stage 4, SCORCHED SANDS: trains on the railway |
+| ![DUNE WYRM](docs/screenshots/boss4.png) | ![The results](docs/screenshots/results.png) |
+| DUNE WYRM, a chain of eleven sprites | The results after a boss |
 
 Screenshots and the GIF above are from the A7800 emulator (`tools/play.sh`;
 `tools/make_gif.py` records the GIF), at twice size.
@@ -59,7 +63,8 @@ or with CMake: `cmake --preset default && cmake --build --preset default`.
 
 Test builds: `GF_DEFINES="CHEAT BOSSTEST STAGE2TEST" tools/build.sh` makes
 `build/gammaforce-test.a78` with any of: an invulnerable ship, a start at
-the boss, a start at stage 2 or 3 (`STAGE2TEST`, `STAGE3TEST`; and
+the boss, a start at stage 2, 3 or 4 (`STAGE2TEST`, `STAGE3TEST`,
+`STAGE4TEST`; and
 `FPS30`, `PROFILE`).
 
 Run it in [A7800](https://github.com/7800-devtools/a7800):

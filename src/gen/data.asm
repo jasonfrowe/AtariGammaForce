@@ -18,9 +18,11 @@ txt_perfect .byte 52,30,56,32,30,26,60,20,28,30,58,60,56,62,26,60,38,50,48 ; 'PE
 txt_name1 .byte 58,42,70,20,32,50,56,60,56,30,58,58 ; 'SKY FORTRESS'
 txt_name2 .byte 48,30,50,48,20,58,52,38,56,30,58 ; 'NEON SPIRES'
 txt_name3 .byte 38,56,50,48,20,60,38,28,30 ; 'IRON TIDE'
+txt_name4 .byte 58,26,50,56,26,36,30,28,20,58,22,48,28,58 ; 'SCORCHED SANDS'
 txt_sel1 .byte 74,20,20,20,58,60,22,34,30,20,2,20,20,20,76 ; '<   STAGE 1   >'
 txt_sel2 .byte 74,20,20,20,58,60,22,34,30,20,4,20,20,20,76 ; '<   STAGE 2   >'
 txt_sel3 .byte 74,20,20,20,58,60,22,34,30,20,6,20,20,20,76 ; '<   STAGE 3   >'
+txt_sel4 .byte 74,20,20,20,58,60,22,34,30,20,8,20,20,20,76 ; '<   STAGE 4   >'
 txt_resa = $23A0 ; a RAM line
 txt_resb = $23B4 ; a RAM line
 txt_resc = $23C8 ; a RAM line
@@ -29,12 +31,12 @@ restmpl .byte 28,30,58,60,56,62,26,60,38,50,48,20,0,0,0,78,20,20,20,20
   .byte 46,22,68,20,26,36,22,38,48,20,20,20,20,0,0,0,20,20,20,20
   .byte 24,50,48,62,58,20,20,20,20,20,20,0,0,0,0,0,20,20,20,20
 txtlo .byte <txt_atari,<txt_push,<txt_b1,<txt_credit,<txt_over,<txt_clear,<txt_escaped,<txt_perfect
-  .byte <txt_name1,<txt_name2,<txt_name3,<txt_sel1,<txt_sel2,<txt_sel3,<txt_resa,<txt_resb
-  .byte <txt_resc
+  .byte <txt_name1,<txt_name2,<txt_name3,<txt_name4,<txt_sel1,<txt_sel2,<txt_sel3,<txt_sel4
+  .byte <txt_resa,<txt_resb,<txt_resc
 txthi .byte >txt_atari,>txt_push,>txt_b1,>txt_credit,>txt_over,>txt_clear,>txt_escaped,>txt_perfect
-  .byte >txt_name1,>txt_name2,>txt_name3,>txt_sel1,>txt_sel2,>txt_sel3,>txt_resa,>txt_resb
-  .byte >txt_resc
-txtlen .byte 5,10,19,15,9,11,12,19,12,11,9,15,15,15,16,16,16
+  .byte >txt_name1,>txt_name2,>txt_name3,>txt_name4,>txt_sel1,>txt_sel2,>txt_sel3,>txt_sel4
+  .byte >txt_resa,>txt_resb,>txt_resc
+txtlen .byte 5,10,19,15,9,11,12,19,12,11,9,14,15,15,15,15,16,16,16
 
 ; P0C1..P7C3, in register order
 palettedata
@@ -50,18 +52,18 @@ palettedata
 ; Sprite images. IMG_x = image number; imglo/imghi = graphics of the
 ; first strip of frame 0; imgw = width in bytes; imgstrips = 16-line strips;
 ; imgframes = frame count. Frame f of strip s is at (strip label) + f*w.
-imglo .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship0,<turret,<wasp,<tank,<tower0,<b2coret0,<b2coreb0,<b2pod0,<b2cannon0,<gunboat0,<b3bridget0,<b3bridgeb0,<b3reactor0,<b3gun,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0,<bwingrb0,<bcannon0,<bturret,<logo_gamma0,<logo_force0
-imghi .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>wasp,>tank,>tower0,>b2coret0,>b2coreb0,>b2pod0,>b2cannon0,>gunboat0,>b3bridget0,>b3bridgeb0,>b3reactor0,>b3gun,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret,>logo_gamma0,>logo_force0
-imglo2 .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<wasp,<tank,<tower1,<b2coret1,<b2coreb1,<b2pod1,<b2cannon1,<gunboat1,<b3bridget1,<b3bridgeb1,<b3reactor1,<b3gun,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret,<logo_gamma1,<logo_force1
-imghi2 .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>wasp,>tank,>tower1,>b2coret1,>b2coreb1,>b2pod1,>b2cannon1,>gunboat1,>b3bridget1,>b3bridgeb1,>b3reactor1,>b3gun,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret,>logo_gamma1,>logo_force1
-imgw .byte 4,1,2,2,2,1,1,1,2,4,2,2,2,4,8,8,4,4,4,8,8,4,3,6,8,8,4,4,4,4,4,2,23,23
-imgstrips .byte 2,1,1,1,1,1,1,1,1,2,1,1,1,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,2,2
-imgframes .byte 3,1,2,4,2,2,1,2,6,2,8,2,8,1,2,2,2,2,2,1,1,2,8,4,1,1,1,1,1,1,2,8,1,1
+imglo .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship0,<turret,<wasp,<tank,<tower0,<b2coret0,<b2coreb0,<b2pod0,<b2cannon0,<gunboat0,<b3bridget0,<b3bridgeb0,<b3reactor0,<b3gun,<train0,<b4headt0,<b4headb,<b4seg0,<b4tail0,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0,<bwingrb0,<bcannon0,<bturret,<logo_gamma0,<logo_force0
+imghi .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>wasp,>tank,>tower0,>b2coret0,>b2coreb0,>b2pod0,>b2cannon0,>gunboat0,>b3bridget0,>b3bridgeb0,>b3reactor0,>b3gun,>train0,>b4headt0,>b4headb,>b4seg0,>b4tail0,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret,>logo_gamma0,>logo_force0
+imglo2 .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<wasp,<tank,<tower1,<b2coret1,<b2coreb1,<b2pod1,<b2cannon1,<gunboat1,<b3bridget1,<b3bridgeb1,<b3reactor1,<b3gun,<train1,<b4headt1,<b4headb,<b4seg1,<b4tail1,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret,<logo_gamma1,<logo_force1
+imghi2 .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>wasp,>tank,>tower1,>b2coret1,>b2coreb1,>b2pod1,>b2cannon1,>gunboat1,>b3bridget1,>b3bridgeb1,>b3reactor1,>b3gun,>train1,>b4headt1,>b4headb,>b4seg1,>b4tail1,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret,>logo_gamma1,>logo_force1
+imgw .byte 4,1,2,2,2,1,1,1,2,4,2,2,2,4,8,8,4,4,4,8,8,4,3,4,6,6,4,4,6,8,8,4,4,4,4,4,2,23,23
+imgstrips .byte 2,1,1,1,1,1,1,1,1,2,1,1,1,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2
+imgframes .byte 3,1,2,4,2,2,1,2,6,2,8,2,8,1,2,2,2,2,2,1,1,2,8,2,2,2,2,1,4,1,1,1,1,1,1,2,8,1,1
 ; lines used in the image's last strip (the plotter skips the part
 ; of a strip that would only be empty lines)
-imgh .byte 7,8,15,10,12,4,6,4,9,11,10,13,14,16,16,16,16,16,16,16,16,16,16,14,16,16,16,16,16,16,16,16,16,16
+imgh .byte 7,8,15,10,12,4,6,4,9,11,10,13,14,16,16,16,16,16,16,16,16,16,16,15,16,16,16,16,14,16,16,16,16,16,16,16,16,16,16
 ; -width & 31, the width bits of a 4-byte header
-imgnegw .byte 28,31,30,30,30,31,31,31,30,28,30,30,30,28,24,24,28,28,28,24,24,28,29,26,24,24,28,28,28,28,28,30,9,9
+imgnegw .byte 28,31,30,30,30,31,31,31,30,28,30,30,30,28,24,24,28,28,28,24,24,28,29,28,26,26,28,28,26,24,24,28,28,28,28,28,30,9,9
 
 
 ; Trig: angles are 256 per turn, 0 = right, 64 = down.

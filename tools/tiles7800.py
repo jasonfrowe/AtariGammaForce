@@ -489,3 +489,138 @@ def hull_tiles(ids):
         elif name in ("bay0", "bay1"):
             out[i] = add(name, bay0 if name == "bay0" else bay1, BOSSPAL)
     return tiles, pals, out, ids.get("clear")
+
+
+# ---------------------------------------------------------------------------
+# Stage 4, SCORCHED SANDS: the desert (the sand is the background color, so
+# open dunes cost nothing), rock plateaus, oases and the railway.
+# Palettes: P1 rock (1 shadow, 2 rock, 3 sunlit sand: the plateaus, the
+# railway, the bunkers), P2 oasis (1 palm green, 2 water, 3 glint).
+
+ROCK, OASIS = 1, 2
+
+
+def _rock(seed):
+    """Rock: plate color with shadow cracks and a few sunlit grains."""
+    t = np.full((H, W), 2, dtype=np.uint8)
+    rng = np.random.default_rng(seed)
+    for _ in range(4):
+        x, y = int(rng.integers(0, W - 2)), int(rng.integers(1, H - 1))
+        t[y, x:x + int(rng.integers(2, 4))] = 1     # a crack
+    for _ in range(3):
+        x, y = int(rng.integers(0, W)), int(rng.integers(0, H))
+        if t[y, x] == 2:
+            t[y, x] = 3
+    return t
+
+
+def _water(seed):
+    t = np.full((H, W), 2, dtype=np.uint8)
+    rng = np.random.default_rng(seed)
+    for _ in range(3):
+        x, y = int(rng.integers(0, W - 2)), int(rng.integers(0, H))
+        t[y, x:x + 2] = 3                           # glints
+    return t
+
+
+def _blend(corners, inner, rim_up, rim_down, cut=0.5, band=0.0, band_c=0):
+    """Marching squares (corners tl, tr, br, bl; 1 = inside): inner where
+    the field says so, the background outside. Along the cut, rim_up
+    where the inside faces up or left (lit), rim_down where it faces down
+    or right. band > 0: a band of band_c just inside the cut (a shore)."""
+    tl, tr, br, bl = corners
+    f = np.zeros((H, W))
+    for y in range(H):
+        for x in range(W):
+            u, v = (x + 0.5) / W, (y + 0.5) / H
+            f[y, x] = tl * (1 - u) * (1 - v) + tr * u * (1 - v) + br * u * v + bl * (1 - u) * v
+    ins = f >= cut
+    t = np.where(ins, inner, 0).astype(np.uint8)
+    if band:
+        t[ins & (f < cut + band)] = band_c
+    for y in range(H):
+        for x in range(W):
+            if not ins[y, x]:
+                continue
+            up = y > 0 and not ins[y - 1, x]
+            left = x > 0 and not ins[y, x - 1]
+            down = y < H - 1 and not ins[y + 1, x]
+            right = x < W - 1 and not ins[y, x + 1]
+            if (down or right) and rim_down:
+                t[y, x] = rim_down
+            elif (up or left) and rim_up:
+                t[y, x] = rim_up
+    return t
+
+
+def _rail(side):
+    """Half of the track (side 0 left, 1 right): a gravel bed, sleepers
+    across it every 4 lines, one bright steel rail."""
+    t = np.full((H, W), 2, dtype=np.uint8)
+    for y in range(0, H, 4):
+        t[y:y + 2, :] = 1                           # sleepers
+    rx = 5 if side == 0 else 1
+    t[:, rx:rx + 2] = 3                             # the rail
+    t[:, rx + 2 if side == 0 else rx - 1] = 1       # its shadow
+    return t
+
+
+def _bunker4():
+    """A 2x2 gun pit dug into the rock (16 px by 32 lines) for a turret:
+    a berm, lit on its upper left, round a dark pit."""
+    big = np.concatenate([np.concatenate([_rock(70 + y * 2 + x) for x in range(2)], axis=1) for y in range(2)])
+    for y in range(32):
+        for x in range(16):
+            d = math.hypot((x + 0.5 - 8) * 2, y + 0.5 - 16)
+            if d < 12.5:
+                big[y, x] = 3 if (x - 8) * 2 + (y - 16) < 0 else 1
+            if d < 10.5:
+                big[y, x] = 2
+            if d < 8:
+                big[y, x] = 1
+    return big
+
+
+def _palm():
+    """A palm seen from above: six fronds round a dark crown."""
+    t = np.zeros((H, W), dtype=np.uint8)
+    for a in range(0, 360, 60):
+        r = math.radians(a + 15)
+        for s in np.linspace(0, 7, 15):
+            x, y = int(4 + math.cos(r) * s / 2), int(8 + math.sin(r) * s)
+            if 0 <= x < W and 0 <= y < H:
+                t[y, x] = 1
+    t[7:9, 3:5] = 2
+    return t
+
+
+def desert_tiles(ids):
+    """Our desert tileset for MegaGammaForce's desert names (desert.py).
+    Returns (tiles, palettes, lut); tile 0 is blank (open sand)."""
+    tiles, pals, lut = [np.zeros((H, W), dtype=np.uint8)], [ROCK], {}
+    bunker = _quarters(_bunker4())
+    for name, i in ids.items():
+        if name.startswith("dune"):
+            lut[i] = 0
+            continue
+        lut[i] = len(tiles)
+        if name.startswith("rock"):
+            cfg = int(name[4:])
+            c = ((cfg >> 3) & 1, (cfg >> 2) & 1, (cfg >> 1) & 1, cfg & 1)
+            tiles.append(_blend(c, _rock(cfg), 3, 1))
+            pals.append(ROCK)
+        elif name.startswith("oasis"):
+            cfg = int(name[5:])
+            c = ((cfg >> 3) & 1, (cfg >> 2) & 1, (cfg >> 1) & 1, cfg & 1)
+            tiles.append(_blend(c, _water(cfg + 20), 0, 0, band=0.1, band_c=1))
+            pals.append(OASIS)
+        elif name.startswith("rail"):
+            tiles.append(_rail(int(name[4:])))
+            pals.append(ROCK)
+        elif name.startswith("bunker"):
+            tiles.append(bunker[int(name[6:])])     # (0/1 the top row)
+            pals.append(ROCK)
+        elif name == "palm":
+            tiles.append(_palm())
+            pals.append(OASIS)
+    return tiles, pals, lut

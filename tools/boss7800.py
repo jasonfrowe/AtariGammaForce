@@ -309,3 +309,94 @@ def parts3():
     br = bridge3()[0]
     return {"b3bridget": [br[:32]], "b3bridgeb": [br[32:]], "b3reactor": reactor3(), "b3gun": gun3(),
             "gunboat": gunboat()}
+
+
+# ---------------------------------------------------------------------------
+# Stage 4: the armored train (an enemy, in the chain colors: 1 dark, 2 the
+# color, 3 glow) and DUNE WYRM, the sandworm (P0 in stage 4: 1 dark, 2
+# bone shell, 3 the glowing maw).
+
+def train():
+    """32-line train cars on the rails, heading up the screen, 16 px wide:
+    frame 0 the locomotive, frame 1 a gun car."""
+    frames = []
+    for loco in (True, False):
+        c = Canvas(16, 32)
+        for y in (5, 22):                                                 # bogies
+            c.fill(lambda x, yy, y=y: 6 <= x < 26 and y <= yy < y + 6, 1)
+        if loco:
+            body = poly([(16, 0), (25, 8), (25, 31), (7, 31), (7, 8)])
+        else:
+            body = poly([(7, 2), (25, 2), (25, 31), (7, 31)])
+        c.fill(body, 2)
+        c.outline(1)
+        if loco:
+            c.fill(lambda x, y: 11 <= x < 21 and 12 <= y < 15, 3)            # the cab's windows
+            c.fill(lambda x, y: 11 <= x < 21 and 18 <= y < 29 and int(y) % 3 == 0, 1)  # grille
+            c.fill(circle(13, 4, 1.6), 3)                                   # lamps
+            c.fill(circle(19, 4, 1.6), 3)
+        else:
+            c.fill(circle(16, 16, 6.5), 1)                                  # the turret
+            c.fill(circle(16, 16, 4.5), 2)
+            c.fill(lambda x, y: abs(x - 16) < 1.5 and 3 <= y < 14, 1)       # its barrel, forward
+            c.fill(circle(16, 16, 1.6), 3)
+            c.fill(lambda x, y: 9 <= x < 23 and (int(y) in (4, 28)), 1)
+        frames.append(c.a)
+    return frames
+
+
+def wyrm_head():
+    """The head: 24 px by 48 lines, an armored skull over a round maw that
+    opens toward the bottom of the screen; frames: the maw glows."""
+    frames = []
+    for hot in (False, True):
+        c = Canvas(24, 48)
+        skull = poly([(24, 1), (38, 6), (46, 20), (44, 36), (36, 47), (12, 47), (4, 36), (2, 20), (10, 6)])
+        c.fill(skull, 2)
+        c.outline(1)
+        c.fill(poly([(24, 5), (34, 10), (37, 19), (24, 23), (11, 19), (14, 10)]), 1)   # the brow plate
+        c.fill(poly([(24, 8), (31, 11), (33, 17), (24, 20), (15, 17), (17, 11)]), 2)
+        c.fill(circle(12, 15, 2.5), 3)                                      # eyes
+        c.fill(circle(36, 15, 2.5), 3)
+        c.fill(circle(24, 35, 11), 1)                                       # the maw
+        c.fill(circle(24, 35, 8 if hot else 7), 3)
+        c.fill(circle(24, 35, 3.5 if hot else 4.5), 1)                      # the throat
+        for k in range(8):                                                  # teeth round it
+            a = math.radians(k * 45 + 22)
+            x, y = 24 + math.cos(a) * 9.5, 35 + math.sin(a) * 9.5
+            c.fill(circle(x, y, 1.7), 2)
+        frames.append(c.a)
+    return frames
+
+
+def wyrm_segment():
+    """A body ring: 16 px by 32 lines, a bone shell with a dark band and
+    spines; frame 1 has a glowing vent, so neighbors differ."""
+    frames = []
+    for k in range(2):
+        c = Canvas(16, 32)
+        c.fill(lambda x, y: ((x - 16) / 14.5) ** 2 + ((y - 17) / 13.5) ** 2 < 1, 2)
+        for x in (9, 16, 23):
+            c.fill(poly([(x - 2.5, 7), (x, 0), (x + 2.5, 7)]), 2)            # spines
+        c.outline(1)
+        c.fill(lambda x, y: ((x - 16) / 9.5) ** 2 + ((y - 17) / 8.5) ** 2 < 1
+               and not ((x - 16) / 7.5) ** 2 + ((y - 17) / 6.5) ** 2 < 1, 1)   # the plate's rim
+        c.fill(lambda x, y: 6 <= x < 26 and 16 <= y < 19, 3 if k else 1)    # the band
+        frames.append(c.a)
+    return frames
+
+
+def wyrm_tail():
+    """The tail: 16 px by 32 lines, a tapering shell and a glowing sting."""
+    c = Canvas(16, 32)
+    c.fill(poly([(5, 1), (27, 1), (23, 17), (16, 31), (9, 17)]), 2)
+    c.outline(1)
+    c.fill(poly([(10, 4), (22, 4), (19, 13), (13, 13)]), 1)
+    c.fill(poly([(14, 17), (16, 30), (18, 17)]), 3)
+    return [c.a]
+
+
+def parts4():
+    head = wyrm_head()
+    return {"b4headt": [f[:32] for f in head], "b4headb": [f[32:] for f in head],
+            "b4seg": wyrm_segment(), "b4tail": wyrm_tail(), "train": train()}

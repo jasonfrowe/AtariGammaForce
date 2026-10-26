@@ -53,7 +53,7 @@ TOP = 26  # screenshot line where the playfield starts (HUD is the 16 above)
 def main():
     d = Path(sys.argv[1])
     n = sys.argv[2] if len(sys.argv) > 2 else "1"
-    st = {"1": ga.stage1, "2": ga.stage2, "3": ga.stage3}[n]()
+    st = {"1": ga.stage1, "2": ga.stage2, "3": ga.stage3, "4": ga.stage4}[n]()
     m, tiles, pals = st["map"], st["t_slots"], st["t_pals"]
     shift = st.get("shift")
     codes = list(ga.PAL_CODES)

@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "assets" / "mgf"
 COLS = 20  # 160 px screen / 8 px tiles
 MGF_COLS = 12  # MegaGammaForce's playfield width in tiles
+RAIL4 = 12  # stage 4's railway: its left column
 
 SPRITE_SHEETS = [
     "player.png", "enemy16.png", "enemy32.png", "bullet8.png", "bullet16.png",
@@ -162,6 +163,31 @@ def main():
         "waves": waves.S3_WAVES,
         "note": "chunks: stage order (row 0 first); bunkers/water: (chunk, row, col); "
                 "hull: rows from the stern (top) down to the bow; parts: (col, row, w, h) in hull tiles",
+    }, indent=1) + "\n")
+
+    # Stage 4, SCORCHED SANDS: desert (20 columns) as four 32-row chunks
+    # from MegaGammaForce's desert.py (plain sand and the railway at both
+    # ends of each, so any can follow any), with their bunkers (turrets).
+    # The railway runs up columns RAIL4..RAIL4+1, right of the middle as in
+    # the original. The sand haze layer is left out.
+    import desert  # noqa: E402
+    _, ids4 = desert.ground_tileset()
+    desert.COLS, desert.RAIL = COLS, RAIL4
+    chunks4, bunk4 = [], []
+    for k, seed in enumerate((4, 5, 6, 7)):
+        m4, b4 = desert.ground_map(32, ids4, seed=seed)
+        chunks4.append(m4)
+        bunk4 += [[k, int(r), int(c)] for r, c in b4]
+    (OUT / "stage4_chunks.bin").write_bytes(np.concatenate(chunks4).astype(np.uint8).tobytes())
+    (OUT / "stage4.json").write_text(json.dumps({
+        "cols": COLS,
+        "chunk_rows": 32,
+        "chunks": len(chunks4),
+        "rail": RAIL4,
+        "tile_ids": {k: int(v) for k, v in ids4.items()},
+        "bunkers": bunk4,
+        "waves": waves.S4_WAVES,
+        "note": "chunks: stage order (row 0 first); bunkers: (chunk, row, col) of the bunker's lower row",
     }, indent=1) + "\n")
 
     # The palettes the sheets were drawn with, for the converters.

@@ -41,9 +41,10 @@
   rem Testing: start at the boss, and/or never get hit.
   rem const BOSSTEST = 1
   rem const CHEAT = 1
-  rem Start at stage 2, or 3.
+  rem Start at stage 2, 3 or 4.
   rem const STAGE2TEST = 1
   rem const STAGE3TEST = 1
+  rem const STAGE4TEST = 1
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
@@ -60,19 +61,21 @@
   rem destroys the ship that flies into it
   const ET_TOWER = 8
   const ET_GUNBOAT = 9
+  rem stage 4's armored train cars, on the railway (eframe 0: the engine)
+  const ET_TRAIN = 10
   rem the stages, round and round
-  const NSTAGES = 3
+  const NSTAGES = 4
   rem boss parts: types from ET_PART up are placed by the boss code
-  const ET_PART = 10
-  const ET_PCANNON = 10
-  const ET_PWING = 11
-  const ET_PARMOR = 12
-  const ET_PCORE = 13
-  const ET_PTURRET = 14
+  const ET_PART = 11
+  const ET_PCANNON = 11
+  const ET_PWING = 12
+  const ET_PARMOR = 13
+  const ET_PCORE = 14
+  const ET_PTURRET = 15
   rem a destroyed cannon or wing: drawn dark, no longer hit
-  const ET_PWRECK = 15
+  const ET_PWRECK = 16
   rem stage 2's boss: a pod orbiting the core
-  const ET_PPOD = 16
+  const ET_PPOD = 17
 
   rem ---- bullet kinds: odd = pink (the sword absorbs them) ----
   const BK_PINK = 1
@@ -193,7 +196,7 @@
   dim bmsg = $234C
   dim bburst = $2359
   dim bsrc = $235A
-  rem the stage being played (1, 2)
+  rem the stage being played (1-4)
   dim stage = $235B
   rem stage 2's boss: the pods' orbit angle, the cannon's sweep
   dim borbit = $235C
@@ -331,6 +334,10 @@ title_fire
   endif
   ifconst STAGE3TEST
   lda #3
+  sta stage
+  endif
+  ifconst STAGE4TEST
+  lda #4
   sta stage
   endif
   lda #160
@@ -702,6 +709,7 @@ destroy
   temp1 = etype[i]
   temp7 = exh[i] : temp8 = eyh[i] : gosub spawn_fx
   if temp1 = ET_GUNBOAT then goto destroy_big
+  if temp1 = ET_TRAIN then goto destroy_big
   if temp1 <> ET_GUNSHIP then goto destroy_small
 destroy_big
   asm
@@ -822,6 +830,8 @@ ground_slot
   ecol[k] = gpal[temp1]
   etimer[k] = k * 26 : estate[k] = 0 : ehit[k] = 0 : eflash[k] = 0
   evx[k] = 0 : evy[k] = 0 : eframe[k] = 0
+  rem a train car's param: its picture (0 the engine, 1 a gun car)
+  if temp2 = ET_TRAIN then eframe[k] = gparam[temp1] : return
   rem a tank's param: its speed, and bit 7 for driving left
   if temp2 <> ET_TANK then return
   temp3 = gparam[temp1] & 127
@@ -877,6 +887,7 @@ boss_warning
   if stage = 1 then gosub boss1_build
   if stage = 2 then gosub boss2_build
   if stage = 3 then gosub boss3_build
+  if stage = 4 then gosub boss4_build
   bescape = 0
   for k = 0 to 10
     ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
@@ -888,6 +899,7 @@ boss_warning
 
 boss_enter
   if stage = 3 then goto boss3_enter
+  if stage = 4 then goto boss4_enter
   by = by + 1
   gosub boss_place
   if by < 89 then return
@@ -896,6 +908,7 @@ boss_enter
 
 boss_fight
   if stage = 3 then goto boss3_fight
+  if stage = 4 then goto boss4_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
   rem sway: x = 80 + 17 sin(t/2), y = 89 + 6 sin(t/4) (stage 2: 12, 7)
@@ -940,6 +953,7 @@ boss_nodive
   rem rather than wrapping round to the bottom.
 boss_place
   if stage = 3 then goto boss3_place
+  if stage = 4 then goto boss4_place
   asm
   ldx #10
 boss_place_loop
@@ -980,6 +994,7 @@ boss_turrets
 boss_attack
   if stage = 2 then goto boss2_attack
   if stage = 3 then goto boss3_attack
+  if stage = 4 then goto boss4_attack
   goto boss1_attack
 
   rem Damage temp1 to boss part i. A wing's bottom half passes its hits
@@ -1026,7 +1041,10 @@ part_core
   temp6 = etype[8] | etype[9] | etype[10]
   if temp6 then return
 part_core_open
-  eflash[5] = 3 : eflash[6] = 3
+  rem (stage 4's core, the wyrm's head, is slots 9 and 10)
+  temp5 = 5
+  if stage = 4 then temp5 = 9
+  eflash[temp5] = 3 : temp5 = temp5 + 1 : eflash[temp5] = 3
   rem the core is armored: half damage
   temp1 = temp1 / 2 + 1
   if bcorehp > temp1 then bcorehp = bcorehp - temp1 : return
@@ -1060,6 +1078,7 @@ boss_dying
   temp1 = btl & 7
   if temp1 = 0 then gosub boss_boom
   if stage = 3 then gosub boss3_sinking
+  if stage = 4 then gosub boss4_sinking
   if btl < 240 then gosub boss_place : return
   for k = 0 to 10 : etype[k] = 0 : next
   bstate = 5 : btl = 0
@@ -1264,13 +1283,13 @@ end
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----
   rem hit points: the Vulcan does 3 a bolt pair, the sword 4 a strike
   data enemy_hp
-  0, 2, 8, 10, 60, 16, 9, 20, 255, 30
+  0, 2, 8, 10, 60, 16, 9, 20, 255, 30, 24
 end
   data enemy_score1
-  0, $01, $02, $03, $20, $03, $01, $04, 0, $15
+  0, $01, $02, $03, $20, $03, $01, $04, 0, $15, $08
 end
   data enemy_img
-  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP, IMG_TURRET, IMG_WASP, IMG_TANK, IMG_TOWER, IMG_GUNBOAT
+  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP, IMG_TURRET, IMG_WASP, IMG_TANK, IMG_TOWER, IMG_GUNBOAT, IMG_TRAIN
 end
 
   rem Assembly files are copied flat into the build directory (tools/build.sh).
@@ -1317,6 +1336,20 @@ end
   dmahole 0
   inline musicdata3.asm
   incbasic boss3data.bas
+
+  rem ======================================================================
+  rem  Bank 5: stage 4 (map, waves, the boss's song and path; its graphics
+  rem  block at $A000; the stage's song and DUNE WYRM's code after it)
+  rem ======================================================================
+  bank 5
+  rem the stage header must come first: it is read at $8000
+  inline stage4.asm
+  inline musicdata4b.asm
+  inline boss4tab.asm
+  incbasic gen/gfx4.bas
+  dmahole 0
+  inline musicdata4.asm
+  incbasic boss4.bas
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

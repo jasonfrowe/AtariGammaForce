@@ -486,7 +486,15 @@ en_update_live
      dec eparam,x
      jmp en_update_ground
 en_update_notboat
-     lda etype,x
+     cmp #ET_TRAIN
+     bne en_update_nottrain
+     ; trains run up the railway against the scroll: a line every 4 frames
+     lda tick
+     and #3
+     bne en_update_ground
+     dec eparam,x
+     jmp en_update_ground
+en_update_nottrain
      cmp #ET_TANK
      bne en_update_air
      ; tanks drive along their road, and leave at the screen's edge
@@ -920,7 +928,7 @@ en_draw_live
      beq en_draw_gnd
      cmp #ET_TANK
      bcc en_draw_side
-     cmp #ET_GUNBOAT+1
+     cmp #ET_TRAIN+1
      bcs en_draw_side
 en_draw_gnd
      ldy #0
@@ -959,6 +967,8 @@ en_draw_pal
      cmp #ET_TURRET
      beq en_draw_set
      cmp #ET_TANK
+     beq en_draw_set
+     cmp #ET_TRAIN
      beq en_draw_set
      cmp #ET_PART
      bcc en_draw_anim
@@ -1201,45 +1211,7 @@ en_think_loop
      clc
      adc #8
      sta fy
-     lda etype,x
-     cmp #ET_DART
-     bne en_think_1
-     jsr think_dart
-     jmp en_think_done
-en_think_1
-     cmp #ET_SAUCER
-     bne en_think_2
-     jsr think_saucer
-     jmp en_think_done
-en_think_2
-     cmp #ET_DRONE
-     bne en_think_3
-     jsr think_drone
-     jmp en_think_done
-en_think_3
-     cmp #ET_GUNSHIP
-     bne en_think_4
-     jsr think_gunship
-     jmp en_think_done
-en_think_4
-     cmp #ET_TURRET
-     bne en_think_5
-     jsr think_turret
-     jmp en_think_done
-en_think_5
-     cmp #ET_WASP
-     bne en_think_6
-     jsr think_wasp
-     jmp en_think_done
-en_think_6
-     cmp #ET_TANK
-     bne en_think_7
-     jsr think_tank
-     jmp en_think_done
-en_think_7
-     cmp #ET_GUNBOAT
-     bne en_think_done
-     jsr think_gunboat
+     jsr en_think_go
 en_think_done
      ldx thi
 en_think_next
@@ -1248,6 +1220,25 @@ en_think_next
      jmp en_think_loop
 en_think_out
      rts
+
+; Jump to enemy x's think routine, by its type (1 to ET_PART-1), through
+; the table below: its address - 1 pushed, then rts.
+en_think_go
+     ldy etype,x
+     lda th_hi-1,y
+     pha
+     lda th_lo-1,y
+     pha
+th_none
+     rts
+th_lo .byte <(think_dart-1), <(think_saucer-1), <(think_drone-1), <(think_gunship-1), <(think_turret-1)
+     .byte <(think_wasp-1), <(think_tank-1), <(th_none-1), <(think_gunboat-1), <(think_train-1)
+th_hi .byte >(think_dart-1), >(think_saucer-1), >(think_drone-1), >(think_gunship-1), >(think_turret-1)
+     .byte >(think_wasp-1), >(think_tank-1), >(th_none-1), >(think_gunboat-1), >(think_train-1)
+     if ET_PART != 11
+       echo "ERROR: en_think's table has a routine for each type below ET_PART"
+       err
+     endif
 
 ; fang = angle from (fx, fy) to the player
 th_aim
@@ -1402,6 +1393,54 @@ th_boat_fan
      sta fstep
      jmp bul_fan
 th_boat_rts
+     rts
+
+; Train car: the engine (eframe 0) sprays a pink fan of three ahead of
+; it down the screen, each gun car an aimed blue shot, every two seconds
+; or so (their timers start apart, by slot).
+think_train
+     lda eyh,x
+     cmp #40
+     bcc th_train_rts
+     cmp #200
+     bcs th_train_rts
+     lda plvuln
+     beq th_train_rts
+     lda fx                  ; (16 pixels wide: its middle)
+     clc
+     adc #4
+     sta fx
+     lda etimer,x
+     and #127
+     ldy eframe,x
+     beq th_train_engine
+     cmp #0
+     bne th_train_rts
+     jsr th_aim
+     lda #BK_BLUE
+     sta fkind
+     lda #40
+     sta fspd
+     jmp bul_fire
+th_train_engine
+     cmp #64
+     bne th_train_rts
+     lda #64                 ; down
+     sta fang
+     lda #24
+     clc
+     adc fy
+     sta fy
+     lda #BK_PINK
+     sta fkind
+     lda #40
+     sta fspd
+     lda #3
+     sta fcount
+     lda #18
+     sta fstep
+     jmp bul_fan
+th_train_rts
      rts
 
 ; Stops, fires a blue ring then a pink ring, and leaves.

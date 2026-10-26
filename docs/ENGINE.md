@@ -155,6 +155,7 @@ hole at $B000.
 | 2 | stage 1: header, map, songs, the GAMMA CORE's code (`src/boss1.bas`), the title song (the title shows with stage 1's bank in) |
 | 3 | stage 2: header, map, boss tune copy, SPIRE WARDEN's code (`src/boss2.bas`), graphics ($A000), song ($B000) |
 | 4 | stage 3: header, map, boss tune, LEVIATHAN's code (`src/boss3.bas`), graphics ($A000), song and LEVIATHAN's tables ($B000) |
+| 5 | stage 4: header, map, boss tune, DUNE WYRM's path, graphics ($A000), song and DUNE WYRM's code (`src/boss4.bas`, $B000) |
 | 9 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo, the shared sprites |
 
 ## A boss that is part of the map
@@ -169,6 +170,18 @@ bridge, reactor and turrets are sprites pinned to map rows like ground
 units: each part's line is `spos + 240 -` the world height of its top
 (16 bits; off the screen it is parked off to the right). Later stages'
 hull bosses can work the same way.
+
+## A boss that follows its own path
+
+Stage 4's sandworm, DUNE WYRM, is eleven sprites: a tail, eight body
+segments and the head (two slots, top and bottom). MegaGammaForce keeps a
+trail of the head's past positions for the body to follow; here the path
+is a closed curve worked out from a clock (x by `t`, the line by `t / 2`
+from two 256-entry tables: a figure of eight), so each part is simply the
+path at `t` less its lag. No trail is kept, and a part costs two table
+reads. It rises into view by an offset that counts down, and sinks by one
+that counts up as it dies (`src/boss4.bas`, tables in
+`src/gen/boss4tab.asm`).
 
 ## Memory
 

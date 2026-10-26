@@ -48,7 +48,10 @@ PAL7800 = [tuple(c) for c in json.loads((ROOT / "tools" / "a7800_ntsc_palette.js
 
 
 def nearest(rgb):
-    """The 7800 color byte closest to an RGB triple (weighted for the eye)."""
+    """The 7800 color byte closest to an RGB triple (weighted for the eye);
+    a number is a 7800 color already."""
+    if isinstance(rgb, int):
+        return rgb
     r, g, b = rgb
     best, bd = 0, 1e18
     for i, (pr, pg, pb) in enumerate(PAL7800):
@@ -208,9 +211,11 @@ SCREEN_TEXTS = {
     "name1": "SKY FORTRESS",
     "name2": "NEON SPIRES",
     "name3": "IRON TIDE",
+    "name4": "SCORCHED SANDS",
     "sel1": "<   STAGE 1   >",
     "sel2": "<   STAGE 2   >",
     "sel3": "<   STAGE 3   >",
+    "sel4": "<   STAGE 4   >",
 }
 # Playfield texts that are lines of RAM (20 characters, written by the
 # game): the results screen's figures. Templates below fill them.
@@ -287,6 +292,12 @@ SPRITES = [
     ("b3bridgeb", "boss3", 0, 0, None, None, 0),
     ("b3reactor", "boss3", 0, 0, None, None, 0),
     ("b3gun", "boss3", 0, 0, None, None, 0),
+    # Stage 4's: the train, and DUNE WYRM's parts (in its bank)
+    ("train", "boss4", 0, 0, None, None, 4),
+    ("b4headt", "boss4", 0, 0, None, None, 0),
+    ("b4headb", "boss4", 0, 0, None, None, 0),
+    ("b4seg", "boss4", 0, 0, None, None, 0),
+    ("b4tail", "boss4", 0, 0, None, None, 0),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -303,13 +314,14 @@ SPRITES = [
     ("logo_gamma", "logo", 0, 0, None, None, 4),
     ("logo_force", "logo", 0, 0, None, None, 4),
 ]
-BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3")} - {"gunboat"}
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4")} - {"gunboat", "train"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
 STAGE2_SPRITES = {"tower", "b2coret", "b2coreb", "b2pod", "b2cannon"}
 STAGE3_SPRITES = {"gunboat", "b3bridget", "b3bridgeb", "b3reactor", "b3gun"}
 STAGE3_STRIPS = {"gunboat0", "gunboat1", "b3bridget0", "b3bridget1", "b3bridgeb0", "b3bridgeb1",
                  "b3reactor0", "b3reactor1", "b3gun"}
+STAGE4_STRIPS = {"train0", "train1", "b4headt0", "b4headt1", "b4headb", "b4seg0", "b4seg1", "b4tail0", "b4tail1"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -416,6 +428,9 @@ def build_sprites():
         elif fn == "boss3":
             import boss7800
             conv = boss7800.parts3()[name]
+        elif fn == "boss4":
+            import boss7800
+            conv = boss7800.parts4()[name]
         elif fn == "logo":
             import logo7800
             conv = [logo7800.words()[name]]
@@ -712,7 +727,7 @@ def chain_table():
 # MegaGammaForce coordinates to ours: its playfield is 192 x 240, ours is
 # 160 x 209 (y stored + 32).
 ENEMY_TYPES = {"ET_DART": 1, "ET_SAUCER": 2, "ET_DRONE": 3, "ET_GUNSHIP": 4, "ET_TURRET": 5,
-               "ET_WASP": 6, "ET_TANK": 7, "ET_TOWER": 8, "ET_GUNBOAT": 9}
+               "ET_WASP": 6, "ET_TANK": 7, "ET_TOWER": 8, "ET_GUNBOAT": 9, "ET_TRAIN": 10}
 ENEMY_WIDTH = {"ET_GUNSHIP": 16}
 COLOR_PAL = {"COL_RED": 4, "COL_BLUE": 5, "COL_YELLOW": 6, "COL_GRAY": 2}
 
@@ -741,7 +756,7 @@ def wave_cols(data, scale=1.0):
 
 # ground units 32 lines tall: their y is 8 below their top (as for the
 # 16-line ones), and they spawn 16 lines sooner
-TALL_UNITS = ("ET_TOWER", "ET_GUNBOAT")
+TALL_UNITS = ("ET_TOWER", "ET_GUNBOAT", "ET_TRAIN")
 
 
 def ground_cols(units):
@@ -1007,6 +1022,84 @@ def stage3():
             "pal_codes": [[nearest(c) for c in p] for p in STAGE3_PALETTES]}
 
 
+# Stage 4, SCORCHED SANDS: the desert (the sand is the background), rock
+# plateaus with bunkers, oases to the west, and a railway up the right
+# side, which armored trains drive along. Its boss, DUNE WYRM, is a chain
+# of sprites winding a figure of eight.
+STAGE4_BG = (196, 140, 72)
+STAGE4_PALETTES = [
+    [0x10, 0x1E, 0x34],                                  # P0 the wyrm: dark, bone, the maw's glow
+                                                         # (7800 colors: nearest() misses bone)
+    [(84, 48, 26), (140, 96, 66), (240, 206, 140)],      # P1 rock: shadow, rock, sunlit sand
+    [(60, 110, 40), (40, 120, 150), (150, 220, 210)],    # P2 oasis: palm green, water, glint
+]
+STAGE4_ORDER = [0, 1, 2, 3, 1, 2]    # desert chunks (32 rows each)
+WAVES_END_4 = 2950                   # no turrets past this (MegaGammaForce's)
+# DUNE WYRM: slots 0 the tail, 1-8 the body (8 nearest the head), 9-10 the
+# head (top, bottom). Each follows the head's path B4_GAP frames behind the
+# one before it. The path: x = 80 + 52 sin(t), y = 74 + 38 sin(t / 2).
+B4_GAP = 11
+
+
+def boss4_tables():
+    lines = ["; Generated by tools/gen_assets.py. Do not edit.",
+             "; DUNE WYRM's path: the centre x by t & 255, its line (+ 32) by (t / 2) & 255;",
+             "; each slot's lag behind the head (frames) and offset from its centre."]
+    px = [round(80 + 52 * math.sin(2 * math.pi * i / 256)) for i in range(256)]
+    py = [round(32 + 74 + 38 * math.sin(2 * math.pi * i / 256)) for i in range(256)]
+    for name, vals in (("b4px", px), ("b4py", py)):
+        lines.append(name)
+        for i in range(0, 256, 16):
+            lines.append("  .byte " + ",".join(str(v) for v in vals[i:i + 16]))
+    lag = [(9 - k) * B4_GAP for k in range(9)] + [0, 0]
+    dx = [(-8) & 255] * 9 + [(-12) & 255] * 2
+    dy = [(-16) & 255] * 9 + [(-24) & 255, 8]
+    lines.append("b4lag .byte " + ",".join(str(v) for v in lag))
+    lines.append("b4dx .byte " + ",".join(str(v) for v in dx))
+    lines.append("b4dy .byte " + ",".join(str(v) for v in dy))
+    (GEN / "boss4tab.asm").write_text("\n".join(lines) + "\n")
+
+
+def stage4():
+    import tiles7800
+    meta = json.loads((MGF / "stage4.json").read_text())
+    cols, cr, rail = meta["cols"], meta["chunk_rows"], meta["rail"]
+    t_slots, t_pals, lut = tiles7800.desert_tiles(meta["tile_ids"])
+    chunks = np.frombuffer((MGF / "stage4_chunks.bin").read_bytes(), dtype=np.uint8).reshape(-1, cols)
+    body = np.concatenate([chunks[k * cr:(k + 1) * cr] for k in STAGE4_ORDER])
+    loop = 16
+    rows = body.shape[0] + loop
+    assert rows == 208, rows
+    m = np.zeros((rows, 20), dtype=np.uint8)
+    m[:body.shape[0], :] = np.vectorize(lambda t: lut[int(t)])(body)
+    rail_ids = [lut[meta["tile_ids"]["rail0"]], lut[meta["tile_ids"]["rail1"]]]
+    m[body.shape[0]:, rail:rail + 2] = rail_ids          # the boss's arena: sand and the railway
+
+    units = []
+    # Turrets on the bunkers (rows r, r + 1 of their chunk)
+    i = 0
+    for n, k in enumerate(STAGE4_ORDER):
+        for kk, r, c in sorted(meta["bunkers"]):
+            if kk == k:
+                y = (n * cr + r + 1) * 16
+                if 300 < y < WAVES_END_4:
+                    units.append((y, (c + 1) * 8, "ET_TURRET", 4 + i % 3, 0))
+                    i += 1
+    # Armored trains: a locomotive (param 0) and two gun cars (1), one
+    # color a train, heading up the track. y: a car's centre + 8 (its top
+    # is 16 above its centre; ground units' y is 8 below their top).
+    for k, y0 in enumerate((700, 1500, 2300)):
+        for car in range(3):
+            units.append((y0 - car * 32 + 8, rail * 8 + 4, "ET_TRAIN", 4 + k % 3, 0 if car == 0 else 1))
+    boss4_tables()
+    return {"n": 4, "map": m, "t_slots": t_slots, "t_pals": t_pals,
+            "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
+            "charset": "charset4", "pals": [nearest(c) for p in STAGE4_PALETTES for c in p],
+            "bg": nearest(STAGE4_BG), "song": "SONG_STAGE4", "bosssong": "SONG_BOSS4",
+            "waves": wave_cols(meta["waves"]), "ground": ground_cols(units),
+            "pal_codes": [[nearest(c) for c in p] for p in STAGE4_PALETTES]}
+
+
 def trig_tables():
     """cos8: cos of angle a (256 per turn) x 127, signed. atan32[t]: the
     angle (256 per turn) of a slope t/32, t = 0..32."""
@@ -1029,10 +1122,10 @@ def main():
     PREVIEW.mkdir(parents=True, exist_ok=True)
 
     font_base = 0
-    stages = [stage1(), stage2(), stage3()]
+    stages = [stage1(), stage2(), stage3(), stage4()]
     build_charset("charset", stages[0]["t_slots"], 1)
-    build_charset("charset2", stages[1]["t_slots"], 1)
-    build_charset("charset3", stages[2]["t_slots"], 1)
+    for st in stages[1:]:
+        build_charset(st["charset"], st["t_slots"], 1)
     table, incs, previews = build_sprites()
     max_bg = 0
     for st in stages:
@@ -1051,11 +1144,11 @@ def main():
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in in_chars]
     bas += ["  newblock"]
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs
-            if n not in in_chars and n not in STAGE2_STRIPS and n not in STAGE3_STRIPS]
+            if n not in in_chars and n not in STAGE2_STRIPS | STAGE3_STRIPS | STAGE4_STRIPS]
     (GEN / "gfx.bas").write_text("\n".join(bas) + "\n")
     # gfxN.bas: stage N's graphics block, in its bank at $A000: the font
     # and the stage's tiles, then its own sprites.
-    for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS)):
+    for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS), (4, STAGE4_STRIPS)):
         bn = ["  rem Generated by tools/gen_assets.py. Do not edit.",
               f"  incgraphic gfx/charset{n}.png 160A 0 1 2 3"]
         bn += [f"  incgraphic gfx/{s}.png 160A 0 1 2 3" for s in incs if s in strips]

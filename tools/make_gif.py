@@ -30,6 +30,8 @@ CLIPS = [
     ("boss2", "CHEAT BOSSTEST STAGE2TEST", 1200, 1440, False),
     ("stage3", "CHEAT STAGE3TEST", 1850, 2090, False),
     ("boss3", "CHEAT BOSSTEST STAGE3TEST", 3900, 4140, False),
+    ("stage4", "CHEAT STAGE4TEST", 1150, 1390, False),
+    ("boss4", "CHEAT BOSSTEST STAGE4TEST", 1800, 2040, False),
 ]
 
 
