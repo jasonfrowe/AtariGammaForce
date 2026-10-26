@@ -569,14 +569,13 @@ pf_object_put
      ; MARIA rereads a DL every line, and this one may be on screen now, so
      ; the list must stay valid after every single store. Past the end it
      ; had last frame there is no terminator to stop MARIA running into old
-     ; bytes, so one goes after the new object first; and the palette|width
-     ; byte, which is what makes an object exist, goes in last.
-     sty pft4
+     ; bytes, so one goes after the new object first.
+     sty pft5
      lda zonebuf,x
      tay
      lda oldend,y
-     ldy pft4
-     cmp pft4
+     ldy pft5
+     cmp pft5
      beq pf_object_term      ; appending at the old end...
      bcs pf_object_body      ; ...or before it: old objects follow
 pf_object_term
@@ -587,12 +586,15 @@ pf_object_term
      iny
      lda #0
      sta (pfp),y             ; the next object's palette|width: end of list
-     ldy pft4
+     ldy pft5
 pf_object_body
+     ; Hide the slot first (x = 160 is off the right edge), so that while
+     ; the other bytes change MARIA only ever sees an invisible object or
+     ; the finished one; the real x goes in last.
      iny
      iny
      iny
-     lda sp_x
+     lda #160
      sta (pfp),y
      dey
      lda pft3
@@ -606,6 +608,8 @@ pf_object_body
      sta (pfp),y
      iny
      iny
+     lda sp_x
+     sta (pfp),y
      iny
      sty dlend,x
 pf_object_full

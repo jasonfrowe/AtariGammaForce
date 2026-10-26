@@ -299,6 +299,9 @@ end
 
   if overt > 0 then gosub gameover_tick
   gosub player
+  rem The ship and sword are plotted first, early in the frame, before
+  rem MARIA reaches the bottom of the screen where they usually are.
+  gosub draw_player
   asm
   ifconst PROFILE
   lda #1
@@ -369,7 +372,6 @@ end
   jsr prof_mark
   endif
 end
-  gosub draw_player
   asm
   ifconst PROFILE
   lda #9
