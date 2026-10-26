@@ -7,6 +7,7 @@ hudover .byte 34,22,46,30,50,64,30,56 ; 'GAMEOVER'
 hudwarn .byte 66,22,56,48,38,48,34 ; 'WARNING'
 hudclear .byte 26,44,30,22,56,30,28,20 ; 'CLEARED!'
 hudlevel .byte 44,30,64,30,44,20,62,52 ; 'LEVEL UP'
+hudstage .byte 58,60,22,34,30,20 ; 'STAGE '
 ; Playfield texts for pf_text: TXT_ numbers index these.
 txt_atari .byte 22,60,22,56,38 ; 'ATARI'
 txt_push .byte 52,56,30,58,58,20,32,38,56,30 ; 'PRESS FIRE'
@@ -38,18 +39,18 @@ palettedata
 ; Sprite images. IMG_x = image number; imglo/imghi = graphics of the
 ; first strip of frame 0; imgw = width in bytes; imgstrips = 16-line strips;
 ; imgframes = frame count. Frame f of strip s is at (strip label) + f*w.
-imglo .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship0,<turret,<wasp,<tank,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0,<bwingrb0,<bcannon0,<bturret,<logo_gamma0,<logo_force0
-imghi .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>wasp,>tank,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret,>logo_gamma0,>logo_force0
-imglo2 .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<wasp,<tank,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret,<logo_gamma1,<logo_force1
-imghi2 .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>wasp,>tank,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret,>logo_gamma1,>logo_force1
-imgw .byte 4,1,2,2,2,1,1,1,2,4,2,2,2,6,8,8,4,4,4,4,4,2,23,23
-imgstrips .byte 2,1,1,1,1,1,1,1,1,2,1,1,1,2,2,2,2,2,2,2,2,1,2,2
-imgframes .byte 3,1,2,4,2,2,1,2,6,2,8,2,8,4,1,1,1,1,1,1,2,8,1,1
+imglo .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship0,<turret,<wasp,<tank,<b2coret0,<b2coreb0,<b2pod0,<b2cannon0,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0,<bwingrb0,<bcannon0,<bturret,<logo_gamma0,<logo_force0
+imghi .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>wasp,>tank,>b2coret0,>b2coreb0,>b2pod0,>b2cannon0,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret,>logo_gamma0,>logo_force0
+imglo2 .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<wasp,<tank,<b2coret1,<b2coreb1,<b2pod1,<b2cannon1,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret,<logo_gamma1,<logo_force1
+imghi2 .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>wasp,>tank,>b2coret1,>b2coreb1,>b2pod1,>b2cannon1,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret,>logo_gamma1,>logo_force1
+imgw .byte 4,1,2,2,2,1,1,1,2,4,2,2,2,8,8,4,4,6,8,8,4,4,4,4,4,2,23,23
+imgstrips .byte 2,1,1,1,1,1,1,1,1,2,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2
+imgframes .byte 3,1,2,4,2,2,1,2,6,2,8,2,8,1,1,2,2,4,1,1,1,1,1,1,2,8,1,1
 ; lines used in the image's last strip (the plotter skips the part
 ; of a strip that would only be empty lines)
-imgh .byte 7,8,15,10,12,4,6,4,9,11,10,13,14,14,16,16,16,16,16,16,16,16,16,16
+imgh .byte 7,8,15,10,12,4,6,4,9,11,10,13,14,16,16,16,16,14,16,16,16,16,16,16,16,16,16,16
 ; -width & 31, the width bits of a 4-byte header
-imgnegw .byte 28,31,30,30,30,31,31,31,30,28,30,30,30,26,24,24,28,28,28,28,28,30,9,9
+imgnegw .byte 28,31,30,30,30,31,31,31,30,28,30,30,30,24,24,28,28,26,24,24,28,28,28,28,28,30,9,9
 
 
 ; Trig: angles are 256 per turn, 0 = right, 64 = down.

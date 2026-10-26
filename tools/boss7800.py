@@ -148,3 +148,66 @@ def parts():
         "bcannon": cannon(),
         "bturret": turret(),
     }
+
+
+# ---------------------------------------------------------------------------
+# SPIRE WARDEN, the stage 2 boss. Palette P0 in stage 2 (neon): 1 dark
+# violet, 2 violet, 3 magenta.
+
+def core2():
+    """The defence core: 32 px by 64 lines, an armored spire with a ringed
+    magenta eye, fins top and bottom."""
+    c = Canvas(32, 64)
+    body = poly([(32, 0), (52, 10), (60, 28), (60, 40), (50, 56), (32, 63), (14, 56), (4, 40), (4, 28), (12, 10)])
+    c.fill(body, 2)
+    c.outline(1)
+    # facets: the right side in shadow, ridges down the middle
+    c.fill(lambda x, y: body(x, y) and x > 44 and 12 < y < 52, 1)
+    c.fill(lambda x, y: body(x, y) and abs(x - 32) < 1.5 and (y < 16 or y > 48), 1)
+    c.fill(lambda x, y: body(x, y) and (abs(y - 14) < 0.6 or abs(y - 50) < 0.6) and 14 < x < 50, 1)
+    # the eye
+    c.fill(circle(32, 32, 15), 1)
+    c.fill(ring(32, 32, 9, 13), 3)
+    c.fill(circle(32, 32, 6), 3)
+    c.fill(circle(29, 29, 2), 2)
+    return [c.a]
+
+
+def pod():
+    """An orbiting pod: 16 px by 32 lines (a 32 x 32 ball on screen), two
+    frames: its band of lights turns."""
+    frames = []
+    for f in range(2):
+        c = Canvas(16, 32)
+        c.fill(circle(16, 16, 15), 2)
+        c.outline(1)
+        c.fill(lambda x, y: (x - 16) ** 2 + (y - 16) ** 2 < 225 and x + y > 38, 1)   # shadow, lower right
+        c.fill(lambda x, y: abs(y - 16) < 2.2 and (x - 16) ** 2 < 196, 1)              # the band
+        for k in range(4):
+            cx = 4 + k * 8 + (4 if f else 0)
+            c.fill(circle(cx, 16, 1.6), 3 if k % 2 == f else 2)
+        c.fill(circle(11, 9, 3), 3)                                                   # glint
+        frames.append(c.a)
+    return frames
+
+
+def cannon2():
+    """The twin cannon slung beneath: 16 px by 32 lines; frame 2 glows
+    before a sweep."""
+    frames = []
+    for glow in (False, True):
+        c = Canvas(16, 32)
+        c.fill(poly([(4, 0), (28, 0), (30, 10), (22, 16), (10, 16), (2, 10)]), 2)
+        c.fill(poly([(8, 14), (13, 14), (13, 31), (8, 31)]), 2)
+        c.fill(poly([(19, 14), (24, 14), (24, 31), (19, 31)]), 2)
+        c.outline(1)
+        c.fill(circle(16, 7, 3.5), 3 if glow else 1)
+        if glow:
+            c.fill(lambda x, y: y > 27 and (8 < x < 13 or 19 < x < 24), 3)
+        frames.append(c.a)
+    return frames
+
+
+def parts2():
+    co = core2()[0]
+    return {"b2coret": [co[:32]], "b2coreb": [co[32:]], "b2pod": pod(), "b2cannon": cannon2()}

@@ -264,6 +264,16 @@ def _heli():
     return big
 
 
+def _lamp():
+    """A street lamp on the dark plaza: a post's shadow and an amber light."""
+    t = np.zeros((H, W), dtype=np.uint8)
+    t[6:10, 3:5] = 3
+    t[5, 3:5] = 2
+    t[10, 3:5] = 2
+    t[11:14, 4] = 1
+    return t
+
+
 def _quarters(big):
     """TL, TR, BL, BR tiles of a 16 x 32 picture (MegaGammaForce's pad
     order: pad0/1 the top row, pad2/3 the bottom)."""
@@ -308,4 +318,6 @@ def city_tiles(ids):
         elif name.startswith("heli"):
             k = int(name[4:])
             lut[i] = add(name, heli[k], NEON)
+    # tiles of our own (no MegaGammaForce name): the boss plaza's lamps
+    lut["lamp"] = add("lamp", _lamp(), LIGHTS)
     return tiles, pals, lut

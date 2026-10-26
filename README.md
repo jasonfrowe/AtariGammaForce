@@ -7,14 +7,15 @@ Sword; a color chain; weapons that level up; bosses taken apart piece by
 piece. Written in [7800basic](https://github.com/7800-devtools/7800basic)
 with an assembly display engine for smooth vertical scrolling.
 
-**Status:** early but playable. Stage 1 scrolls (pixel-exact against the
-map in every fine scroll position) to MegaGammaForce's stage 1 music,
-converted to POKEY. Its 32 enemy waves fly in with their original
-behaviors and bullet patterns; the Vulcan, the Radiant Sword (absorbing
-pink bullets), the Hyper Sword, the color chain, score and lives work. No
-boss, title screen or sound effects yet. See
-[docs/DESIGN.md](docs/DESIGN.md) for the plan and
-[docs/ENGINE.md](docs/ENGINE.md) for how the scrolling works.
+**Status:** playable through two stages, round and round. Stage 1 (the
+fortress at sea, and the GAMMA CORE) and stage 2 (NEON SPIRES, a city at
+night, with wasps, tanks and the SPIRE WARDEN) scroll pixel-exact to
+MegaGammaForce's music converted to POKEY, with its enemy waves, ground
+units and bullet patterns; the Vulcan, the Radiant Sword (absorbing pink
+bullets), the Hyper Sword, the color chain, weapon levels, score and
+lives work. See [docs/DESIGN.md](docs/DESIGN.md) for the plan and
+[docs/ENGINE.md](docs/ENGINE.md) for how the scrolling and the stage banks
+work.
 
 ## Controls
 
@@ -36,6 +37,10 @@ tools/build.sh                 # -> build/gammaforce.a78
 ```
 
 or with CMake: `cmake --preset default && cmake --build --preset default`.
+
+Test builds: `GF_DEFINES="CHEAT BOSSTEST STAGE2TEST" tools/build.sh` makes
+`build/gammaforce-test.a78` with any of: an invulnerable ship, a start at
+the boss, a start at stage 2 (and `FPS30`, `PROFILE`).
 
 Run it in [A7800](https://github.com/7800-devtools/a7800):
 
@@ -62,8 +67,10 @@ a7800 a7800 -cart build/gammaforce.a78
 | `docs/reference/` | Local copy of the 7800basic guide |
 
 The art is drawn for the 7800, not converted: sprites are text in
-`assets/art7800.txt` (one character per pixel, `.123`), the stage 1 tiles
-and the boss are drawn by `tools/tiles7800.py` and `tools/boss7800.py`.
+`assets/art7800.txt` (one character per pixel, `.123`), the stages' tiles
+and the bosses are drawn by `tools/tiles7800.py` and `tools/boss7800.py`,
+and the title logo by `tools/logo7800.py`. Stage 2's boss code is
+`src/boss2.bas` (it lives in stage 2's bank).
 `tools/art_preview.py` shows the sprites in 7800 colors at the TV's 2:1
 pixel shape. The music is converted from MegaGammaForce's VGMs by
 `tools/gen_music.sh`.

@@ -64,6 +64,8 @@
   const ET_PTURRET = 14
   rem a destroyed cannon or wing: drawn dark, no longer hit
   const ET_PWRECK = 15
+  rem stage 2's boss: a pod orbiting the core
+  const ET_PPOD = 16
 
   rem ---- bullet kinds: odd = pink (the sword absorbs them) ----
   const BK_PINK = 1
@@ -191,6 +193,17 @@
   dim bsrc = $235A
   rem the stage being played (1, 2)
   dim stage = $235B
+  rem stage 2's boss: the pods' orbit angle, the cannon's sweep
+  dim borbit = $235C
+  dim bsweep = $235D
+  dim bsdir = $235E
+  rem "STAGE n" in the HUD while this counts down
+  dim smsg = $235F
+  rem stage 2's boss: bullets of the core's ring still to fire
+  dim bring = $2380
+  rem each boss part's offset from the boss centre (from the boss's tables)
+  dim bdx = $2360
+  dim bdy = $2370
   dim tzone = $2342
   dim tpal = $2343
   dim pfspeed = $2233
@@ -286,7 +299,7 @@ end
   if temp3 = 0 && temp9 > 0 then temp9 = temp9 - 1
   if temp3 = 0 then goto title_loop
   if temp9 > 0 then goto title_loop
-  stage = 1
+  stage = 1 : smsg = 180
   asm
   ifconst STAGE2TEST
   lda #2
@@ -853,8 +866,14 @@ boss_warning
   bmsg = 0
   rem build the boss above the screen
   bx = 80 : by = 0 : bspin = 0 : bcorehp = 225 : bparts = 0 : bburst = 0
+  rem the stage's boss: its parts from its tables (stage 2's are in its bank)
+  if stage = 2 then gosub boss2_build : goto boss_built
   for k = 0 to 10
     etype[k] = boss_type[k] : eimg[k] = boss_img[k] : ehp[k] = boss_hp[k]
+    bdx[k] = boss_dx[k] : bdy[k] = boss_dy[k]
+  next
+boss_built
+  for k = 0 to 10
     ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
     evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0
   next
@@ -872,13 +891,15 @@ boss_enter
 boss_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
-  rem sway: x = 80 + 17 sin(t/2), y = 89 + 6 sin(t/4)
+  rem sway: x = 80 + 17 sin(t/2), y = 89 + 6 sin(t/4) (stage 2: 12, 7)
   wang = btl / 2 + 192 : wamp = 17
+  if stage = 2 then wamp = 12
   asm
   jsr weave
 end
   bx = 80 + woff
   wang = btl / 4 + 192 : wamp = 6
+  if stage = 2 then wamp = 7
   asm
   jsr weave
 end
@@ -896,6 +917,7 @@ boss_mod3
 end
   by = temp6 + 36 - woff
 boss_nodive
+  if stage = 2 then gosub boss2_orbit
   gosub boss_place
   rem 90 seconds and it escapes
   if bth >= 21 then bstate = 4 : btl = 200 : return
@@ -903,8 +925,9 @@ boss_nodive
   gosub boss_attack
   return
 
-  rem Part k's position from the boss centre (bx, by): offset tables in
-  rem MegaGammaForce pixels halved across (sprites are half width here).
+  rem Part k's position from the boss centre (bx, by): bdx, bdy (copied
+  rem from the boss's tables: MegaGammaForce pixels halved across, as
+  rem sprites are half width here; stage 2's pods move theirs).
   rem A part above the centre whose y would go below 0 (the boss still
   rem coming in from the top) is parked at 0, wholly above the screen,
   rem rather than wrapping round to the bottom.
@@ -916,9 +939,9 @@ boss_place_loop
   beq boss_place_next
   lda bx
   clc
-  adc boss_dx,x
+  adc bdx,x
   sta exh,x
-  lda boss_dy,x
+  lda bdy,x
   bpl boss_place_down
   clc
   adc by
@@ -934,6 +957,7 @@ boss_place_next
   dex
   bpl boss_place_loop
 end
+  if stage = 2 then gosub boss2_frames : goto boss_turrets
   rem shots pass through a wing's turret column while it has turrets
   temp1 = etype[7] | etype[8]
   eparam[1] = temp1 : eparam[2] = temp1
@@ -947,13 +971,15 @@ end
 boss_turrets
   rem turrets turn to face the player (8 directions), one a step
   k = (btl & 3) + 7
-  if etype[k] = 0 then return
+  if stage = 2 then k = (btl & 1) + 1
+  if etype[k] <> ET_PTURRET then return
   fx = exh[k] + 4 : fy = eyh[k] + 8
   gosub aim
   eframe[k] = (fang - 48) / 32 & 7
   return
 
 boss_attack
+  if stage = 2 then goto boss2_attack
   gosub boss_burst
   rem turrets: aimed blue shots, staggered
   for k = 7 to 10
@@ -1084,6 +1110,7 @@ part_hit
   temp3 = boss_hp[i] / 4 + 1 : gosub weapon_xp
   temp7 = exh[i] : temp8 = eyh[i]
   if temp2 = ET_PTURRET then gosub spawn_fx : etype[i] = 0 : goto part_score
+  if temp2 = ET_PPOD then temp7 = temp7 + 4 : temp8 = temp8 + 8 : gosub spawn_fx : etype[i] = 0 : goto part_score
   rem explosions down the part, and it stays as a wreck
   temp7 = temp7 + 4 : temp8 = temp8 + 4 : gosub spawn_fx
   temp8 = eyh[i] + 20 : gosub spawn_fx
@@ -1115,8 +1142,9 @@ part_core
   jsr score_add
 end
   temp3 = 0
-  for k = 0 to 4
+  for k = 0 to 10
     if etype[k] = ET_PCANNON || etype[k] = ET_PWING then temp3 = 1
+    if etype[k] = ET_PPOD then temp3 = 1
   next
   if temp3 = 0 then sadd2 = $02 : sadd1 = 0 : sadd0 = 0 : gosub boss_bonus
   bstate = 4 : btl = 0
@@ -1152,7 +1180,7 @@ boss_clear
   if btl < 240 then return
   bmsg = 0 : bstate = 0 : wn = 0 : gn = 0
   rem on to the next stage (after the last, round again)
-  stage = stage + 1
+  stage = stage + 1 : smsg = 180
   if stage > 2 then stage = 1
   asm
   lda #0
@@ -1218,6 +1246,7 @@ hud_middle
   if overt > 0 then goto hud_over
   if bmsg = 1 then goto hud_warning
   if bmsg = 2 then goto hud_clear
+  if smsg > 0 then goto hud_stage
   if lvmsg > 0 then goto hud_level
   if gauge >= GAUGE_MAX then goto hud_hyper
   temp3 = gauge / 8
@@ -1239,6 +1268,7 @@ hud_lives
   if overt > 0 then return
   if bmsg > 0 then return
   if lvmsg > 0 then return
+  if smsg > 0 then return
   hudtext[17] = CH_SPACE
   hudtext[18] = CH_X
   hudtext[19] = FONTBASE + lives * 2
@@ -1259,6 +1289,15 @@ hud_level
     temp5 = 12 + k
     hudtext[temp5] = hudlevel[k]
   next
+  return
+hud_stage
+  if smsg > 4 then smsg = smsg - 4 else smsg = 0
+  for k = 0 to 5
+    temp5 = 12 + k
+    hudtext[temp5] = hudstage[k]
+  next
+  hudtext[18] = FONTBASE + stage * 2
+  hudtext[19] = CH_SPACE
   return
 hud_clear
   for k = 0 to 7
@@ -1313,6 +1352,7 @@ end
   rem the stage header must come first: it is read at $8000
   inline stage2.asm
   inline musicdata2b.asm
+  incbasic boss2.bas
   incbasic gen/gfx2.bas
   dmahole 0
   inline musicdata2.asm

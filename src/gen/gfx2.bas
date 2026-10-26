@@ -2,3 +2,11 @@
   incgraphic gfx/charset2.png 160A 0 1 2 3
   incgraphic gfx/wasp.png 160A 0 1 2 3
   incgraphic gfx/tank.png 160A 0 1 2 3
+  incgraphic gfx/b2coret0.png 160A 0 1 2 3
+  incgraphic gfx/b2coret1.png 160A 0 1 2 3
+  incgraphic gfx/b2coreb0.png 160A 0 1 2 3
+  incgraphic gfx/b2coreb1.png 160A 0 1 2 3
+  incgraphic gfx/b2pod0.png 160A 0 1 2 3
+  incgraphic gfx/b2pod1.png 160A 0 1 2 3
+  incgraphic gfx/b2cannon0.png 160A 0 1 2 3
+  incgraphic gfx/b2cannon1.png 160A 0 1 2 3

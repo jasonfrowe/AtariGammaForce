@@ -116,6 +116,38 @@ then reads only DMA holes and costs just its header), and the boss's parts
 all count as full strips. That way the objects after it keep their slots
 from frame to frame.
 
+## Stages
+
+Each stage has a 16K ROM bank of its own, switched in at $8000 for the
+whole stage (`pf_stage`; `pf_newstage` mid-game blanks the screen for a
+frame while the old display lists still point into the old bank). The
+bank starts with a header of the same layout in every stage
+(`tools/gen_assets.py` `stg_layout`, BASIC `dim`s `stg_*`, `watl`...,
+`gtl`...): row count, boss-loop rows, character block, the first
+non-background character, wave and ground-unit counts, background color,
+palettes 0-2, songs, the map's used columns; then fixed-size tables:
+waves, ground units, each character's palette, and each map row's
+pointers. The engine and the BASIC read whichever stage is in through the
+same addresses, so stage code has no stage numbers in it.
+
+A map row stores the characters of its used columns (stages 1 and 2 use
+columns 4-15; outside is background) and its ready-made background
+objects; rows that are the same are stored once.
+
+Every character block starts with the font, so text keeps its character
+numbers in every stage. Stage 1's block is in the last bank; stage 2's
+bank holds its own graphics block at $A000 (its tiles, its enemies and
+its boss): the data goes first, at $8000, so the block lands at $A000,
+where sprites' lower parts read DMA holes, and the song after it in the
+hole at $B000.
+
+| Bank | |
+|---|---|
+| 1 ($4000, fixed) | the game, the engine, the title song |
+| 2 | stage 1: header, map, songs |
+| 3 | stage 2: header, map, boss tune copy, SPIRE WARDEN's code, graphics ($A000), song ($B000) |
+| 9 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo, the shared sprites |
+
 ## Memory
 
 | Where | What |
@@ -180,8 +212,10 @@ measures stage 1 with an invulnerable ship (`tests/boss_fps.txt`, run the
 same way with a BOSSTEST build, measures the boss); `tools/fps.py` reports
 the game speed and the frames drawn. Stage 1 (its fortress now runs most of
 the way to the boss): game speed 59/s, display
-about 51 fps. The boss: 59/s, display about 40 fps (its parts are ~36
-objects).
+about 53 fps; its boss 59/s, about 39 fps (its parts are ~36 objects).
+Stage 2 (the city covers the whole stage): 59/s, about 54 fps; its boss
+fights over a mostly dark plaza (a city block under it cost most of the
+frame rate): 59/s, about 44 fps.
 
 Tools: `const PROFILE = 1` times each part of the main loop (wall time,
 so MARIA and the NMIs count; `tools/profile.py`), and the `a7800dev`
