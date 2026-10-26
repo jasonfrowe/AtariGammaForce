@@ -59,7 +59,7 @@ def main():
             files += record(tmp, *clip)
             print(clip[0], file=sys.stderr)
         arrs = [np.asarray(Image.open(f).convert("RGB")) for f in files]
-    cols = sorted({tuple(c) for a in arrs for c in np.unique(a.reshape(-1, 3), axis=0)})
+    cols = sorted({tuple(int(v) for v in c) for a in arrs for c in np.unique(a.reshape(-1, 3), axis=0)})
     assert len(cols) <= 256, len(cols)
     flat = [v for c in cols for v in c]
     palette = flat + [0] * (768 - len(flat))
