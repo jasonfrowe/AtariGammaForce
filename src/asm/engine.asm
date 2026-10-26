@@ -97,10 +97,6 @@ ZONE9ADDRESS  = RINGBASE+8*BUFSIZE
 ZONE10ADDRESS = RINGBASE+9*BUFSIZE
 ZONE11ADDRESS = RINGBASE+10*BUFSIZE
 
-     if S1_ROWS > 255
-         echo "ERROR: the engine indexes map rows with a byte"
-         err
-     endif
      if Z14BASE+2*Z14SIZE > $2000
          echo "ERROR: engine DL buffers overflow $1FFF"
          err
@@ -110,8 +106,6 @@ ZONE11ADDRESS = RINGBASE+10*BUFSIZE
 ; pf_init: palettes, HUD, the first screen of map rows, and the DLL.
 ; Call once, after "characterset charset".
 pf_init
-     lda #BGCOLOR
-     sta BACKGRND
      jsr pf_palettes
 
      ; HUD: one 20-character object in zone 0, reading hudtext live.
@@ -213,9 +207,9 @@ pfhudobj
 ; ---------------------------------------------------------------------------
 ; pf_buildrow: copy map row Y's background objects into ring buffer X.
 pf_buildrow
-     lda s1rowlo,y
+     lda stg_rowlo,y
      sta pfp
-     lda s1rowhi,y
+     lda stg_rowhi,y
      sta pfp+1
      lda ringlo,x
      sta pfq
@@ -287,25 +281,30 @@ pf_zone14
      lda pfrow14
      sta pfz14row,x
      tay
-     lda s1charlo,y
+     lda stg_charlo,y
      sta pfp
-     lda s1charhi,y
+     lda stg_charhi,y
      sta pfp+1
-     ; One object per tile that isn't open sea (that is the background
-     ; color): lo = character, palette|width, hi, x.
-     lda #0
+     ; One object per tile that isn't background (open sea, say: the
+     ; background color): lo = character, palette|width, hi, x. The row
+     ; holds the map's used columns, col0 to col1-1.
+     lda stg_col0
      sta pft1                ; tile column
+     lda #0
      sta pft3                ; object offset
 pf_zone14_tile
-     ldy pft1
-     lda (pfp),y             ; character (2 x tile; charset is at offset 0)
-     cmp #2*SEATILES
+     lda pft1
+     sec
+     sbc stg_col0
+     tay
+     lda (pfp),y             ; character
+     cmp stg_blank
      bcc pf_zone14_skip
      tax
      ldy pft3
      sta (pfq),y
      iny
-     lda tilepw,x
+     lda stg_tilepw,x
      sta (pfq),y
      iny
      iny                     ; hi is set below, every frame
@@ -319,7 +318,7 @@ pf_zone14_tile
 pf_zone14_skip
      inc pft1
      lda pft1
-     cmp #20
+     cmp stg_col1
      bne pf_zone14_tile
      ldx pfz14back
      lda pft3
@@ -330,7 +329,7 @@ pf_zone14_hi
      sta dlendsave+14
      beq pf_zone14_done      ; all sea
      sta pft3
-     lda #>charset
+     lda stg_charbase
      clc
      adc pfshift
      ldy #2
@@ -424,8 +423,9 @@ pf_frame_old
      bne pf_frame_old
      jmp pf_restore
 
-; pf_palettes: load all eight palettes (the title cycles palette 4's hues,
-; so the game reloads them when it starts).
+; pf_palettes: load all eight palettes, and the stage's background color
+; and palettes 0-2 (the title cycles palette 4's hues, so the game reloads
+; them when it starts).
 pf_palettes
      ldx #0
      ldy #0
@@ -442,17 +442,53 @@ pf_palettes_loop
 pf_palettes_next
      cpx #24
      bne pf_palettes_loop
+     ; the stage's own background color and palettes 0-2
+     lda stg_bg
+     sta BACKGRND
+     ldx #2
+pf_palettes_stage
+     lda stg_pal,x
+     sta P0C1,x
+     lda stg_pal+3,x
+     sta P1C1,x
+     lda stg_pal+6,x
+     sta P2C1,x
+     dex
+     bpl pf_palettes_stage
      rts
 
 ; A = the map row after row A (past the end, loop the boss section).
 pf_nextrow
      clc
      adc #1
-     cmp #S1_ROWS
+     cmp stg_rows
      bcc pf_nextrow_done
-     sbc #S1_LOOP_ROWS
+     sbc stg_loop
 pf_nextrow_done
      rts
+
+; pf_newstage: start stage A mid-game: blank the screen (MARIA's DMA off
+; until the next pf_drawscreen; the old DLs point into the old bank), then
+; pf_stage and pf_reset.
+pf_newstage
+     pha
+     jsr waitforvblankstart
+     lda sCTRL
+     ora #%01100000          ; DMA off
+     sta CTRL
+     pla
+     jsr pf_stage
+     jmp pf_reset
+
+; pf_stage: switch in stage A's bank (1 = bank 2, 2 = bank 3, ...), point
+; CHARBASE at its character block and load its palettes. Then pf_reset.
+pf_stage
+     sec
+     sbc #1
+     sta $8000               ; SuperGame bank select: bank - 2
+     lda stg_charbase
+     sta sCHARBASE
+     jmp pf_palettes
 
 ; ---------------------------------------------------------------------------
 ; pf_drawimg: draw image pimg, frame pframe, at (px, py - 32) in palette

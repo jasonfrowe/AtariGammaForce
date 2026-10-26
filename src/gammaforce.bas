@@ -41,6 +41,8 @@
   rem Testing: start at the boss, and/or never get hit.
   rem const BOSSTEST = 1
   rem const CHEAT = 1
+  rem Start at stage 2.
+  rem const STAGE2TEST = 1
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
@@ -51,6 +53,8 @@
   const ET_DRONE = 3
   const ET_GUNSHIP = 4
   const ET_TURRET = 5
+  const ET_WASP = 6
+  const ET_TANK = 7
   rem boss parts: types from ET_PART up are placed by the boss code
   const ET_PART = 10
   const ET_PCANNON = 10
@@ -185,6 +189,8 @@
   dim bmsg = $234C
   dim bburst = $2359
   dim bsrc = $235A
+  rem the stage being played (1, 2)
+  dim stage = $235B
   dim tzone = $2342
   dim tpal = $2343
   dim pfspeed = $2233
@@ -208,11 +214,11 @@
   dim spparam = $2527
 
   characterset charset
-  rem Switch stage 1's bank (bank 2) in at $8000. 7800basic only allows
-  rem loadrombank in the last bank; the hotspot value is the bank - 2.
+  rem Switch stage 1's bank (bank 2) in at $8000 (engine.asm pf_stage;
+  rem 7800basic only allows loadrombank in the last bank).
   asm
-  lda #0
-  sta $8000
+  lda #1
+  jsr pf_stage
 end
   asm
   jsr pf_init
@@ -225,6 +231,8 @@ title
   asm
   lda #0
   sta pfspeed
+  lda #1
+  jsr pf_stage
   jsr pf_reset
 end
   for i = 0 to NE1 : etype[i] = 0 : next
@@ -278,16 +286,24 @@ end
   if temp3 = 0 && temp9 > 0 then temp9 = temp9 - 1
   if temp3 = 0 then goto title_loop
   if temp9 > 0 then goto title_loop
+  stage = 1
   asm
-  jsr pf_palettes
+  ifconst STAGE2TEST
+  lda #2
+  sta stage
+  endif
   lda #160
   sta pfspeed
+  lda stage
+  jsr pf_stage
   ifconst BOSSTEST
-  lda #186
+  lda stg_rows
+  sec
+  sbc #22
   sta pfstartrow
   endif
   jsr pf_reset
-  lda #SONG_STAGE1
+  lda stg_song
   jsr mus_play
 end
 
@@ -306,7 +322,7 @@ newgame
   phit = 0 : absorbed = 0
   asm
   ifconst BOSSTEST
-  lda #WAVES
+  lda stg_nwaves
   sta wn
   endif
 end
@@ -555,7 +571,7 @@ gameover_tick
   rem  Waves: start a spawner when the scroll reaches a wave's position
   rem ======================================================================
 waves
-  if wn >= WAVES then return
+  if wn >= stg_nwaves then return
   temp1 = wn
   if spos_hi < wath[temp1] then return
   if spos_hi > wath[temp1] then goto waves_go
@@ -602,6 +618,8 @@ spawn_slot
   if temp1 = ET_GUNSHIP then eyh[k] = 5
   rem saucers weave from the start (MegaGammaForce: x = base + cos(3t) * w)
   if temp1 = ET_SAUCER then ewamp[k] = spparam[j]
+  rem wasps weave faster (MegaGammaForce: base + sin(4t) * w)
+  if temp1 = ET_WASP then ewamp[k] = spparam[j] : ewstep[k] = 4
   return
 
   rem Enemy behavior is in asm/objects.asm (en_think).
@@ -757,11 +775,12 @@ end
 
 
   rem ======================================================================
-  rem  Ground turrets: one on each big hatch of the fortress deck, spawned
-  rem  as its row scrolls in (at most 4 at a time), riding the map
+  rem  Ground units (the stage's ground table): turrets on the fortress's
+  rem  hatches or the city's rooftop pads, tanks on its roads. Each spawns
+  rem  as its row scrolls in (at most 4 at a time) and rides the map.
   rem ======================================================================
 ground
-  if gn >= GROUNDS then return
+  if gn >= stg_nground then return
   temp1 = gn
   if spos_hi < gth[temp1] then return
   if spos_hi > gth[temp1] then goto ground_go
@@ -771,6 +790,7 @@ ground_go
   temp2 = 0
   for k = 0 to NE1
     if etype[k] = ET_TURRET then temp2 = temp2 + 1
+    if etype[k] = ET_TANK then temp2 = temp2 + 1
   next
   if temp2 >= 4 then return
   for k = 0 to NE1
@@ -778,13 +798,19 @@ ground_go
   next
   return
 ground_slot
-  etype[k] = ET_TURRET : eimg[k] = IMG_TURRET : ehp[k] = 8
-  exh[k] = gtx[temp1] : eparam[k] = gtbase[temp1]
+  temp2 = gtype[temp1]
+  etype[k] = temp2 : eimg[k] = enemy_img[temp2] : ehp[k] = enemy_hp[temp2]
+  exh[k] = gtx[temp1] : eparam[k] = gtbase[temp1] : ewamp[k] = gparam[temp1]
   eyh[k] = spos_lo + gtbase[temp1]
-  ecol[k] = 4 + gcolor : gcolor = gcolor + 1
-  if gcolor > 2 then gcolor = 0
+  ecol[k] = gpal[temp1]
   etimer[k] = k * 26 : estate[k] = 0 : ehit[k] = 0 : eflash[k] = 0
-  evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0 : eframe[k] = 0
+  evx[k] = 0 : evy[k] = 0 : eframe[k] = 0
+  rem a tank's param: its speed, and bit 7 for driving left
+  if temp2 <> ET_TANK then return
+  temp3 = gparam[temp1] & 127
+  evx[k] = temp3
+  temp4 = gparam[temp1] & 128
+  if temp4 then evx[k] = 0 - temp3
   return
 
 
@@ -808,14 +834,14 @@ boss
 
   rem After the last wave, once the sky is clear and the fortress is behind
 boss_wait
-  if wn < WAVES then return
+  if wn < stg_nwaves then return
   if spos_hi < 12 then return
   for k = 0 to NE1
     if etype[k] then return
   next
   bstate = 1 : btl = 0 : bth = 0
   asm
-  lda #SONG_BOSS
+  lda stg_bosssong
   jsr mus_play
 end
   return
@@ -1125,11 +1151,15 @@ boss_clear
   bmsg = 2
   if btl < 240 then return
   bmsg = 0 : bstate = 0 : wn = 0 : gn = 0
+  rem on to the next stage (after the last, round again)
+  stage = stage + 1
+  if stage > 2 then stage = 1
   asm
   lda #0
   sta pfstartrow
-  jsr pf_reset
-  lda #SONG_STAGE1
+  lda stage
+  jsr pf_newstage
+  lda stg_song
   jsr mus_play
 end
   return
@@ -1252,13 +1282,13 @@ end
 
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----
   data enemy_hp
-  0, 2, 4, 10, 60, 8
+  0, 2, 4, 10, 60, 8, 3, 10
 end
   data enemy_score1
-  0, $01, $02, $03, $20, $03
+  0, $01, $02, $03, $20, $03, $01, $04
 end
   data enemy_img
-  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP, IMG_TURRET
+  0, IMG_DART, IMG_SAUCER, IMG_DRONE, IMG_GUNSHIP, IMG_TURRET, IMG_WASP, IMG_TANK
 end
 
   rem Assembly files are copied flat into the build directory (tools/build.sh).
@@ -1275,6 +1305,17 @@ end
   bank 2
   inline stage1.asm
   inline musicdata.asm
+
+  rem ======================================================================
+  rem  Bank 3: stage 2 (map, waves, music, and its graphics block at $A000)
+  rem ======================================================================
+  bank 3
+  rem the stage header must come first: it is read at $8000
+  inline stage2.asm
+  inline musicdata2b.asm
+  incbasic gen/gfx2.bas
+  dmahole 0
+  inline musicdata2.asm
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

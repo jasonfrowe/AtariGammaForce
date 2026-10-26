@@ -154,18 +154,8 @@ def tile_palette(tile):
     return 1
 
 
-def stage_tiles():
-    """Stage 1's tiles (drawn for the 7800, tools/tiles7800.py) and the
-    palette each uses."""
-    import tiles7800
-    ids = json.loads((MGF / "stage1.json").read_text())["tile_ids"]
-    return tiles7800.tiles(ids)
-
-
-def build_charset():
-    t_slots, t_pals = stage_tiles()
-
-    # Font: Astrowing's 8-pixel glyphs (7 lines tall), placed on lines 4-10.
+def font_glyphs():
+    """Astrowing's 8-pixel glyphs (7 lines tall), placed on lines 4-10."""
     font = np.array(Image.open(ASSETS / "font_astrowing.png"))
     glyphs = []
     for i, _ch in enumerate(FONT_CHARS):
@@ -173,12 +163,18 @@ def build_charset():
         src = font[0:7, i * 8:(i + 1) * 8]
         g[4:11, :] = np.where(src > 0, 3, 0)  # one color: slot 3
         glyphs.append(g)
+    return glyphs
 
-    chars = t_slots + glyphs
-    sheet = np.concatenate(chars, axis=1)
-    save_160a(GFX / "charset.png", sheet, PAL_CODES[1])
-    font_base = len(t_slots)
-    return t_pals, font_base, t_slots
+
+# Every stage's character block starts with the font, so text (the HUD,
+# messages) uses the same character numbers whichever stage is in; the
+# stage's tiles follow it. Tile t is character 2 * (NFONT + t).
+NFONT = len(FONT_CHARS)
+
+
+def build_charset(label, t_slots, pal):
+    sheet = np.concatenate(font_glyphs() + list(t_slots), axis=1)
+    save_160a(GFX / f"{label}.png", sheet, PAL_CODES[pal])
 
 
 TEXTS = {
@@ -205,7 +201,7 @@ SCREEN_TEXTS = {
 }
 
 
-def char_index(ch, font_base):
+def char_index(ch, font_base=0):
     i = FONT_CHARS.index(ch.upper()) if ch.upper() in FONT_CHARS else FONT_CHARS.index(" ")
     return 2 * (font_base + i)
 
@@ -237,7 +233,7 @@ HAND_DRAWN = {
 }
 
 # Palette for each sprite drawn in assets/art7800.txt
-SPRITE_PAL = {"ship": 3, "vulcan": 3, "dart": 4, "saucer": 5, "drone": 6, "gunship": 2,
+SPRITE_PAL = {"ship": 3, "vulcan": 3, "dart": 4, "saucer": 5, "drone": 6, "gunship": 2, "wasp": 4,
               "pinkbullet": 7, "bluebullet": 7, "needle": 7, "expl": 4, "turret": 4, "sword": 7}
 
 BOSS_SLOTS = {1: 1, 2: 1, 3: 1, 4: 1, 5: 2, 6: 2, 7: 1, 8: 2, 9: 3, 10: 3, 11: 3, 12: 1, 13: 1, 14: 2, 15: 2}
@@ -256,6 +252,9 @@ SPRITES = [
     ("expl", "art", 0, 0, None, None, 4),
     ("gunship", "art", 0, 0, None, None, 2),
     ("turret", "art", 0, 0, None, None, 4),
+    # Stage 2's own enemies (in its bank's graphics block)
+    ("wasp", "art", 0, 0, None, None, 4),
+    ("tank", "tank", 0, 0, None, None, 5),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -273,6 +272,9 @@ SPRITES = [
     ("logo_force", "logo", 0, 0, None, None, 4),
 ]
 BOSS_PARTS = {e[0] for e in SPRITES if e[1] == "boss"}
+# Sprites that live in stage 2's graphics block (its bank), by strip label
+STAGE2_SPRITES = {"wasp", "tank"}
+STAGE2_STRIPS = set(STAGE2_SPRITES)
 
 
 def sword_frames():
@@ -302,6 +304,40 @@ def sword_frames():
     return frames
 
 
+def tank_frames():
+    """Stage 2's tank, seen from above as it drives along a road: treads
+    top and bottom, a hull, and a turret whose barrel points one of eight
+    ways (frame 0 down, then turning clockwise as the aim angle grows, as
+    the ground turret's frames do). 8 pixels by 16 lines."""
+    hull = ["........",
+            "11111111",
+            "31313131",
+            "12222221",
+            "12233221",
+            "12333321",
+            "12333321",
+            "12233221",
+            "12222221",
+            "31313131",
+            "11111111",
+            "........"]
+    base = np.array([[".123".index(c) for c in r] for r in hull] + [[0] * 8] * 4, dtype=np.uint8)
+    dirs = [(0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1)]
+    frames = []
+    for dx, dy in dirs:
+        a = base.copy()
+        for t in range(1, 4):
+            for ox in ((0, 1) if dx == 0 else (0,)):
+                x = (3 if dx <= 0 else 4) + dx * t + ox
+                for oy in ((0, 1) if dy == 0 else (0,)):
+                    y = (5 if dy <= 0 else 6) + dy * 2 * t + oy
+                    for yy in (y, y + (1 if dy > 0 else -1) if dy else y):
+                        if 0 <= x < 8 and 0 <= yy < 16:
+                            a[yy, x] = 3
+        frames.append(a)
+    return frames
+
+
 def build_sprites():
     """Returns the image table: list of (label, width_bytes, strips)."""
     table = []
@@ -321,6 +357,8 @@ def build_sprites():
             conv = [logo7800.words()[name]]
         elif fn == "sword":
             conv = sword_frames()
+        elif fn == "tank":
+            conv = tank_frames()
         elif fn is None:
             conv = [np.array(f, dtype=np.uint8) for f in HAND_DRAWN[name]]
         else:
@@ -358,13 +396,52 @@ def build_sprites():
 
 
 # ---------------------------------------------------------------------------
-# Stage map. Each row becomes the bytes of its background display list
-# objects, ready to copy into a zone: one 5-byte indirect (character)
-# object per run of tiles that share a palette.
+# Stage banks. Each stage has a ROM bank of its own, switched in at $8000
+# for the whole stage. It starts with a header of fixed layout (STG below),
+# so the engine and the BASIC read whichever stage is in through the same
+# addresses: counts, colors, songs, then fixed-size tables (waves, ground
+# units, tile palettes, row pointers). The map rows follow.
+#
+# A map row is stored as the characters of its used columns (col0 to
+# col1-1; outside them is background) and the bytes of its background
+# display list objects, ready to copy into a zone: one 5-byte indirect
+# (character) object per run of tiles that share a palette. Rows that are
+# the same are stored once.
 
 MAX_RUNS = 6
-SKIP_SEA = True
-SEA_TILES = {0, 1, 2, 3}  # MegaGammaForce stage 1 sea0-sea3
+MAX_ROWS = 208
+MAX_WAVES = 40
+MAX_GROUND = 32
+MAX_CHARS = 192
+WAVE_FIELDS = ("watl", "wath", "wtype", "wpal", "wx", "wdx", "wcount", "wgap", "wparam")
+GROUND_FIELDS = ("gtl", "gth", "gtx", "gtbase", "gtype", "gpal", "gparam")
+
+
+def stg_layout():
+    """name -> (offset from $8000, size) of the stage header's fields."""
+    lay, off = {}, 0
+    for name, size in (("stg_rows", 1), ("stg_loop", 1), ("stg_charbase", 1), ("stg_blank", 1),
+                       ("stg_nwaves", 1), ("stg_nground", 1), ("stg_bg", 1), ("stg_pal", 9),
+                       ("stg_song", 1), ("stg_bosssong", 1), ("stg_col0", 1), ("stg_col1", 1),
+                       ("stg_number", 1)):
+        lay[name] = (off, size)
+        off += size
+    off = 32
+    for f in WAVE_FIELDS:
+        lay[f] = (off, MAX_WAVES)
+        off += MAX_WAVES
+    for f in GROUND_FIELDS:
+        lay[f] = (off, MAX_GROUND)
+        off += MAX_GROUND
+    for name, size in (("stg_tilepw", MAX_CHARS), ("stg_rowlo", MAX_ROWS), ("stg_rowhi", MAX_ROWS),
+                       ("stg_charlo", MAX_ROWS), ("stg_charhi", MAX_ROWS)):
+        lay[name] = (off, size)
+        off += size
+    lay["stg_end"] = (off, 0)
+    return lay
+
+
+STG = stg_layout()
 
 
 def row_runs(pals):
@@ -382,6 +459,91 @@ def row_runs(pals):
         runs[a] = [runs[a][0], runs[a][1] + runs[b][1], runs[j][2]]
         del runs[b]
     return runs
+
+
+def table(name, vals, size, per=16):
+    """A table padded to its fixed size in the header."""
+    assert len(vals) <= size, f"{name}: {len(vals)} entries, room for {size}"
+    vals = list(vals) + [0] * (size - len(vals))
+    out = [name]
+    for i in range(0, size, per):
+        out.append("  .byte " + ",".join(str(v) for v in vals[i:i + per]))
+    return out
+
+
+def stage_bank(st):
+    """Assembly for a stage's bank. st: dict with
+    n, map (rows x 20 tile numbers), t_pals, blank (tile numbers drawn as
+    background), col0, col1, loop, charset (label), pals (P0-P2 codes),
+    bg, song, bosssong, waves (field -> list), ground (field -> list)."""
+    n, m, t_pals = st["n"], st["map"], st["t_pals"]
+    rows = m.shape[0]
+    assert rows <= MAX_ROWS
+    col0, col1 = st["col0"], st["col1"]
+    p = f"s{n}"
+    first_tile_char = 2 * NFONT
+    blank = st["blank"]
+    assert all(int(t) in blank for r in m for c, t in enumerate(r) if not col0 <= c < col1), \
+        "map tiles outside col0..col1 must be background"
+    # Blank tiles must be the first ones (characters below stg_blank are
+    # background), which tiles7800 arranges.
+    assert blank == set(range(len(blank)))
+    chars = lambda t: first_tile_char + 2 * int(t)  # noqa: E731
+    assert 2 * NFONT + 2 * len(t_pals) <= MAX_CHARS
+
+    lines = [f"; Generated by tools/gen_assets.py. Do not edit.",
+             f"; Stage {n}'s bank: switched in at $8000 for the whole stage.",
+             f"; The header has the same layout in every stage bank (STG_ consts).",
+             f"stage{n}_header"]
+    hdr = [rows, st["loop"], f">{st['charset']}", chars(len(blank)),
+           len(st["waves"]["watl"]), len(st["ground"]["gtl"]), st["bg"]] + list(st["pals"]) + \
+          [st["song"], st["bosssong"], col0, col1, n]
+    lines.append("  .byte " + ",".join(str(v) for v in hdr))
+    lines.append(f"  ds {32 - len(hdr)},0")
+    for f in WAVE_FIELDS:
+        lines += table(f"{p}_{f}", st["waves"][f], MAX_WAVES, per=20)
+    for f in GROUND_FIELDS:
+        lines += table(f"{p}_{f}", st["ground"][f], MAX_GROUND)
+    pw = [0] * first_tile_char + [(t_pals[c // 2] << 5) | ((-2) & 31) for c in range(2 * len(t_pals))]
+    lines.append("; Direct-mode palette|width byte for each character (zone 14 draws its")
+    lines.append("; tiles as one 2-byte-wide object each), indexed by character number.")
+    lines += table(f"{p}_tilepw", pw, MAX_CHARS)
+
+    # Rows: the same row is stored once.
+    uniq, which = {}, []
+    for r in range(rows):
+        key = tuple(int(t) for t in m[r][col0:col1])
+        if key not in uniq:
+            uniq[key] = len(uniq)
+        which.append(uniq[key])
+    for part, op, lab in (("rowlo", "<", "o"), ("rowhi", ">", "o"), ("charlo", "<", "r"), ("charhi", ">", "r")):
+        lines.append(f"{p}_{part}")
+        for r in range(0, rows, 8):
+            lines.append("  .byte " + ",".join(f"{op}{p}{lab}{which[k]}" for k in range(r, min(rows, r + 8))))
+        if rows < MAX_ROWS:
+            lines.append(f"  ds {MAX_ROWS - rows},0")
+    lines.append(f"  if . - stage{n}_header != {STG['stg_end'][0]}")
+    lines.append(f'    echo "ERROR: stage {n} header layout"')
+    lines.append("    err")
+    lines.append("  endif")
+    lines.append("")
+    lines.append(f"; Row u's characters, columns {col0}-{col1 - 1} (2 bytes a tile: doublewide).")
+    obj_lines = []
+    max_bytes = 0
+    for key, u in uniq.items():
+        lines.append(f"{p}r{u} .byte " + ",".join(str(chars(t)) for t in key))
+        runs = row_runs([t_pals[t] for t in key])
+        # background tiles are the background color: no objects
+        runs = [rn for rn in runs if not all(key[c] in blank for c in range(rn[0], rn[0] + rn[1]))]
+        max_bytes = max(max_bytes, 5 * len(runs))
+        obj_lines.append(f"{p}o{u} .byte {5 * len(runs)}")
+        for start, k, pal in runs:  # one object a line: dasm allows 32 operators a line
+            obj_lines.append(f"  .byte <({p}r{u}+{start}),$60,>({p}r{u}+{start}),{(pal << 5) | ((-k) & 31)},"
+                             f"{(start + col0) * TILE_W}")
+    lines.append("")
+    lines.append("; Row u's background objects: a length byte, then the 5-byte headers.")
+    lines += obj_lines
+    return lines, max_bytes, len(uniq)
 
 
 # Stage 1's map, rearranged from MegaGammaForce's (stage order, row 0 at the
@@ -417,69 +579,29 @@ def stage1_ground():
     return sorted(out)
 
 
-def build_stage(t_pals):
-    meta = json.loads((MGF / "stage1.json").read_text())
-    cols, rows = meta["cols"], meta["rows"]
-    m = stage1_map()
-    lines = []
-    lines.append(f"S1_ROWS = {rows}")
-    lines.append(f"S1_LOOP_ROWS = {meta['loop_rows']}")
-    lines.append("")
-    lines.append("; Row r (stage order, 0 = bottom of the stage) as character indices.")
-    lines.append("; Doublewide characters are two bytes each, so tile t is character 2t.")
-    obj_lines = []
-    max_bytes = 0
-    for r in range(rows):
-        idx = [2 * int(t) for t in m[r]]
-        lines.append(f"s1r{r} .byte " + ",".join(str(v) for v in idx))
-        runs = row_runs([t_pals[int(t)] for t in m[r]])
-        if SKIP_SEA:  # open sea is the background color: no objects
-            runs = [rn for rn in runs if not all(int(m[r, c]) in SEA_TILES for c in range(rn[0], rn[0] + rn[1]))]
-        max_bytes = max(max_bytes, 5 * len(runs))
-        obj_lines.append(f"s1o{r} .byte {5 * len(runs)}")
-        if not runs:
+def stg_consts():
+    """The header's fields as BASIC dims (which the assembly sees too)."""
+    out = ["  rem The stage header: the same addresses in every stage bank ($8000)."]
+    for name, (off, _size) in STG.items():
+        if name == "stg_end":
             continue
-        for start, n, p in runs:  # one object a line: dasm allows 32 operators a line
-            obj_lines.append(f"  .byte <(s1r{r}+{start}),$60,>(s1r{r}+{start}),{(p << 5) | ((-n) & 31)},{start * TILE_W}")
-    lines.append("")
-    lines.append("; Row r's background objects: a length byte, then the 5-byte headers.")
-    lines += obj_lines
-    lines.append("")
-    lines.append("; Direct-mode palette|width byte for each character (zone 14 draws its")
-    lines.append("; tiles as one 2-byte-wide object each), indexed by character number.")
-    pw = []
-    for c in range(2 * len(t_pals)):
-        pw.append((t_pals[c // 2] << 5) | ((-2) & 31))
-    lines.append("tilepw .byte " + ",".join(str(v) for v in pw))
-    lines.append("")
-    lines.append("; Row r's characters (for zone 14's direct-mode tiles).")
-    lines.append("s1charlo")
-    for r in range(0, rows, 8):
-        lines.append("  .byte " + ",".join(f"<s1r{k}" for k in range(r, min(rows, r + 8))))
-    lines.append("s1charhi")
-    for r in range(0, rows, 8):
-        lines.append("  .byte " + ",".join(f">s1r{k}" for k in range(r, min(rows, r + 8))))
-    lines.append(f"SEATILES = {len(SEA_TILES)} ; characters below 2*SEATILES are open sea")
-    lines.append("s1rowlo")
-    for r in range(0, rows, 8):
-        lines.append("  .byte " + ",".join(f"<s1o{k}" for k in range(r, min(rows, r + 8))))
-    lines.append("s1rowhi")
-    for r in range(0, rows, 8):
-        lines.append("  .byte " + ",".join(f">s1o{k}" for k in range(r, min(rows, r + 8))))
-    return lines, max_bytes, m
+        out.append(f"  dim {name} = ${0x8000 + off:04X}")
+    return out
 
 
-def map_preview(m, t_slots, t_pals, rows=48):
-    out = []
-    for r in range(min(rows, m.shape[0]) - 1, -1, -1):
-        out.append(np.concatenate([t_slots[int(t)] + 0 for t in m[r]], axis=1))
-    # Color with each tile's palette.
-    h = len(out) * 16
-    img = Image.new("RGB", (160 * 2 * 2, h * 2))
+def map_preview(m, t_slots, t_pals, rows=48, pals=None, bg=None):
+    """The map's first rows (bottom of the stage at the bottom), in the
+    stage's colors: pals = codes for P0-P2 (else the global ones)."""
+    codes = list(PAL_CODES)
+    if pals:
+        codes[0:3] = pals
+    bgrgb = rgb_of(bg if bg is not None else BG_CODE)
+    n = min(rows, m.shape[0])
+    img = Image.new("RGB", (160 * 2 * 2, n * 32))
     y = 0
-    for r in range(min(rows, m.shape[0]) - 1, -1, -1):
+    for r in range(n - 1, -1, -1):
         for c, t in enumerate(m[r]):
-            tile = preview(t_slots[int(t)], PAL_CODES[t_pals[int(t)]], scale=2)
+            tile = preview(t_slots[int(t)], codes[t_pals[int(t)]], scale=2, bg=bgrgb)
             img.paste(tile, (c * 32, y))
         y += 32
     return img
@@ -507,15 +629,16 @@ def chain_table():
 
 # MegaGammaForce coordinates to ours: its playfield is 192 x 240, ours is
 # 160 x 209 (y stored + 32).
-ENEMY_TYPES = {"ET_DART": 1, "ET_SAUCER": 2, "ET_DRONE": 3, "ET_GUNSHIP": 4}
+ENEMY_TYPES = {"ET_DART": 1, "ET_SAUCER": 2, "ET_DRONE": 3, "ET_GUNSHIP": 4, "ET_TURRET": 5,
+               "ET_WASP": 6, "ET_TANK": 7}
 ENEMY_WIDTH = {"ET_GUNSHIP": 16}
 COLOR_PAL = {"COL_RED": 4, "COL_BLUE": 5, "COL_YELLOW": 6, "COL_GRAY": 2}
 
 
-def wave_table(consts):
-    data = json.loads((MGF / "stage1_waves.json").read_text())["waves"]
+def wave_cols(data):
+    """MegaGammaForce air waves -> our wave table fields."""
     data = [w for w in data if w[1] in ENEMY_TYPES]
-    cols = {k: [] for k in ("watl", "wath", "wtype", "wpal", "wx", "wdx", "wcount", "wgap", "wparam")}
+    cols = {k: [] for k in WAVE_FIELDS}
     for at, typ, color, x, dx, count, gap, param in data:
         w = ENEMY_WIDTH.get(typ, 8)
         cols["watl"].append(at & 255)
@@ -526,34 +649,103 @@ def wave_table(consts):
         cols["wdx"].append(round(dx * 160 / 192) & 255)
         cols["wcount"].append(count)
         cols["wgap"].append(gap)
-        if typ == "ET_SAUCER":  # weave half-width in pixels
+        if typ in ("ET_SAUCER", "ET_WASP"):  # weave half-width in pixels
             cols["wparam"].append(round(param * 160 / 192))
         else:  # the line where it stops or dives: MGF centre y -> our top + 32
             cols["wparam"].append(round(param * 209 / 240) + 32 - (16 if typ == "ET_GUNSHIP" else 8))
-    consts.append(f"  const WAVES = {len(data)}")
-    lines = ["", "; Stage 1 waves (MegaGammaForce waves.py, scaled). One array per field."]
-    for name, vals in cols.items():
-        lines.append(f"{name} .byte " + ",".join(str(v) for v in vals))
-    return lines
+    return cols
 
 
-def ground_table(consts):
-    """Stage 1's ground turrets: when to spawn (scroll position), x, and the
-    offset that puts their sprite at the right line for any scroll."""
-    g = stage1_ground()
-    trig, xs, base = [], [], []
-    for y, c in g:
+def ground_cols(units):
+    """Ground units: (y up from the map's start, centre x in our pixels,
+    type, palette, param) -> the ground table fields: when to spawn
+    (scroll position), sprite x, the offset that puts the sprite at the
+    right line for any scroll, type, palette, param."""
+    cols = {k: [] for k in GROUND_FIELDS}
+    for y, x, typ, pal, param in sorted(units):
         # Screen line of world height y is spos + 208 - y; the sprite's top
         # is 8 above its centre, stored + 32: eyh = spos + 232 - y.
-        trig.append(max(0, y - 216))
-        xs.append(c * 8 - 4)
-        base.append((232 - y) & 255)
-    consts.append(f"  const GROUNDS = {len(g)}")
-    lines = ["", "; Ground turrets: spawn scroll position (lo, hi), sprite x, y offset."]
-    for name, vals in (("gtl", [t & 255 for t in trig]), ("gth", [t >> 8 for t in trig]),
-                       ("gtx", xs), ("gtbase", base)):
-        lines.append(f"{name} .byte " + ",".join(str(v) for v in vals))
-    return lines
+        t = max(0, y - 216)
+        cols["gtl"].append(t & 255)
+        cols["gth"].append(t >> 8)
+        cols["gtx"].append(max(0, min(152, x - 4)))
+        cols["gtbase"].append((232 - y) & 255)
+        cols["gtype"].append(ENEMY_TYPES[typ])
+        cols["gpal"].append(pal)
+        cols["gparam"].append(param)
+    return cols
+
+
+def stage1():
+    import tiles7800
+    meta = json.loads((MGF / "stage1.json").read_text())
+    t_slots, t_pals = tiles7800.tiles(meta["tile_ids"])
+    waves = json.loads((MGF / "stage1_waves.json").read_text())["waves"]
+    # ground turrets in red, blue, yellow by turns
+    ground = [(y, c * 16 // 2, "ET_TURRET", 4 + k % 3, 0) for k, (y, c) in enumerate(stage1_ground())]
+    return {"n": 1, "map": stage1_map(), "t_slots": t_slots, "t_pals": t_pals,
+            "blank": {0, 1, 2, 3}, "col0": 4, "col1": 16, "loop": meta["loop_rows"],
+            "charset": "charset", "pals": [c for p in PAL_CODES[0:3] for c in p], "bg": BG_CODE,
+            "song": "SONG_STAGE1", "bosssong": "SONG_BOSS",
+            "waves": wave_cols(waves), "ground": ground_cols(ground)}
+
+
+# Stage 2, NEON SPIRES: the city. Its colors: the night (the asphalt is
+# the background), P0 neon (the boss's too), P1 roofs, P2 the roofs' dark
+# and plate with amber (lights, signs; the gunship uses P2 here).
+STAGE2_BG = (8, 10, 30)
+STAGE2_PALETTES = [
+    [(46, 26, 84), (120, 84, 184), (240, 70, 200)],      # P0 neon: dark violet, violet, magenta
+    [(36, 32, 56), (86, 80, 116), (156, 148, 190)],      # P1 roofs
+    [(36, 32, 56), (86, 80, 116), (250, 170, 40)],       # P2 roof dark and plate, amber
+]
+# The districts (8-row blocks of stage2_blocks.bin) in stage order: each
+# of the eight three times, then the boss loop.
+STAGE2_ORDER = [0, 1, 2, 3, 4, 5, 6, 7, 2, 5, 0, 7, 3, 6, 1, 4, 6, 3, 7, 0, 5, 2, 4, 1]
+WAVES_END_2 = 2950   # MegaGammaForce's stage 2: no ground units past this
+
+
+def stage2():
+    import tiles7800
+    meta = json.loads((MGF / "stage2.json").read_text())
+    cols, br = meta["cols"], meta["block_rows"]
+    t_slots, t_pals, lut = tiles7800.city_tiles(meta["tile_ids"])
+    blocks = np.frombuffer((MGF / "stage2_blocks.bin").read_bytes(), dtype=np.uint8).reshape(-1, cols)
+    loop = np.frombuffer((MGF / "stage2_loop.bin").read_bytes(), dtype=np.uint8).reshape(-1, cols)
+    city = np.concatenate([blocks[b * br:(b + 1) * br] for b in STAGE2_ORDER] + [loop])
+    rows = city.shape[0]
+    m = np.zeros((rows, 20), dtype=np.uint8)
+    m[:, 4:16] = np.vectorize(lambda t: lut[int(t)])(city)
+
+    # Ground units, by MegaGammaForce's rules (stages.py stage2): guns on
+    # three pads in four, tanks on three roads in eight, alternating
+    # directions. x: MegaGammaForce pixels halved, the city starts at our x 32.
+    pads = []
+    for k, b in enumerate(STAGE2_ORDER):
+        for r, c in meta["pads"]:
+            if b * br <= r < (b + 1) * br:
+                pads.append((k * br + r - b * br, c))
+    units = []
+    for i, (r, c) in enumerate(p for k, p in enumerate(sorted(pads)) if k % 4 != 3):
+        y = (r + 1) * 16
+        if 300 < y < WAVES_END_2:
+            units.append((y, 32 + (c + 1) * 8, "ET_TURRET", 4 + i % 3, 0))
+    k = 0
+    for band in range(len(STAGE2_ORDER)):
+        r = band * br
+        y = r * 16 + 8
+        if y < 500 or y > WAVES_END_2 - 100 or band % 8 not in (0, 3, 5):
+            continue
+        left = k % 2 == 1
+        units.append((y, 128 if left else 36, "ET_TANK", 4 + (k // 3) % 3, (0x80 if left else 0) | 10))
+        k += 1
+
+    return {"n": 2, "map": m, "t_slots": t_slots, "t_pals": t_pals,
+            "blank": {0}, "col0": 4, "col1": 16, "loop": meta["loop_rows"],
+            "charset": "charset2", "pals": [nearest(c) for p in STAGE2_PALETTES for c in p],
+            "bg": nearest(STAGE2_BG), "song": "SONG_STAGE2", "bosssong": "SONG_BOSS2",
+            "waves": wave_cols(meta["waves"]), "ground": ground_cols(units),
+            "pal_codes": [[nearest(c) for c in p] for p in STAGE2_PALETTES]}
 
 
 def trig_tables():
@@ -577,21 +769,36 @@ def main():
     GEN.mkdir(parents=True, exist_ok=True)
     PREVIEW.mkdir(parents=True, exist_ok=True)
 
-    t_pals, font_base, t_slots = build_charset()
+    font_base = 0
+    stages = [stage1(), stage2()]
+    build_charset("charset", stages[0]["t_slots"], 1)
+    build_charset("charset2", stages[1]["t_slots"], 1)
     table, incs, previews = build_sprites()
-    stage_lines, max_bg, m = build_stage(t_pals)
+    max_bg = 0
+    for st in stages:
+        lines, mb, nuniq = stage_bank(st)
+        max_bg = max(max_bg, mb)
+        (GEN / f"stage{st['n']}.asm").write_text("\n".join(lines) + "\n")
+        print(f"stage {st['n']}: {st['map'].shape[0]} rows ({nuniq} different), "
+              f"{len(st['waves']['watl'])} waves, {len(st['ground']['gtl'])} ground units")
 
-    # gfx.bas: the character block first, so charset sits at offset 0 of
-    # its block and a character index is simply 2 x tile number.
-    # The title logo fills the character block's spare room (the sprite
-    # block is full).
+    # gfx.bas: the character block first (stage 1's: the font, then its
+    # tiles). The title logo fills the character block's spare room (the
+    # sprite block is full).
     in_chars = [n for n in incs if n.startswith("logo_")]
     bas = ["  rem Generated by tools/gen_assets.py. Do not edit.",
            "  incgraphic gfx/charset.png 160A 0 1 2 3"]
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in in_chars]
     bas += ["  newblock"]
-    bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs if n not in in_chars]
+    bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs
+            if n not in in_chars and n not in STAGE2_STRIPS]
     (GEN / "gfx.bas").write_text("\n".join(bas) + "\n")
+    # gfx2.bas: stage 2's graphics block, in its bank at $A000: the font and
+    # the city's tiles, then the stage's own sprites.
+    bas2 = ["  rem Generated by tools/gen_assets.py. Do not edit.",
+            "  incgraphic gfx/charset2.png 160A 0 1 2 3"]
+    bas2 += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs if n in STAGE2_STRIPS]
+    (GEN / "gfx2.bas").write_text("\n".join(bas2) + "\n")
 
     consts = ["  rem Generated by tools/gen_assets.py. Do not edit.",
               "  rem Constants shared by BASIC and the assembly (const lands in both)."]
@@ -599,6 +806,8 @@ def main():
     consts.append(f"  const BGCOLOR = ${BG_CODE:02X}")
     consts.append(f"  const FONTBASE = {2 * font_base}")
     consts.append(f"  const BGMAXBYTES = {max_bg}")
+    consts.append(f"  const NFONTCHARS = {2 * NFONT}")
+    consts += stg_consts()
     asm.append("; FONTBASE is the character index of '0'; ' ' is +20, 'A' is +22.")
     asm.append("; Text strings, as character indices.")
     for label, text in TEXTS.items():
@@ -649,16 +858,10 @@ def main():
             "imgnegw .byte " + ",".join(str((-int(x)) & 31) for x in w), ""]
     asm += trig_tables()
     asm += chain_table()
-    stage = ["; Generated by tools/gen_assets.py. Do not edit.",
-             "; Stage 1's data, in its own ROM bank (switched in at $8000 for the stage)."]
-    stage += wave_table(consts)
-    stage += ground_table(consts)
     for ch, name in ((" ", "SPACE"), ("X", "X"), ("I", "I"), ("H", "H"), ("Y", "Y"), ("P", "P"),
                      ("E", "E"), ("R", "R"), ("C", "C")):
         consts.append(f"  const CH_{name} = {char_index(ch, font_base)}")
-    stage += stage_lines
     (GEN / "data.asm").write_text("\n".join(asm) + "\n")
-    (GEN / "stage1.asm").write_text("\n".join(stage) + "\n")
     (GEN / "consts.bas").write_text("\n".join(consts) + "\n")
 
     # Previews.
@@ -670,10 +873,11 @@ def main():
         sheet.paste(p, (0, y))
         y += p.size[1] + 8
     sheet.save(PREVIEW / "sprites.png")
-    map_preview(m, t_slots, t_pals).save(PREVIEW / "stage1_map.png")
+    for st in stages:
+        map_preview(st["map"], st["t_slots"], st["t_pals"], pals=st.get("pal_codes"),
+                    bg=st["bg"] if st["n"] > 1 else None).save(PREVIEW / f"stage{st['n']}_map.png")
     print(f"BG ${BG_CODE:02X}; palettes " + " ".join("/".join(f"{c:02X}" for c in p) for p in PAL_CODES))
-    print(f"{len(t_slots)} tiles, font at char {2 * font_base}; {len(incs)} sprite strips; "
-          f"largest row background {max_bg} bytes")
+    print(f"{len(incs)} sprite strips; largest row background {max_bg} bytes")
 
 
 if __name__ == "__main__":

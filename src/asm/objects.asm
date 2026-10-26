@@ -446,8 +446,27 @@ en_update_loop
      jmp en_update_next
 en_update_live
      cmp #ET_TURRET
+     beq en_update_ground
+     cmp #ET_TANK
      bne en_update_air
-     ; ground turrets ride the map: their line follows the scroll exactly
+     ; tanks drive along their road, and leave at the city's edge
+     lda evx,x
+     jsr ob_x8
+     clc
+     lda exl,x
+     adc ob1
+     sta exl,x
+     lda exh,x
+     adc ob2
+     sta exh,x
+     cmp #24
+     bcc en_update_tankoff
+     cmp #133
+     bcc en_update_ground
+en_update_tankoff
+     jmp en_update_kill
+en_update_ground
+     ; ground units ride the map: their line follows the scroll exactly
      lda spos_lo
      clc
      adc eparam,x
@@ -702,10 +721,12 @@ en_draw_color
 en_draw_pal
      ora imgnegw,y
      sta sp_pw
-     ; frame: boss parts choose theirs (eframe); others animate,
-     ; (step & (frames-1)); offset = frame * width
+     ; frame: turrets, tanks and boss parts choose theirs (eframe); others
+     ; animate, (step & (frames-1)); offset = frame * width
      lda etype,x
      cmp #ET_TURRET
+     beq en_draw_set
+     cmp #ET_TANK
      beq en_draw_set
      cmp #ET_PART
      bcc en_draw_anim
@@ -964,8 +985,18 @@ en_think_3
      jmp en_think_done
 en_think_4
      cmp #ET_TURRET
-     bne en_think_done
+     bne en_think_5
      jsr think_turret
+     jmp en_think_done
+en_think_5
+     cmp #ET_WASP
+     bne en_think_6
+     jsr think_wasp
+     jmp en_think_done
+en_think_6
+     cmp #ET_TANK
+     bne en_think_done
+     jsr think_tank
 en_think_done
      ldx thi
 en_think_next
@@ -1035,6 +1066,60 @@ think_saucer
      lda #14
      sta fstep
      jmp bul_fan
+
+; Wasp: weaves down (the weave is set at spawn, as for saucers) and stings
+; once on the way, with three aimed needles.
+think_wasp
+     lda #45
+     sta evy,x
+     lda etimer,x
+     cmp #40
+     bne th_rts
+     lda plvuln
+     beq th_rts
+     jsr th_aim
+     lda #BK_NEEDLE
+     sta fkind
+     lda #64
+     sta fspd
+     lda #3
+     sta fcount
+     lda #10
+     sta fstep
+     jmp bul_fan
+
+; Tank: drives along its road (en_update); its turret tracks the player
+; and fires a pink shell every two seconds or so.
+think_tank
+     lda eyh,x
+     cmp #40
+     bcc th_tank_rts
+     cmp #211
+     bcs th_tank_rts
+     jsr th_aim
+     ldx thi
+     lda fang
+     sec
+     sbc #48
+     lsr
+     lsr
+     lsr
+     lsr
+     lsr
+     sta eframe,x            ; 8 directions
+     lda etimer,x
+     and #127
+     cmp #64
+     bne th_tank_rts
+     lda plvuln
+     beq th_tank_rts
+     lda #BK_PINK
+     sta fkind
+     lda #44
+     sta fspd
+     jmp bul_fire
+th_tank_rts
+     rts
 
 ; Stops, fires a blue ring then a pink ring, and leaves.
 think_drone

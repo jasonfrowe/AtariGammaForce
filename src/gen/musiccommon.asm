@@ -48,7 +48,7 @@ mus_drum_hat
 mus_drumlo .byte <mus_drum_kick,<mus_drum_snare,<mus_drum_hat
 mus_drumhi .byte >mus_drum_kick,>mus_drum_snare,>mus_drum_hat
 
-; Title: 5761 frames (96 s), 36 envelopes, 2115 bytes
+; title: 5761 frames (96 s), 36 envelopes, 2115 bytes
 mus_title_v0
   .byte $C0,$86,$4A,$00,$90,$51,$01,$8B,$4C,$02,$8B,$4A,$03,$8B,$47,$04
   .byte $8B,$4A,$02,$97,$49,$02,$97,$4F,$04,$8B,$4A,$05,$8B,$49,$06,$8B
@@ -423,25 +423,27 @@ mus_title_envhi
 
 ; Song table: voice 0-2 stream addresses, envelope tables.
 mus_song_v0lo
-  .byte <mus_stage1_v0,<mus_boss_v0,<mus_title_v0
+  .byte <mus_stage1_v0,<mus_boss_v0,<mus_title_v0,<mus_stage2_v0,<mus_boss2_v0
 mus_song_v0hi
-  .byte >mus_stage1_v0,>mus_boss_v0,>mus_title_v0
+  .byte >mus_stage1_v0,>mus_boss_v0,>mus_title_v0,>mus_stage2_v0,>mus_boss2_v0
 mus_song_v1lo
-  .byte <mus_stage1_v1,<mus_boss_v1,<mus_title_v1
+  .byte <mus_stage1_v1,<mus_boss_v1,<mus_title_v1,<mus_stage2_v1,<mus_boss2_v1
 mus_song_v1hi
-  .byte >mus_stage1_v1,>mus_boss_v1,>mus_title_v1
+  .byte >mus_stage1_v1,>mus_boss_v1,>mus_title_v1,>mus_stage2_v1,>mus_boss2_v1
 mus_song_v2lo
-  .byte <mus_stage1_v2,<mus_boss_v2,<mus_title_v2
+  .byte <mus_stage1_v2,<mus_boss_v2,<mus_title_v2,<mus_stage2_v2,<mus_boss2_v2
 mus_song_v2hi
-  .byte >mus_stage1_v2,>mus_boss_v2,>mus_title_v2
+  .byte >mus_stage1_v2,>mus_boss_v2,>mus_title_v2,>mus_stage2_v2,>mus_boss2_v2
 mus_song_ello
-  .byte <mus_stage1_envlo,<mus_boss_envlo,<mus_title_envlo
+  .byte <mus_stage1_envlo,<mus_boss_envlo,<mus_title_envlo,<mus_stage2_envlo,<mus_boss2_envlo
 mus_song_elhi
-  .byte >mus_stage1_envlo,>mus_boss_envlo,>mus_title_envlo
+  .byte >mus_stage1_envlo,>mus_boss_envlo,>mus_title_envlo,>mus_stage2_envlo,>mus_boss2_envlo
 mus_song_ehlo
-  .byte <mus_stage1_envhi,<mus_boss_envhi,<mus_title_envhi
+  .byte <mus_stage1_envhi,<mus_boss_envhi,<mus_title_envhi,<mus_stage2_envhi,<mus_boss2_envhi
 mus_song_ehhi
-  .byte >mus_stage1_envhi,>mus_boss_envhi,>mus_title_envhi
+  .byte >mus_stage1_envhi,>mus_boss_envhi,>mus_title_envhi,>mus_stage2_envhi,>mus_boss2_envhi
 SONG_STAGE1 = 0
 SONG_BOSS = 1
 SONG_TITLE = 2
+SONG_STAGE2 = 3
+SONG_BOSS2 = 4

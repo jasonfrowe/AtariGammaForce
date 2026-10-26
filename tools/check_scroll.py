@@ -45,8 +45,8 @@ TOP = 26  # screenshot line where the playfield starts (HUD is the 16 above)
 
 def main():
     d = Path(sys.argv[1])
-    m = ga.stage1_map()
-    tiles, pals = ga.stage_tiles()
+    st = ga.stage1()
+    m, tiles, pals = st["map"], st["t_slots"], st["t_pals"]
     ok = True
     # play.sh log: "<frame> 2231 <lo> <hi>" per screenshot, in order
     probes = [l.split() for l in (d / "play.txt").read_text().split("\n") if l.split()[1:2] == ["2231"]]
