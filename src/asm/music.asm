@@ -40,6 +40,7 @@ mus_retlo   = $2283 ; [3] where to carry on after it
 mus_rethi   = $2286 ; [3]
 mus_endlo   = $2289 ; [3] the address just past the phrase
 mus_endhi   = $228C ; [3]
+mus_guard   = $228F ; commands a voice may still read this frame
 
 ; ---------------------------------------------------------------------------
 ; mus_play: start song A from the top.
@@ -137,11 +138,18 @@ mus_tick_voice
      dec mus_wait,x
      jmp mus_tick_next
 mus_tick_read
+     lda #24                 ; a voice reads a few commands a frame: data
+     sta mus_guard           ; that never waits (a bank switched under the
+mus_tick_load                ; song) can't hold the NMI past its frame
      lda mus_ptrlo,x
      sta musp
      lda mus_ptrhi,x
      sta musp+1
 mus_tick_cmd
+     dec mus_guard
+     bne mus_tick_cmd0
+     jmp mus_tick_next
+mus_tick_cmd0
      lda mus_incall,x        ; at the end of a called phrase: back to the caller
      beq mus_tick_cmd1
      lda musp
@@ -202,8 +210,8 @@ mus_tick_adv
      inc musp+1
      jmp mus_tick_cmd
 mus_tick_end
-     jsr mus_restart         ; loop the song
-     jmp mus_tick_read
+     jsr mus_restart         ; loop the song (the guard counts on)
+     jmp mus_tick_load
 mus_tick_call
      ; $C1 lo hi n: play n bytes at hi:lo, then carry on after these 4
      clc

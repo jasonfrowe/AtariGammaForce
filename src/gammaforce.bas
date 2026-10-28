@@ -270,6 +270,10 @@ end
   rem ======================================================================
 title
   asm
+  ; the music first: it plays from the stage's bank, and once stage 1's
+  ; bank is in, the song's old addresses hold other bytes (a game over
+  ; comes here with the song still playing)
+  jsr mus_stop
   lda #0
   sta pfspeed
   lda #1
