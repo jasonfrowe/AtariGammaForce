@@ -566,12 +566,22 @@ en_update_live
 en_update_notboat
      cmp #ET_TRAIN
      bne en_update_nottrain
-     ; trains run up the railway against the scroll: a line every 4 frames
-     lda tick
-     and #3
-     bne en_update_ground
-     dec eparam,x
-     jmp en_update_ground
+     ; trains run up the railway at half the scroll's speed: a car's line is
+     ; spos / 2 + its base, so every car of a train moves together, however
+     ; late it spawned (gen_assets ground_cols)
+     inc ngnd
+     lda spos_hi
+     lsr
+     lda spos_lo
+     ror
+     clc
+     adc eparam,x
+     sta eyh,x
+     cmp #250
+     bcc en_update_trainon
+     jmp en_update_kill
+en_update_trainon
+     jmp en_update_next
 en_update_nottrain
      cmp #ET_TANK
      bne en_update_air

@@ -25,6 +25,7 @@ OUT = ROOT / "assets" / "mgf"
 COLS = 20  # 160 px screen / 8 px tiles
 MGF_COLS = 12  # MegaGammaForce's playfield width in tiles
 RAIL4 = 12  # stage 4's railway: its left column
+ROCK4 = (0.74, 0.70, 0.70, 0.70)  # stage 4's rock level per chunk (MegaGammaForce: 0.62)
 
 SPRITE_SHEETS = [
     "player.png", "enemy16.png", "enemy32.png", "bullet8.png", "bullet16.png",
@@ -171,11 +172,21 @@ def main():
     # The railway runs up columns RAIL4..RAIL4+1, right of the middle as in
     # the original. The sand haze layer is left out.
     import desert  # noqa: E402
+    import inspect
     _, ids4 = desert.ground_tileset()
     desert.COLS, desert.RAIL = COLS, RAIL4
+    # Sparser rock than MegaGammaForce's (rock where its noise passes 0.62):
+    # the plateaus are character objects MARIA must fetch on every line,
+    # and wide ones slowed the stage. The same generator, with the level
+    # raised (most of all in chunk 0, the stage's opening).
+    src = inspect.getsource(desert.ground_map).replace("nr[r, c] > 0.62", "nr[r, c] > ROCK_LEVEL")
+    assert "ROCK_LEVEL" in src
+    ns = dict(vars(desert))
+    exec(src, ns)
     chunks4, bunk4 = [], []
     for k, seed in enumerate((4, 5, 6, 7)):
-        m4, b4 = desert.ground_map(32, ids4, seed=seed)
+        ns["ROCK_LEVEL"] = ROCK4[k]
+        m4, b4 = ns["ground_map"](32, ids4, seed=seed)
         chunks4.append(m4)
         bunk4 += [[k, int(r), int(c)] for r, c in b4]
     (OUT / "stage4_chunks.bin").write_bytes(np.concatenate(chunks4).astype(np.uint8).tobytes())

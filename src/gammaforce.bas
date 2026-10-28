@@ -874,15 +874,21 @@ ground
   if spos_lo < gtl[temp1] then return
 ground_go
   gn = gn + 1
+  rem at most 4 turrets and tanks at once (a train's cars always come)
+  if gtype[temp1] = ET_TRAIN then goto ground_find
   temp2 = 0
   for k = 0 to NEW1
     if etype[k] = ET_TURRET then temp2 = temp2 + 1
     if etype[k] = ET_TANK then temp2 = temp2 + 1
   next
   if temp2 >= 4 then return
+ground_find
   for k = 0 to NEW1
     if etype[k] = 0 then goto ground_slot
   next
+  rem no free slot: try again next step (ground units' lines follow the
+  rem scroll, so a late one is still in its place)
+  gn = gn - 1
   return
 ground_slot
   temp2 = gtype[temp1]
@@ -1359,7 +1365,7 @@ end
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----
   rem hit points: the Vulcan does 3 a bolt pair, the sword 4 a strike
   data enemy_hp
-  0, 2, 8, 10, 60, 16, 9, 20, 255, 30, 24
+  0, 2, 8, 10, 60, 16, 9, 20, 255, 30, 60
 end
   data enemy_score1
   0, $01, $02, $03, $20, $03, $01, $04, 0, $15, $08

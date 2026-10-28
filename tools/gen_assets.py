@@ -782,10 +782,18 @@ def ground_cols(units):
     (scroll position), sprite x, the offset that puts the sprite at the
     right line for any scroll, type, palette, param."""
     cols = {k: [] for k in GROUND_FIELDS}
-    for y, x, typ, pal, param in sorted(units):
+    def spawn(u):
+        y, x, typ, pal, param = u
+        if typ == "ET_TRAIN":
+            # a train car's line is spos / 2 + 232 - y: in view (its top
+            # line 0, 32 above the playfield) at spos = 2 (y - 232)
+            return max(0, 2 * (y - 232))
+        return max(0, y - 216 - (16 if typ in TALL_UNITS else 0))
+    for u in sorted(units, key=spawn):
+        y, x, typ, pal, param = u
         # Screen line of world height y is spos + 208 - y; the sprite's top
         # is 8 above its centre, stored + 32: eyh = spos + 232 - y.
-        t = max(0, y - 216 - (16 if typ in TALL_UNITS else 0))
+        t = spawn(u)
         cols["gtl"].append(t & 255)
         cols["gth"].append(t >> 8)
         cols["gtx"].append(max(0, min(152, x - 4)))
@@ -1130,9 +1138,14 @@ def stage4():
     # Armored trains: a locomotive (param 0) and two gun cars (1), one
     # color a train, heading up the track. y: a car's centre + 8 (its top
     # is 16 above its centre; ground units' y is 8 below their top).
+    # A car's line is spos / 2 + its base (objects.asm en_update): every
+    # car of a train moves together however late it spawned. y here is the
+    # car's world height at spos 0 (ground_cols); the locomotive comes into
+    # view near scroll y0 - 232, its cars 32 lines behind it.
     for k, y0 in enumerate((700, 1500, 2300)):
+        loco = (y0 - 232) // 2 + 232
         for car in range(3):
-            units.append((y0 - car * 32 + 8, rail * 8 + 4, "ET_TRAIN", 4 + k % 3, 0 if car == 0 else 1))
+            units.append((loco - car * 32, rail * 8 + 4, "ET_TRAIN", 4 + k % 3, 0 if car == 0 else 1))
     boss4_tables()
     return {"n": 4, "map": m, "t_slots": t_slots, "t_pals": t_pals,
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
