@@ -1077,7 +1077,7 @@ STAGE4_ORDER = [0, 1, 2, 3, 1, 2]    # desert chunks (32 rows each)
 WAVES_END_4 = 2950                   # no turrets past this (MegaGammaForce's)
 # DUNE WYRM: slots 0 the tail, 1-8 the body (8 nearest the head), 9-10 the
 # head (top, bottom). Each follows the head's path B4_GAP frames behind the
-# one before it. The path: x = 80 + 52 sin(t), y = 74 + 38 sin(t / 2).
+# one before it. The path: x = 80 + 52 sin(t), y = 107 + 75 sin(t / 2).
 B4_GAP = 11
 
 
@@ -1086,7 +1086,9 @@ def boss4_tables():
              "; DUNE WYRM's path: the centre x by t & 255, its line (+ 32) by (t / 2) & 255;",
              "; each slot's lag behind the head (frames) and offset from its centre."]
     px = [round(80 + 52 * math.sin(2 * math.pi * i / 256)) for i in range(256)]
-    py = [round(32 + 74 + 38 * math.sin(2 * math.pi * i / 256)) for i in range(256)]
+    # the line: from 64 (the head's top just under the HUD) to 214 (its
+    # bottom at the foot of the screen, where the ship flies)
+    py = [round(32 + 107 + 75 * math.sin(2 * math.pi * i / 256)) for i in range(256)]
     for name, vals in (("b4px", px), ("b4py", py)):
         lines.append(name)
         for i in range(0, 256, 16):

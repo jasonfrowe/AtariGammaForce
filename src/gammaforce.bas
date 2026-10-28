@@ -1098,6 +1098,12 @@ part_score
 end
   return
 part_core
+  rem stage 4's head is shut while its tail or any segment is whole
+  if stage <> 4 then goto part_core_2
+  for k = 0 to 8
+    if etype[k] = ET_PCANNON then return
+  next
+part_core_2
   rem stage 2's core is shut while any of its pods orbits
   if stage <> 2 then goto part_core_open
   temp6 = etype[8] | etype[9] | etype[10]

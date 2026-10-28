@@ -219,6 +219,15 @@ reads. It rises into view by an offset that counts down, and sinks by one
 that counts up as it dies (`src/boss4.bas`, tables in
 `src/gen/boss4tab.asm`).
 
+Once three of its tail and segments are down it gives chase. The head
+then steers for the ship (turning a little every other frame, holding its
+heading when close so it lunges past instead of circling), slower than
+the ship flies, and the body needs a trail after all: 64 positions of the
+head (`b4trx`/`b4try` at `$2740`/`$2780`), one every 9 frames, which each
+part reads its lag back (`b4lagt`). The trail starts filled from the path
+behind the head, so nothing jumps. The head can't be hurt until the tail
+and every segment are down.
+
 ## Memory
 
 | Where | What |
