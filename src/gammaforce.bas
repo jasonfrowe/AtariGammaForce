@@ -603,6 +603,9 @@ end
   if absorbed = 0 then goto player_noabsorb
   temp6 = gauge + absorbed
   if temp6 > GAUGE_MAX then temp6 = GAUGE_MAX
+  rem (temp7: the gauge has just filled)
+  temp7 = 0
+  if gauge < GAUGE_MAX && temp6 >= GAUGE_MAX then temp7 = 1
   gauge = temp6
   sadd0 = absorbed * 16
   asm
@@ -610,6 +613,8 @@ end
   lda #SFX_ABSORB
   jsr sfx_play
 end
+  rem the Hyper Sword is ready: a chime (it outranks the absorb's sound)
+  if temp7 then gosub hyper_ready
   absorbed = 0
 player_noabsorb
 
@@ -644,6 +649,13 @@ end
   if lives > 0 then lives = lives - 1
   gauge = 0
   chlevel = 0 : chcount = 0
+  return
+
+hyper_ready
+  asm
+  lda #SFX_READY
+  jsr sfx_play
+end
   return
 
 start_hyper

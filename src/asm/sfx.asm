@@ -20,6 +20,7 @@ SFX_DIE     = 5
 SFX_HYPER   = 6
 SFX_HIT     = 7
 SFX_1UP     = 8
+SFX_READY   = 9
 
 sfx_ptrlo   = $2279 ; [2] per channel; hi 0 = idle
 sfx_ptrhi   = $227B ; [2]
@@ -81,13 +82,13 @@ sfx_tick_next
      bpl sfx_tick_loop
      rts
 
-;               vulcan  expl    bigboom absorb  sword   die     hyper   hit     1up
-sfx_chan  .byte 0,      1,      1,      0,      0,      0,      0,      1,      0
-sfx_prio  .byte 1,      2,      3,      3,      1,      9,      8,      1,      8
+;               vulcan  expl    bigboom absorb  sword   die     hyper   hit     1up     ready
+sfx_chan  .byte 0,      1,      1,      0,      0,      0,      0,      1,      0,      0
+sfx_prio  .byte 1,      2,      3,      3,      1,      9,      8,      1,      8,      7
 sfx_lo    .byte <sfx_d_vulcan, <sfx_d_expl, <sfx_d_bigboom, <sfx_d_absorb
-          .byte <sfx_d_sword, <sfx_d_die, <sfx_d_hyper, <sfx_d_hit, <sfx_d_1up
+          .byte <sfx_d_sword, <sfx_d_die, <sfx_d_hyper, <sfx_d_hit, <sfx_d_1up, <sfx_d_ready
 sfx_hi    .byte >sfx_d_vulcan, >sfx_d_expl, >sfx_d_bigboom, >sfx_d_absorb
-          .byte >sfx_d_sword, >sfx_d_die, >sfx_d_hyper, >sfx_d_hit, >sfx_d_1up
+          .byte >sfx_d_sword, >sfx_d_die, >sfx_d_hyper, >sfx_d_hit, >sfx_d_1up, >sfx_d_ready
 
 ; AUDC 4 = pure tone, 8 = noise, 12 = low pure tone, 6 = buzz, 3 = rumble
 sfx_d_vulcan
@@ -114,6 +115,11 @@ sfx_d_hyper
      .byte 4,2,9, 4,1,8, 4,1,6, 4,1,4, 4,1,2, $FF
 sfx_d_hit
      .byte 8,4,4, 8,6,2, $FF
+sfx_d_ready                  ; the Hyper Sword ready: a rising chime
+     .byte 4,14,11, 4,14,11, 4,14,11, 4,11,11, 4,11,11, 4,11,11
+     .byte 4,8,12, 4,8,12, 4,8,12, 4,8,10, 4,8,8, 4,8,6
+     .byte 4,6,12, 4,6,12, 4,6,11, 4,6,10, 4,6,9, 4,6,8
+     .byte 4,6,7, 4,6,6, 4,6,5, 4,6,4, 4,6,3, 4,6,2, $FF
 sfx_d_1up                    ; an extra life: a rising arpeggio, twice
      .byte 4,17,10, 4,17,10, 4,17,10, 4,13,10, 4,13,10, 4,13,10
      .byte 4,11,10, 4,11,10, 4,11,10, 4,8,10, 4,8,10, 4,8,10
