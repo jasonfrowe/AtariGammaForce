@@ -345,12 +345,15 @@ frame
 .22.
 
 [needle]
-.1..
-.1..
-.3..
-.3..
-.3..
-.1..
+# The gunships' and wasps' needles: pink (absorbable), 2 pixels wide (1
+# was hard to see), a glint near the top, pointed at the foot.
+.11.
+.13.
+.11.
+.11.
+.11.
+.11.
+..1.
 
 [expl]
 # Explosion, 8 x 16, six frames: flash, fireball, smoke.

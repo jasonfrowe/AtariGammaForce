@@ -578,6 +578,8 @@ player
   temp1 = 0 : temp2 = 0
   if joy0fire1 then temp1 = 1
   if joy0fire0 then temp2 = 1
+  rem the results: the buttons only go on to the next stage
+  if bstate = 5 then temp1 = 0 : temp2 = 0
 
   rem Hyper Sword: press both together with a full gauge
   temp3 = temp1 & temp2
