@@ -52,7 +52,7 @@ Screenshots and the GIF above are from the A7800 emulator (`tools/play.sh`;
 
 The HUD shows the score, the chain (three gems lit in the chain's color,
 and its level), the sword gauge and the lives. Extra lives come at 50,000
-points, then 100,000, 200,000 and so on, doubling.
+points and 100,000, then every 100,000.
 
 On the title, left and right choose the starting stage, and up and down
 the mode: NORMAL, or TEDDY BEAR, with about half the enemy bullets (fans

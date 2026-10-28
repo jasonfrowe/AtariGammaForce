@@ -224,8 +224,10 @@
   rem (objects.asm bul_fire, bul_fan); bfalt alternates single shots
   dim easy = $2397
   dim bfalt = $2398
-  rem the next extra life's score (xlife0/xlife1[nextx]; 8: no more)
+  rem the next extra life's score, as the score's top two BCD bytes:
+  rem millions; hundred and ten thousands
   dim nextx = $2399
+  dim nextx0 = $239B
   rem the results: 1 for all of the boss destroyed (10,000 more)
   dim bperf = $239A
   rem the results' three lines of text (60 characters), each part's weight
@@ -387,7 +389,7 @@ end
   rem ======================================================================
 newgame
   for i = 0 to 3 : score_bcd[i] = 0 : next
-  lives = 3 : gauge = 0 : hyper = 0 : nextx = 0
+  lives = 3 : gauge = 0 : hyper = 0 : nextx0 = 0 : nextx = $05
   chlevel = 0 : chcount = 0 : chcolor = 255 : chmax = 0
   vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0 : gn = 0 : gcolor = 0
   swcd = 0
@@ -679,14 +681,31 @@ end
 end
   return
 
-  rem An extra life at 50,000 points, then 100,000, 200,000 and on,
-  rem doubling (the score is BCD: its top two bytes against the table)
+  rem An extra life at 50,000 points and 100,000, then every 100,000
+  rem (MegaGammaForce's): the score's top two BCD bytes against nextx0,
+  rem nextx, which then go up (BCD)
 extra_life
-  if nextx >= 8 then return
-  temp1 = xlife0[nextx] : temp2 = xlife1[nextx]
-  if score_bcd[0] < temp1 then return
-  if score_bcd[0] = temp1 && score_bcd[1] < temp2 then return
-  nextx = nextx + 1
+  if score_bcd[0] < nextx0 then return
+  if score_bcd[0] = nextx0 && score_bcd[1] < nextx then return
+  if nextx0 = $09 && nextx = $90 then nextx0 = $99 : goto extra_life_1up
+  asm
+  sed
+  lda nextx
+  cmp #$05
+  bne extra_life_100k
+  lda #$05                ; 50,000 -> 100,000
+  .byte $2C               ; (bit abs: skip the next 2 bytes)
+extra_life_100k
+  lda #$10                ; then 100,000 more
+  clc
+  adc nextx
+  sta nextx
+  lda nextx0
+  adc #0
+  sta nextx0
+  cld
+end
+extra_life_1up
   if lives < 9 then lives = lives + 1
   asm
   lda #SFX_1UP
@@ -1381,15 +1400,6 @@ userinterrupt
   asm
   inc pfvbl
   jmp mus_tick
-end
-
-  rem ---- extra lives: 50,000 doubling to 6,400,000 (the score's top two
-  rem BCD bytes: millions; hundred and ten thousands) ----
-  data xlife0
-  $00, $00, $00, $00, $00, $01, $03, $06
-end
-  data xlife1
-  $05, $10, $20, $40, $80, $60, $20, $40
 end
 
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----
