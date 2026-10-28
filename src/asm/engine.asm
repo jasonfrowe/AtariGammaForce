@@ -71,6 +71,8 @@ pflate      = $22C1 ; nonzero: the last frame's logic ran past its frame, so
 pfnodraw    = $22C2 ; nonzero: pf_plot draws nothing (a catch-up step)
 pfdraws     = $22C3 ; counts frames drawn (for things that alternate as shown)
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
+txtold      = $2560 ; [16] where each buffer's text was as last terminated ($FF: none)
+txtnow      = $2570 ; [15] where each zone's text is this frame ($FF: none)
 
 RINGN       = 14
 RINGBASE    = $1900
@@ -217,6 +219,8 @@ pf_buildrow
      sta pfq
      lda ringhi,x
      sta pfq+1
+     lda #$FF
+     sta txtold,x            ; a new row: no text
      ldy #0
      lda (pfp),y             ; byte count
      sta bgsize,x
@@ -303,6 +307,8 @@ pf_restore
 pf_restore_loop
      lda dlendsave,x
      sta dlend,x
+     lda #$FF
+     sta txtnow,x
      dex
      bne pf_restore_loop
      rts
@@ -496,7 +502,11 @@ pf_frame_fine
      ldx #14
 pf_frame_old
      ldy zonebuf,x
+     lda txtold,y            ; text: objects from it on are appended anew
+     cmp #$FF
+     bne pf_frame_oldset
      lda oldend,y
+pf_frame_oldset
      sta zoneold,x
      dex
      bne pf_frame_old
@@ -721,9 +731,12 @@ pf_object_ptr
      tya
      cmp zoneold,x
      bcc pf_object_over
-     ; appending
-     ldy #5
+     ; appending (over last frame's text, possibly: so the list is first
+     ; ended at the slot, before anything of the old object changes)
+     ldy #1
      lda #0
+     sta (pfp),y
+     ldy #5
      sta (pfp),y             ; terminator after the new object
      ldy #3
      lda sp_x
@@ -795,15 +808,16 @@ zonecap
 ; to 12 characters). A character object, so it stays put only while the
 ; scroll is still (the title and other screens).
 ;
-; Draw text before any sprite in its zone (straight after the background):
-; it then has the same place in the DL every frame, and the sprites after
-; it keep theirs. Text after sprites moves whenever a sprite enters or
-; leaves the zone, and pf_object rewrites last frame's 4-byte objects in
-; place, so it would write over half of the 5-byte text header while MARIA
-; reads it: a line of garbage. So a text that is already there, the same,
-; is left alone; a new one is written with the DL ended at its slot until
-; its header is whole (the zone's later objects then miss a few lines at
-; most, once).
+; Draw text after the zone's sprites, so it shows on top of them. The frame
+; is built in the DLs while MARIA shows them, and pf_object rewrites last
+; frame's 4-byte objects in place, so the text must not move: where it
+; would move up (fewer sprites in the zone than last frame), the slots
+; between are hidden (x 160) and it stays where it was; where sprites
+; have taken its place (more of them), they were appended there anew
+; (pf_frame stops zoneold at the old text), with the list ended at each
+; slot first, and the text goes on after them. A text that is already
+; there, the same, is left alone; a new one is written with the list
+; ended at its slot until its header is whole.
 pf_text
      tay
      ldx tzone
@@ -842,9 +856,29 @@ pf_text_shown
      and #31
      ora pft5
      sta pft5
+     ; hide the slots up to last frame's text, if it was further on
+     ldy zonebuf,x
+     lda txtold,y
+     sta pft1
+     cmp #$FF
+     beq pf_text_slot
+pf_text_pad
+     lda dlend,x
+     cmp pft1
+     bcs pf_text_slot
+     clc
+     adc #3
+     tay
+     lda #160
+     sta (pfp),y
+     iny
+     sty dlend,x
+     bne pf_text_pad
+pf_text_slot
      lda dlend,x
      cmp #PFCAP-1
      bcs pf_text_full
+     sta txtnow,x
      ; pfp = the slot itself
      clc
      adc pfp
@@ -963,6 +997,8 @@ pf_terminate_loop
      lda zonehi,x
      sta pfp+1
      ldy zonebuf,x
+     lda txtnow,x
+     sta txtold,y
      lda dlend,x
      sta oldend,y            ; what MARIA will show of this buffer
      tay

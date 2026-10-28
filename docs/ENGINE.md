@@ -161,18 +161,21 @@ hole at $B000.
 ## Text in the playfield
 
 Screen text (the title, GAME OVER, the results) is a character object
-in a playfield zone's DL (`pf_text`). The frame is built in the DLs
-while MARIA shows them, so every store must leave a valid list, and
-`pf_object` saves time by rewriting last frame's 4-byte sprite objects in
-place. A 5-byte text header after the sprites moves whenever a sprite
-enters or leaves its zone, and the sprites' in-place rewrites then land
-on half of it: a line of garbage for a frame. So text goes first in its
-zone, straight after the background (the main loop draws it before the
-game step), where its place never changes; one that is already there,
-the same, is left alone, and a new one is written with the list ended at
-its slot until its header is whole. Blinking text isn't left out when
-it blinks off but moved off the screen (`tpal` + 128: x = 160), so the
-zone's list keeps its shape.
+in a playfield zone's DL (`pf_text`), drawn after the zone's sprites so it
+shows on top of them. The frame is built in the DLs while MARIA shows
+them, so every store must leave a valid list, and `pf_object` saves time
+by rewriting last frame's 4-byte sprite objects in place. If the 5-byte
+text header moved whenever a sprite entered or left its zone, those
+rewrites would land on half of it: a line of garbage. So the text keeps
+its place: with fewer sprites in the zone than last frame, the slots
+before it are hidden (x = 160) rather than the text moving up; with more,
+the sprites from its old place on are appended anew (`pf_frame` stops
+`zoneold` at the old text: `txtold`, per buffer), each with the list ended
+at its slot first, and the text goes on after them. A text that is
+already there, the same, is left alone; a new one is written with the
+list ended at its slot until its header is whole. Blinking text isn't
+left out when it blinks off but moved off the screen (`tpal` + 128),
+so the zone's list keeps its shape.
 
 ## A boss that is part of the map
 

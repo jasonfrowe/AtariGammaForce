@@ -408,13 +408,11 @@ main
 end
   rem After a late frame (the last one showed for two), a catch-up step
   rem that draws nothing, so the game keeps its speed (engine.asm).
-  rem Text goes first in its zone, straight after the background, so it
-  rem keeps its place in the display list whatever sprites come and go
-  rem in the zone after it (engine.asm pf_text)
-  if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
-  if bstate = 5 then gosub results_text
   if pflate then pfnodraw = 1 : gosub step : pfnodraw = 0
   gosub step
+  rem Text after the sprites, on top of them (engine.asm pf_text)
+  if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
+  if bstate = 5 then gosub results_text
   asm
   jsr pf_drawscreen
 end
