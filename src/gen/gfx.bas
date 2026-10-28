@@ -6,6 +6,10 @@
   incgraphic gfx/logo_gamma1.png 160A 0 1 2 3
   incgraphic gfx/logo_force0.png 160A 0 1 2 3
   incgraphic gfx/logo_force1.png 160A 0 1 2 3
+  incgraphic gfx/hudcell0.png 160A 0 1 2 3
+  incgraphic gfx/hudcell1.png 160A 0 1 2 3
+  incgraphic gfx/hudgem.png 160A 0 1 2 3
+  incgraphic gfx/hudgem0.png 160A 0 1 2 3
   newblock
   incgraphic gfx/ship0.png 160A 0 1 2 3
   incgraphic gfx/ship1.png 160A 0 1 2 3
@@ -39,3 +43,4 @@
   incgraphic gfx/bcannon0.png 160A 0 1 2 3
   incgraphic gfx/bcannon1.png 160A 0 1 2 3
   incgraphic gfx/bturret.png 160A 0 1 2 3
+  incgraphic gfx/hudship.png 160A 0 1 2 3

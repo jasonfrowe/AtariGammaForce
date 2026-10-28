@@ -47,8 +47,12 @@ Screenshots and the GIF above are from the A7800 emulator (`tools/play.sh`;
 | Joystick | Move |
 | Button 1 | Vulcan: hold to fire (also the button of a one-button stick) |
 | Button 2 | Radiant Sword: cuts, and absorbs pink bullets |
-| Both, gauge full | Hyper Sword (36 pink bullets absorbed) |
+| Both, gauge full | Hyper Sword (36 pink bullets absorbed; the ship glows gold when it's ready) |
 | Pause | Pause |
+
+The HUD shows the score, the chain (three gems lit in the chain's color,
+and its level), the sword gauge and the lives. Extra lives come at 50,000
+points, then 100,000, 200,000 and so on, doubling.
 
 On the title, left and right choose the starting stage, and up and down
 the mode: NORMAL, or TEDDY BEAR, with about half the enemy bullets (fans

@@ -213,6 +213,8 @@ that counts up as it dies (`src/boss4.bas`, tables in
 | `$1EE8-$1FFF` | Zone 14's two DLs, 140 bytes each |
 | `$2200-$223F` | Engine variables (`zonelo` etc.) |
 | `$2240-$2253` | `hudtext`: the HUD's 20 characters, shown live |
+| `$1885-$18AC` | The HUD's ten sprites (gems, gauge, lives), after its text in zone 0's DL (`objects.asm hud_sprites`) |
+| `$2560-$257F` | `txtold`, `txtnow`: where each buffer's and zone's text is (`pf_text`) |
 | `$2260-$2278` | Music player |
 | `$A5-$BA`, `$C4` | Engine and music zero page (7800basic's tracker block; we don't use `playsong`) |
 | `$BB-$C3` | Object routines' zero page scratch |

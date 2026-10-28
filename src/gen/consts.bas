@@ -99,6 +99,11 @@
   const IMG_BTURRET = 37
   const IMG_LOGO_GAMMA = 38
   const IMG_LOGO_FORCE = 39
+  const IMG_HUDCELL0 = 40
+  const IMG_HUDCELL1 = 41
+  const IMG_HUDGEM = 42
+  const IMG_HUDGEM0 = 43
+  const IMG_HUDSHIP = 44
   const CH_SPACE = 20
   const CH_X = 68
   const CH_I = 38

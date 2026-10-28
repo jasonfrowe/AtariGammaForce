@@ -224,6 +224,8 @@
   rem (objects.asm bul_fire, bul_fan); bfalt alternates single shots
   dim easy = $2397
   dim bfalt = $2398
+  rem the next extra life's score (xlife0/xlife1[nextx]; 8: no more)
+  dim nextx = $2399
   rem the results' three lines of text (60 characters), each part's weight
   dim rtline = $23A0
   dim bwt = $23E0
@@ -280,6 +282,9 @@ end
   for i = 0 to NX1 : xt[i] = 0 : next
   temp9 = 30
   if selstage = 0 then selstage = 1
+  asm
+  jsr hud_hide
+end
   asm
   lda #SONG_TITLE
   jsr mus_play
@@ -376,7 +381,7 @@ end
   rem ======================================================================
 newgame
   for i = 0 to 3 : score_bcd[i] = 0 : next
-  lives = 3 : gauge = 0 : hyper = 0
+  lives = 3 : gauge = 0 : hyper = 0 : nextx = 0
   chlevel = 0 : chcount = 0 : chcolor = 255 : chmax = 0
   vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0 : gn = 0 : gcolor = 0
   swcd = 0
@@ -424,6 +429,7 @@ step
   tick = tick + 1
 
   if overt > 0 then gosub gameover_tick
+  gosub extra_life
   gosub player
   rem The ship and sword are plotted first, early in the frame, before
   rem MARIA reaches the bottom of the screen where they usually are.
@@ -630,6 +636,21 @@ end
 end
   return
 
+  rem An extra life at 50,000 points, then 100,000, 200,000 and on,
+  rem doubling (the score is BCD: its top two bytes against the table)
+extra_life
+  if nextx >= 8 then return
+  temp1 = xlife0[nextx] : temp2 = xlife1[nextx]
+  if score_bcd[0] < temp1 then return
+  if score_bcd[0] = temp1 && score_bcd[1] < temp2 then return
+  nextx = nextx + 1
+  if lives < 9 then lives = lives + 1
+  asm
+  lda #SFX_1UP
+  jsr sfx_play
+end
+  return
+
   rem (stops at 1, which the main loop takes back to the title)
 gameover_tick
   if overt > 1 then overt = overt - 1
@@ -807,6 +828,9 @@ end
   goto draw_beam
 draw_ship
   pimg = IMG_SHIP : pframe = bank : px = plx : py = ply : ppal = 3
+  rem the Hyper Sword is ready: the ship glows gold (palette 6) by turns
+  temp6 = tick & 8
+  if gauge >= GAUGE_MAX && temp6 then ppal = 6
   asm
   jsr pf_drawimg
 end
@@ -1215,9 +1239,12 @@ results_text
   return
 
   rem ======================================================================
-  rem  HUD: score (0-6), chain (8-10), sword gauge (12-16), lives (18-19)
+  rem  HUD: score (0-6), the chain's gems (sprites, x 58-78) and level
+  rem  (10-11), the sword gauge (sprites, x 100-139), lives (a fighter
+  rem  sprite at x 144, the count at 19). The sprites: asm/objects.asm
+  rem  hud_sprites. Messages (WARNING, STAGE n, GAMEOVER) take 12-19.
   rem ======================================================================
-  rem One part of the HUD a frame, so no frame pays for all of it.
+  rem One part of the HUD text a frame, so no frame pays for all of it.
 hud
   temp1 = pfdraws & 3
   if temp1 = 1 then goto hud_chain
@@ -1228,63 +1255,53 @@ hud
 end
   return
 hud_chain
-  hudtext[7] = CH_SPACE
-  hudtext[8] = CH_X
+  hudtext[7] = CH_SPACE : hudtext[8] = CH_SPACE : hudtext[9] = CH_SPACE
   temp1 = chlevel : temp2 = 0
 hud_tens
   if temp1 >= 10 then temp1 = temp1 - 10 : temp2 = temp2 + 1 : goto hud_tens
   if temp2 > 9 then temp2 = 9
-  hudtext[9] = FONTBASE + temp2 * 2
-  hudtext[10] = FONTBASE + temp1 * 2
-  hudtext[11] = CH_SPACE
+  hudtext[10] = FONTBASE + temp2 * 2
+  hudtext[11] = FONTBASE + temp1 * 2
+  rem (GAMEOVER takes 12-19: a space before it)
+  if overt > 0 then hudtext[10] = CH_SPACE : hudtext[11] = CH_SPACE
   return
 hud_middle
   if overt > 0 then goto hud_over
   if bmsg = 1 then goto hud_warning
   if smsg > 0 then goto hud_stage
-  if gauge >= GAUGE_MAX then goto hud_hyper
-  rem (five bars, a bar for each 7: HYPER at 36)
-  temp3 = gauge / 7
-  for k = 0 to 4
-    temp4 = CH_SPACE
-    if k < temp3 then temp4 = CH_I
-    temp5 = 12 + k
-    hudtext[temp5] = temp4
-  next
+  rem (under the gauge's sprites)
+  for k = 12 to 17 : hudtext[k] = CH_SPACE : next
   return
-hud_hyper
-  hudtext[12] = CH_H : hudtext[13] = CH_Y : hudtext[14] = CH_P
-  hudtext[15] = CH_E : hudtext[16] = CH_R
-  temp6 = tick & 8
-  if temp6 = 0 then return
-  for k = 12 to 16 : hudtext[k] = CH_SPACE : next
-  return
+  rem (the sprites, every fourth frame too: they stay in the DL between)
 hud_lives
+  asm
+  jsr hud_sprites
+end
   if overt > 0 then return
   if bmsg > 0 then return
   if smsg > 0 then return
-  hudtext[17] = CH_SPACE
-  hudtext[18] = CH_X
+  hudtext[18] = CH_SPACE
   hudtext[19] = FONTBASE + lives * 2
   return
+  rem (WARNING and STAGE n at 13-19, a space after the chain's level)
 hud_warning
   temp6 = tick & 16
   for k = 0 to 6
-    temp5 = 12 + k
+    temp5 = 13 + k
     temp4 = hudwarn[k]
     if temp6 then temp4 = CH_SPACE
     hudtext[temp5] = temp4
   next
-  hudtext[19] = CH_SPACE
+  hudtext[12] = CH_SPACE
   return
 hud_stage
   if smsg > 4 then smsg = smsg - 4 else smsg = 0
   for k = 0 to 5
-    temp5 = 12 + k
+    temp5 = 13 + k
     hudtext[temp5] = hudstage[k]
   next
-  hudtext[18] = FONTBASE + stage * 2
-  hudtext[19] = CH_SPACE
+  hudtext[12] = CH_SPACE
+  hudtext[19] = FONTBASE + stage * 2
   return
 hud_over
   for k = 0 to 7
@@ -1298,6 +1315,15 @@ hud_over
 userinterrupt
   asm
   jmp mus_tick
+end
+
+  rem ---- extra lives: 50,000 doubling to 6,400,000 (the score's top two
+  rem BCD bytes: millions; hundred and ten thousands) ----
+  data xlife0
+  $00, $00, $00, $00, $00, $01, $03, $06
+end
+  data xlife1
+  $05, $10, $20, $40, $80, $60, $20, $40
 end
 
   rem ---- per enemy type: hit points, score (hundreds, BCD), image ----

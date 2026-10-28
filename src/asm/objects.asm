@@ -1842,3 +1842,219 @@ pl_u_hyper
      sta swdmg
 pl_u_done
      rts
+
+; ---------------------------------------------------------------------------
+; The HUD's sprites, after the HUD's text in zone 0's DL (7800basic's; it
+; ends the list at dlend, which stays at HUDEND): ten 4-byte objects, the
+; same ten every frame, so they are only rewritten, never moved.
+;   0-2  the chain's gems: lit in the chain's color, or an outline
+;   3-7  the sword gauge: five segments, empty or full (pink; flashing
+;        gold with the ship once the Hyper Sword is ready)
+;   8    a half-full segment: the full one, 1 byte wide, over an empty one
+;   9    the lives' fighter (the count is HUD text)
+; The gauge and the fighter hide (x 160) while the HUD shows a message.
+HUDOBJ  = ZONE0ADDRESS+5
+HUDEND  = 5+10*4
+HUDGEMX = 58
+HUDBARX = 100
+HUDSHIPX = 144
+
+; hud_put: object Y (0-9) = image ob1/ob2 (lo/hi), palette | width ob3,
+; x ob5.
+hud_put
+     tya
+     asl
+     asl
+     tay
+     lda ob1
+     sta HUDOBJ,y
+     lda ob3
+     sta HUDOBJ+1,y
+     lda ob2
+     sta HUDOBJ+2,y
+     lda ob5
+     sta HUDOBJ+3,y
+     rts
+
+; hud_hide: every HUD sprite off the screen (the title, and at start).
+hud_hide
+     lda #HUDEND
+     sta dlend
+     ldy #9
+hud_hide_loop
+     tya
+     asl
+     asl
+     tax
+     lda #<hudgem0
+     sta HUDOBJ,x
+     lda #(3<<5)|30
+     sta HUDOBJ+1,x
+     lda #>hudgem0
+     sta HUDOBJ+2,x
+     lda #160
+     sta HUDOBJ+3,x
+     dey
+     bpl hud_hide_loop
+     rts
+
+hud_sprites
+     ; the gems
+     ldy #0
+hud_gem
+     lda #<hudgem0
+     sta ob1
+     lda #>hudgem0
+     sta ob2
+     lda #(3<<5)|30
+     sta ob3
+     cpy chcount
+     bcs hud_gem_put
+     lda #<hudgem
+     sta ob1
+     lda #>hudgem
+     sta ob2
+     lda chcolor
+     asl
+     asl
+     asl
+     asl
+     asl
+     ora #30
+     sta ob3
+hud_gem_put
+     tya
+     sta obj
+     asl
+     asl
+     asl
+     sec
+     sbc obj                 ; 7 apart
+     clc
+     adc #HUDGEMX
+     sta ob5
+     sty obj
+     jsr hud_put
+     ldy obj
+     iny
+     cpy #3
+     bcc hud_gem
+     ; the gauge in half segments: gauge * 5 / 18 (0-10)
+     lda gauge
+     asl
+     asl
+     clc
+     adc gauge
+     ldx #0
+hud_half
+     cmp #18
+     bcc hud_half_done
+     sbc #18
+     inx
+     bne hud_half
+hud_half_done
+     stx ob8
+     ; palette 7, flashing to 3 when ready
+     lda #(7<<5)|30
+     sta ob6
+     lda gauge
+     cmp #GAUGE_MAX
+     bcc hud_pal
+     lda tick
+     and #8
+     beq hud_pal
+     lda #(6<<5)|30          ; gold, as the ship glows
+     sta ob6
+hud_pal
+     ; x 160 while a message is up, else the bar's
+     lda #160
+     sta ob7
+     lda bmsg
+     ora smsg
+     ora overt
+     bne hud_cells
+     lda #HUDBARX
+     sta ob7
+hud_cells
+     ldy #0
+hud_cell
+     sty obj
+     tya
+     asl                     ; full if 2k + 2 <= halves
+     clc
+     adc #2
+     cmp ob8
+     beq hud_cell_full
+     bcc hud_cell_full
+     lda #<hudcell0
+     sta ob1
+     lda #>hudcell0
+     bne hud_cell_img
+hud_cell_full
+     lda #<hudcell1
+     sta ob1
+     lda #>hudcell1
+hud_cell_img
+     sta ob2
+     lda ob6
+     sta ob3
+     lda obj
+     asl
+     asl
+     asl
+     ldx ob7
+     cpx #160
+     beq hud_cell_x
+     adc ob7
+     .byte $2C               ; (bit abs: skip the next 2 bytes)
+hud_cell_x
+     lda #160
+     sta ob5
+     iny                     ; objects 3-7
+     iny
+     iny
+     jsr hud_put
+     ldy obj
+     iny
+     cpy #5
+     bcc hud_cell
+     ; the half segment
+     lda #<hudcell1
+     sta ob1
+     lda #>hudcell1
+     sta ob2
+     lda ob6
+     ora #31                 ; 1 byte wide
+     sta ob3
+     lda #160
+     sta ob5
+     lda ob8
+     lsr
+     bcc hud_halfput         ; none
+     ldx ob7
+     cpx #160
+     beq hud_halfput
+     asl
+     asl
+     asl
+     adc ob7
+     sta ob5
+hud_halfput
+     ldy #8
+     jsr hud_put
+     ; the lives' fighter
+     lda #<hudship
+     sta ob1
+     lda #>hudship
+     sta ob2
+     lda #(3<<5)|30
+     sta ob3
+     lda #HUDSHIPX
+     ldx ob7
+     cpx #160
+     bne hud_ship_x
+     txa
+hud_ship_x
+     sta ob5
+     ldy #9
+     jmp hud_put
