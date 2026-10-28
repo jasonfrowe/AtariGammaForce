@@ -23,14 +23,17 @@
   incbasic gen/consts.bas
 
   rem ---- sizes ----
-  const NE = 12
+  rem enemy slots: waves and ground units use the first 12 (NEW1); the
+  rem 13th is for LEVIATHAN's darts, as its parts fill slots 0-10
+  const NE = 13
   const NB = 16
   const NS = 6
   const NX = 4
   const NSP = 3
   rem 7800basic drops arithmetic in a for loop's limit ("to NE1" runs to
   rem NE), so loops use these.
-  const NE1 = 11
+  const NE1 = 12
+  const NEW1 = 11
   const NB1 = 15
   const NS1 = 5
   const NX1 = 3
@@ -82,7 +85,8 @@
   const BK_BLUE = 2
   const BK_NEEDLE = 5
 
-  const GAUGE_MAX = 48
+  rem pink bullets the sword must absorb to charge the Hyper Sword
+  const GAUGE_MAX = 36
 
   rem ---- engine arguments (asm/engine.asm) ----
   dim pimg = $2300
@@ -216,6 +220,10 @@
   dim bescape = $2394
   dim bready = $2395
   dim chmax = $2396
+  rem Teddy Bear mode (chosen on the title): fewer enemy bullets
+  rem (objects.asm bul_fire, bul_fan); bfalt alternates single shots
+  dim easy = $2397
+  dim bfalt = $2398
   rem the results' three lines of text (60 characters), each part's weight
   dim rtline = $23A0
   dim bwt = $23E0
@@ -298,11 +306,15 @@ end
   tzone = 9 : temp1 = TXT_SEL1 + selstage - 1 : gosub text
   tpal = 3
   tzone = 10 : temp1 = TXT_NAME1 + selstage - 1 : gosub text
-  tpal = 7
-  temp2 = tick & 32
-  if temp2 then tzone = 11 : temp1 = TXT_PUSH : gosub text
-  tpal = 3
-  tzone = 12 : temp1 = TXT_B1 : gosub text
+  rem the difficulty: up and down choose
+  tpal = 5
+  if easy then tpal = 4
+  tzone = 11 : temp1 = TXT_MODE0 + easy : gosub text
+  rem PRESS FIRE and the buttons, by turns
+  tpal = 7 : temp1 = TXT_PUSH
+  temp2 = tick & 64
+  if temp2 then tpal = 3 : temp1 = TXT_B1
+  tzone = 12 : gosub text
   tpal = 6
   tzone = 13 : temp1 = TXT_CREDIT : gosub text
   asm
@@ -318,6 +330,8 @@ end
   if selcd > 0 then selcd = selcd - 1 : goto title_fire
   if joy0left && selstage > 1 then selstage = selstage - 1 : selcd = 15
   if joy0right && selstage < NSTAGES then selstage = selstage + 1 : selcd = 15
+  if joy0up && easy then easy = 0 : selcd = 15
+  if joy0down && easy = 0 then easy = 1 : selcd = 15
 title_fire
   rem Start on a fresh press of either button (released first)
   temp3 = 0
@@ -394,10 +408,13 @@ main
 end
   rem After a late frame (the last one showed for two), a catch-up step
   rem that draws nothing, so the game keeps its speed (engine.asm).
-  if pflate then pfnodraw = 1 : gosub step : pfnodraw = 0
-  gosub step
+  rem Text goes first in its zone, straight after the background, so it
+  rem keeps its place in the display list whatever sprites come and go
+  rem in the zone after it (engine.asm pf_text)
   if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
   if bstate = 5 then gosub results_text
+  if pflate then pfnodraw = 1 : gosub step : pfnodraw = 0
+  gosub step
   asm
   jsr pf_drawscreen
 end
@@ -655,7 +672,7 @@ spawners_next
 
   rem Spawn spawner j's enemy just above the screen.
 spawn_enemy
-  for k = 0 to NE1
+  for k = 0 to NEW1
     if etype[k] = 0 then goto spawn_slot
   next
   return
@@ -813,12 +830,12 @@ ground
 ground_go
   gn = gn + 1
   temp2 = 0
-  for k = 0 to NE1
+  for k = 0 to NEW1
     if etype[k] = ET_TURRET then temp2 = temp2 + 1
     if etype[k] = ET_TANK then temp2 = temp2 + 1
   next
   if temp2 >= 4 then return
-  for k = 0 to NE1
+  for k = 0 to NEW1
     if etype[k] = 0 then goto ground_slot
   next
   return
@@ -883,16 +900,16 @@ boss_warning
   bmsg = 0
   rem build the boss above the screen
   bx = 80 : by = 0 : bspin = 0 : bcorehp = 225 : bparts = 0 : bburst = 0
-  rem the stage's boss: its parts from its tables (stage 2's are in its bank)
-  if stage = 1 then gosub boss1_build
-  if stage = 2 then gosub boss2_build
-  if stage = 3 then gosub boss3_build
-  if stage = 4 then gosub boss4_build
   bescape = 0
   for k = 0 to 10
     ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
     evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0
   next
+  rem the stage's boss: its parts from its tables (stage 2's are in its bank)
+  if stage = 1 then gosub boss1_build
+  if stage = 2 then gosub boss2_build
+  if stage = 3 then gosub boss3_build
+  if stage = 4 then gosub boss4_build
   gosub boss_place
   bstate = 2 : btl = 0 : bth = 0
   return
@@ -1189,10 +1206,14 @@ results_text
   tzone = 7 : temp1 = TXT_RESB : gosub text
   tpal = 6 : tzone = 8 : temp1 = TXT_RESC : gosub text
   if bdestr >= 100 then tpal = 7 : tzone = 10 : temp1 = TXT_PERFECT : gosub text
-  if bbonus > 0 then return
-  if btl < 240 && bth = 0 then return
+  rem PRESS FIRE blinks once the bonus is in. Hidden (tpal + 128: off the
+  rem screen), not left out, so the zone's display list keeps its shape.
+  tpal = 7 + 128
   temp2 = tick & 32
-  if temp2 then tpal = 7 : tzone = 12 : temp1 = TXT_PUSH : gosub text
+  if temp2 then tpal = 7
+  if bbonus > 0 then tpal = 7 + 128
+  if btl < 240 && bth = 0 then tpal = 7 + 128
+  tzone = 12 : temp1 = TXT_PUSH : gosub text
   return
 
   rem ======================================================================
@@ -1224,7 +1245,8 @@ hud_middle
   if bmsg = 1 then goto hud_warning
   if smsg > 0 then goto hud_stage
   if gauge >= GAUGE_MAX then goto hud_hyper
-  temp3 = gauge / 8
+  rem (five bars, a bar for each 7: HYPER at 36)
+  temp3 = gauge / 7
   for k = 0 to 4
     temp4 = CH_SPACE
     if k < temp3 then temp4 = CH_I

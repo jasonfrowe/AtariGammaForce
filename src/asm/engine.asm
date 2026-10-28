@@ -791,8 +791,19 @@ zonecap
 
 ; ---------------------------------------------------------------------------
 ; pf_text: text string A (TXT_ number) centred in zone tzone (1-13), in
-; palette tpal. A character object, so it stays put only while the scroll
-; is still (the title and other screens).
+; palette tpal (bit 7 set: hidden, at x 160, off the right edge; texts up
+; to 12 characters). A character object, so it stays put only while the
+; scroll is still (the title and other screens).
+;
+; Draw text before any sprite in its zone (straight after the background):
+; it then has the same place in the DL every frame, and the sprites after
+; it keep theirs. Text after sprites moves whenever a sprite enters or
+; leaves the zone, and pf_object rewrites last frame's 4-byte objects in
+; place, so it would write over half of the 5-byte text header while MARIA
+; reads it: a line of garbage. So a text that is already there, the same,
+; is left alone; a new one is written with the DL ended at its slot until
+; its header is whole (the zone's later objects then miss a few lines at
+; most, once).
 pf_text
      tay
      ldx tzone
@@ -809,40 +820,87 @@ pf_text
      sec
      sbc pft2
      sta pft2
+     bit tpal
+     bpl pf_text_shown
+     lda #160                ; hidden
+     sta pft2
+pf_text_shown
      lda txtlo,y
      sta pft3
      lda txthi,y
      sta pft4
-     ldy dlend,x
-     cpy #PFCAP-1
-     bcs pf_text_full
-     lda pft3
-     sta (pfp),y
-     iny
-     lda #$60                ; 5-byte header, character mode
-     sta (pfp),y
-     iny
-     lda pft4
-     sta (pfp),y
-     iny
-     lda tpal
+     lda tpal                ; palette | width
      asl
      asl
      asl
      asl
      asl
-     sta pft3
+     sta pft5
      lda #0
      sec
      sbc pft1
      and #31
-     ora pft3
-     sta (pfp),y
+     ora pft5
+     sta pft5
+     lda dlend,x
+     cmp #PFCAP-1
+     bcs pf_text_full
+     ; pfp = the slot itself
+     clc
+     adc pfp
+     sta pfp
+     bcc pf_text_same
+     inc pfp+1
+pf_text_same
+     ; already there, the same?
+     ldy #1
+     lda (pfp),y
+     cmp #$60
+     bne pf_text_new
+     dey
+     lda (pfp),y
+     cmp pft3
+     bne pf_text_new
+     ldy #2
+     lda (pfp),y
+     cmp pft4
+     bne pf_text_new
      iny
+     lda (pfp),y
+     cmp pft5
+     bne pf_text_new
+     iny
+     lda (pfp),y
+     cmp pft2
+     beq pf_text_done
+pf_text_new
+     ldy #1
+     lda #0
+     sta (pfp),y             ; the DL ends here for now
+     ldy #6
+     sta (pfp),y             ; and after the text, once it is whole
+     dey
+     dey
      lda pft2
-     sta (pfp),y
+     sta (pfp),y             ; x
+     dey
+     lda pft5
+     sta (pfp),y             ; palette | width
+     dey
+     lda pft4
+     sta (pfp),y             ; high byte
+     dey
+     dey
+     lda pft3
+     sta (pfp),y             ; low byte
      iny
-     sty dlend,x
+     lda #$60                ; 5-byte header, character mode: now it exists
+     sta (pfp),y
+pf_text_done
+     lda dlend,x
+     clc
+     adc #5
+     sta dlend,x
 pf_text_full
      rts
 

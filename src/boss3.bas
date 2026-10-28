@@ -8,7 +8,9 @@
   rem  on again to carry it away as it sinks. Its parts are sprites pinned
   rem  to map rows, as ground units are (gen/boss3tab.asm).
   rem  Slots: 0-1 the main guns, 2-3 the bridge (top; bottom, which passes
-  rem  its hits to the top), 5 the reactor (the core), 7-10 deck turrets.
+  rem  its hits to the top), 4 and 6 the missile bays (over their hull
+  rem  tiles: they show when they flash, open to launch, and leave a crater),
+  rem  5 the reactor (the core), 7-10 deck turrets (the ground turret, red).
   rem  It lives in stage 3's bank; the shared boss code calls it.
   rem ======================================================================
 
@@ -17,6 +19,7 @@ boss3_build
     etype[k] = boss3_type[k] : eimg[k] = boss3_img[k] : ehp[k] = boss3_hp[k]
     bwt[k] = boss3_wt[k] : eparam[k] = 0
   next
+  for k = 7 to 10 : ecol[k] = 4 : next
   rem (bx, by: where it burns as it sinks)
   bcorehp = 250 : bx = 80 : by = 120
   return
@@ -62,6 +65,17 @@ b3p_next
 end
   rem the reactor pulses
   eframe[5] = (tick / 8) & 1
+  rem the bays: open while they launch (btl 88-127 the left, 216-255 the
+  rem right), a crater once destroyed
+  temp1 = btl & 127
+  temp2 = 0
+  if temp1 >= 88 then temp2 = 1
+  temp3 = btl & 128
+  temp4 = 0 : temp5 = 0
+  if temp3 then temp5 = temp2 else temp4 = temp2
+  if etype[4] = ET_PWRECK then temp4 = 2
+  if etype[6] = ET_PWRECK then temp5 = 2
+  eframe[4] = temp4 : eframe[6] = temp5
   return
 
   rem In at the stage's speed until the hull's middle is near the top
@@ -171,9 +185,11 @@ end
   bspin = bspin + 11
   return
 
-  rem A dart from bay temp2, if the bay is on the screen (its line as in
-  rem boss3_place), into a free enemy slot
+  rem A dart from bay temp2 (slot 4 or 6, while it stands), if the bay is
+  rem on the screen (its line as in boss3_place), into a free enemy slot
 b3_bay
+  temp1 = temp2 * 2 + 4
+  if etype[temp1] <> ET_PCANNON then return
   asm
   ldx temp2
   clc

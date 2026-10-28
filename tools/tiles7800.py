@@ -480,8 +480,12 @@ def hull_tiles(ids):
             out[i] = add("deck" + str(int(name[4:]) % 2), deck0 if int(name[4:]) % 2 == 0 else deck1, STEEL)
         elif name in ("walk", "vent", "port", "stbd", "stern", "stern_l", "stern_r", "bow_l", "bow_r"):
             out[i] = add(name, locals()[name], STEEL)
-        elif name in ("lamp", "engine"):
-            out[i] = add(name, locals()[name], BOSSPAL)
+        elif name == "engine":
+            out[i] = add(name, engine, BOSSPAL)
+        elif name == "lamp":
+            # in the hull's steel: in the boss's palette its plate was a
+            # light box with a red edge, which read as a gun turret
+            out[i] = add(name, lamp, STEEL)
         elif name == "bow_mark":
             out[i] = add(name, mark, STEEL)
         elif name.startswith("big") or name == "small":

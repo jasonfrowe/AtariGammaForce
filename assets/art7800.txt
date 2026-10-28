@@ -307,29 +307,30 @@ frame
 ................
 
 [pinkbullet]
-# Enemy bullets, 4 x 8, pink (color 1) with a white core; two frames.
+# Enemy bullets, 4 x 8, solid pink (color 1) or blue (color 2): no white
+# core, so the two kinds are told apart by color alone. Two frames.
 .11.
-1331
-1331
+1111
+1111
 .11.
 ....
 frame
 .11.
-1331
-1131
+1111
+1111
 .11.
 ....
 
 [bluebullet]
 .22.
-2332
-2332
+2222
+2222
 .22.
 ....
 frame
 .22.
-2332
-2232
+2222
+2222
 .22.
 ....
 

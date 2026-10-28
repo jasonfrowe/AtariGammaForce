@@ -305,10 +305,45 @@ def gunboat():
     return frames
 
 
+def bay3():
+    """A missile bay, 8 px by 32 lines, over its two hull tiles: frame 0
+    shut (the tiles' hazard doors, so it shows only when it flashes), 1
+    open (a dark pit, two missiles, red rims), 2 a crater, drawn when it is
+    a wreck (in P1, the hull's steel: 1 dark, 2 steel, 3 light)."""
+    import tiles7800
+    W, H = tiles7800.W, tiles7800.H
+    door = np.full((H, W), 1, dtype=np.uint8)
+    for y in range(1, H):
+        for x in range(1, W - 1):
+            door[y, x] = 3 if ((x + y) // 3) % 2 == 0 else 1
+    shut = np.concatenate([door, door[::-1]])
+    pit = np.full((2 * H, W), 1, dtype=np.uint8)
+    pit[0, :] = 3
+    pit[-1, :] = 3
+    pit[:, 0] = 3
+    pit[:, W - 1] = 3
+    for x0 in (2, 5):                       # two missiles, noses up
+        pit[5:27, x0] = 2
+        pit[4:7, x0] = 3
+        pit[24:27, x0] = 1
+    crater = np.zeros((2 * H, W), dtype=np.uint8)
+    rng = np.random.default_rng(3)
+    for y in range(2 * H):
+        for x in range(W):
+            d = ((x - 3.5) / 4.2) ** 2 + ((y - 15.5) / 15.5) ** 2 + rng.uniform(-0.15, 0.15)
+            if d < 0.45:
+                crater[y, x] = 1 if rng.uniform() < 0.8 else 0      # scorched, holed through
+            elif d < 0.75:
+                crater[y, x] = 1
+            elif d < 1.0:
+                crater[y, x] = 3 if rng.uniform() < 0.5 else 2      # torn plate
+    return [shut, pit, crater]
+
+
 def parts3():
     br = bridge3()[0]
     return {"b3bridget": [br[:32]], "b3bridgeb": [br[32:]], "b3reactor": reactor3(), "b3gun": gun3(),
-            "gunboat": gunboat()}
+            "gunboat": gunboat(), "b3bay": bay3()}
 
 
 # ---------------------------------------------------------------------------

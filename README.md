@@ -47,8 +47,13 @@ Screenshots and the GIF above are from the A7800 emulator (`tools/play.sh`;
 | Joystick | Move |
 | Button 1 | Vulcan: hold to fire (also the button of a one-button stick) |
 | Button 2 | Radiant Sword: cuts, and absorbs pink bullets |
-| Both, gauge full | Hyper Sword |
+| Both, gauge full | Hyper Sword (36 pink bullets absorbed) |
 | Pause | Pause |
+
+On the title, left and right choose the starting stage, and up and down
+the mode: NORMAL, or TEDDY BEAR, with about half the enemy bullets (fans
+and rings fire half as many over the same spread, single shots every
+other time, and at most 10 at once instead of 16).
 
 ## Building
 

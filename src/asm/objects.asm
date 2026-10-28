@@ -110,8 +110,23 @@ weave
 ; ---------------------------------------------------------------------------
 ; Enemy bullets.
 
+; Teddy Bear mode (easy): single shots go every other time, and bullets
+; take only the first NB_EASY slots. (Fans and rings thin themselves in
+; bul_fan, which comes in at bul_fire_go.)
+NB_EASY = 10
 bul_fire
+     lda easy
+     beq bul_fire_go
+     lda bfalt
+     eor #1
+     sta bfalt
+     bne bul_fire_go
+     rts
+bul_fire_go
      ldx #NB-1
+     lda easy
+     beq bul_fire_find
+     ldx #NB_EASY-1
 bul_fire_find
      lda bkind,x
      beq bul_fire_slot
@@ -147,8 +162,39 @@ bul_fire_slot
      sta bvyh,x
      rts
 
-; fcount bullets, fstep apart, centred on fang.
+; fcount bullets, fstep apart, centred on fang. In Teddy Bear mode, half
+; as many over the same spread (5 -> 3, a ring of 8 -> 4); an odd fan
+; stays odd, so its middle bullet (often the aimed one) stays (3 -> 1).
 bul_fan
+     lda fcount
+     pha
+     lda fstep
+     pha
+     lda easy
+     beq bul_fan_go
+     asl fstep
+     lda fcount
+     lsr
+     adc #0                  ; (n + 1) / 2
+     sta ob8
+     lda fcount
+     and #1
+     beq bul_fan_half        ; n even: n / 2
+     lda ob8
+     and #1
+     bne bul_fan_half        ; already odd
+     dec ob8                 ; even: one fewer (it can't be 0: n >= 3 here)
+bul_fan_half
+     lda ob8
+     sta fcount
+bul_fan_go
+     jsr bul_fan_n
+     pla
+     sta fstep
+     pla
+     sta fcount
+     rts
+bul_fan_n
      lda fang
      sta ob7
      lda #0
@@ -169,7 +215,7 @@ bul_fan_off2
      lda fcount
      sta obj
 bul_fan_loop
-     jsr bul_fire
+     jsr bul_fire_go
      lda fang
      clc
      adc fstep
