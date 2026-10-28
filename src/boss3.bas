@@ -116,6 +116,8 @@ boss3_fight
     if temp2 < ply then pfspeed = 14
 b3f_next
   next
+  rem once the bridge is down, straight on to the reactor (the stage's speed)
+  if etype[2] <> ET_PWING then pfspeed = 160
   asm
   lda spos_lo
   cmp #<B3_FINAL
