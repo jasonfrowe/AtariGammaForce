@@ -21,6 +21,7 @@
 ; Towers on screen this frame (en_hits notes them; bul_update stops enemy
 ; bullets on them): their boxes.
 ntow        = $2381
+ngnd        = $2382 ; ground units this frame (en_update counts, en_draw reads)
 towx0       = $2384 ; [3]
 towx1       = $2387
 towy0       = $238A
@@ -38,19 +39,17 @@ obj         = $C3
 
 ; ---------------------------------------------------------------------------
 ; Multiply: ob1 * ob6 -> A (high), ob1 (low). Unsigned.
+; Unrolled (it is in every bullet fired: twice).
 ob_mul8
      lda #0
-     ldx #8
      lsr ob1
-ob_mul8_loop
-     bcc ob_mul8_skip
+     REPEAT 8
+     bcc .+5
      clc
      adc ob6
-ob_mul8_skip
      ror
      ror ob1
-     dex
-     bne ob_mul8_loop
+     REPEND
      rts
 
 ; A (signed) * fspd -> A = product >> 8 (vel8) or >> 7 (vel7), signed.
@@ -459,22 +458,54 @@ bul_update_hy
      sta phit
      jmp bul_update_kill
 bul_update_draw
+     ; pf_plot's work, for a 7-line strip: the zone and line from the
+     ; playfield y, the object, and a lower part into the next zone when
+     ; the bullet reaches its last line
+     lda pfnodraw
+     bne bul_update_next
+     stx obi
      ldy bkind,x
      lda bul_imglo-1,y
      sta sp_lo
      lda bul_imghi-1,y
      sta sp_hi
-     lda bul_h-1,y
-     sta sp_h
      lda bxh,x
      sec
      sbc #2
      sta sp_x
      lda byh,x
      sbc #4                  ; (no borrow above: carry still set)
-     sta sp_y
-     stx obi
-     jsr pf_plot
+     clc
+     adc pfs
+     bcs bul_update_drawn    ; below the playfield
+     sbc #15                 ; (carry clear) virtual y = y + s - 16
+     bcc bul_update_drawn    ; above zone 1
+     tay
+     and #15
+     sta pft2                ; line within the zone
+     tya
+     lsr
+     lsr
+     lsr
+     lsr
+     tax                     ; zone
+     beq bul_update_lower    ; zone 0: the top part would be in the HUD
+     lda sp_hi
+     ora pft2
+     jsr pf_object
+bul_update_lower
+     lda pft2
+     cmp #16-7
+     bcc bul_update_drawn
+     inx
+     cpx #15
+     bcs bul_update_drawn
+     lda sp_hi
+     ora pft2
+     sec
+     sbc #16
+     jsr pf_object
+bul_update_drawn
      ldx obi
      jmp bul_update_next
 bul_update_kill
@@ -490,7 +521,6 @@ bul_update_done
 ; Images for bullet kinds 1-5: pink, blue, big pink, big blue, needle.
 bul_imglo .byte <pinkbullet, <bluebullet, <pinkbullet, <bluebullet, <needle
 bul_imghi .byte >pinkbullet, >bluebullet, >pinkbullet, >bluebullet, >needle
-bul_h     .byte 8, 8, 8, 8, 6
 
 ; Every bullet becomes 20 points (the Hyper Sword). Returns A = how many.
 bul_cancel
@@ -513,6 +543,8 @@ bul_cancel_next
 ; Enemies.
 
 en_update
+     lda #0
+     sta ngnd
      ldx #NE-1
 en_update_loop
      lda etype,x
@@ -561,6 +593,7 @@ en_update_tankoff
      jmp en_update_kill
 en_update_ground
      ; ground units ride the map: their line follows the scroll exactly
+     inc ngnd
      lda spos_lo
      clc
      adc eparam,x
@@ -960,7 +993,13 @@ en_draw
      sta ob8                 ; animation step: a new frame every 8 ticks
      ; two passes: the ground (turrets, tanks, towers), then everything
      ; that flies over it; first to last slot: later slots draw on top
+     ; (no ground units: straight to the second)
+     lda ngnd
+     beq en_draw_air
      lda #0
+     .byte $2C               ; (bit abs: skip the next 2 bytes)
+en_draw_air
+     lda #1
      sta ob7
 en_draw_pass
      ldx #0
@@ -1099,6 +1138,11 @@ en_draw_out
 ; Called before the ship is plotted, so the ship and everything else
 ; shows over them (a later object in a zone's DL is drawn on top).
 en_draw_wrecks
+     lda bstate              ; only while a boss is on the screen (2-4)
+     cmp #2
+     bcc en_draw_wrecks_out
+     cmp #5
+     bcs en_draw_wrecks_out
      lda tick
      lsr
      lsr
@@ -1107,6 +1151,8 @@ en_draw_wrecks
      lda #2
      sta ob7
      jmp en_draw_pass
+en_draw_wrecks_out
+     rts
 
 ; ---------------------------------------------------------------------------
 ; Score: 4 BCD bytes, score_bcd (most significant) to score_bcd+3.

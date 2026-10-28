@@ -12,5 +12,5 @@ rm -rf "$OUT/a7800"
 cd "$(dirname "$A7800")"
 SNAP_FRAMES=$3 "$A7800" a7800 -cart "$ROM" -video none -sound none -nothrottle \
   -seconds_to_run 120 -snapshot_directory "$OUT" -autoboot_script "$ROOT/tools/emu/snap.lua" \
-  -skip_gameinfo > /dev/null 2>&1
+  -skip_gameinfo -nomouse > /dev/null 2>&1
 ls "$OUT/a7800" 2>/dev/null

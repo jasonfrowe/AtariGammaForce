@@ -411,9 +411,14 @@ main
   jsr prof_mark
   endif
 end
-  rem After a late frame (the last one showed for two), a catch-up step
-  rem that draws nothing, so the game keeps its speed (engine.asm).
-  if pflate then pfnodraw = 1 : gosub step : pfnodraw = 0
+  rem After a late frame (the last one showed for two or three), a
+  rem catch-up step for each extra frame, drawing nothing, so the game
+  rem keeps its speed (engine.asm pf_drawscreen).
+  if pflate = 0 then goto main_step
+  pfnodraw = 1 : gosub step
+  if pflate >= 2 then gosub step
+  pfnodraw = 0
+main_step
   gosub step
   rem Text after the sprites, on top of them (engine.asm pf_text)
   if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
@@ -431,10 +436,24 @@ step
   if overt > 0 then gosub gameover_tick
   gosub extra_life
   gosub player
+  asm
+  ifconst PROFILE
+  lda #11
+  jsr prof_mark
+  endif
+end
   rem The boss moves first, so its wrecks can be drawn under the ship
   gosub boss
   asm
+  ifconst PROFILE
+  lda #12
+  jsr prof_mark
+  endif
   jsr en_draw_wrecks
+  ifconst PROFILE
+  lda #13
+  jsr prof_mark
+  endif
 end
   rem The ship and sword are plotted early in the frame, before MARIA
   rem reaches the bottom of the screen where they usually are.
@@ -1318,6 +1337,7 @@ hud_over
   rem Runs every frame from 7800basic's NMI, off screen.
 userinterrupt
   asm
+  inc pfvbl
   jmp mus_tick
 end
 

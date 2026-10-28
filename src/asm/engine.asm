@@ -70,6 +70,8 @@ pflate      = $22C1 ; nonzero: the last frame's logic ran past its frame, so
                     ; this one shows two game steps (see pf_drawscreen)
 pfnodraw    = $22C2 ; nonzero: pf_plot draws nothing (a catch-up step)
 pfdraws     = $22C3 ; counts frames drawn (for things that alternate as shown)
+pfvbl       = $22C4 ; counts overscan NMIs (one a frame, just before vblank)
+pfvbl0      = $22C5 ; pfvbl when this frame began
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
 txtold      = $2560 ; [16] where each buffer's text was as last terminated ($FF: none)
 txtnow      = $2570 ; [15] where each zone's text is this frame ($FF: none)
@@ -82,7 +84,7 @@ Z14BASE     = RINGBASE+RINGN*BUFSIZE ; $1EE8
 Z14SIZE     = 140
 Z14BG       = 80            ; 20 tiles x 4 bytes
 Z14CAP      = Z14SIZE-6
-DLLZONE1    = DLLMEM+12     ; 3 blank entries + the HUD entry
+DLLZONE1    = DLLMEM+18     ; 3 blank entries + the HUD's three (pf_init)
 DLLNONVIS   = DLLZONE1+42   ; 14 playfield entries later
 
 ; 7800basic's DLL table always names zones 1-11, even with ZONECOUNT = 1.
@@ -138,6 +140,17 @@ pf_init_dll
      sta DLLNONVIS,x
      dex
      bpl pf_init_dll
+     ; The HUD: 7800basic's 16-line zone 0 becomes 3 empty lines, a
+     ; 7-line zone 0 (its DL: the HUD's text and sprites) and 6 empty lines:
+     ; MARIA reads the HUD's objects 7 lines a frame, not 16. The font's
+     ; glyphs (and the HUD's sprites) are on the last 7 lines of their 16,
+     ; which a 7-line zone shows. The NMI stays 16 lines down, where it was.
+     ldx #8
+pf_init_hud2
+     lda pfhuddll,x
+     sta DLLMEM+9,x
+     dex
+     bpl pf_init_hud2
      ; The playfield is 209 lines (16-s + 12*16 + 1+s), one more than 13
      ; zones, so take a line off the top border to keep the frame length.
      dec DLLMEM
@@ -205,6 +218,12 @@ pf_init_rows
 pfhudobj
      ; lo, mode ($60 = 5-byte header, character mode), hi, palette 3 | 20 wide, x
      .byte <hudtext, $60, >hudtext, (3<<5)|((-20)&31), 0
+pfhuddll
+     .byte 2, >pfnodl, <pfnodl             ; 3 lines, an empty DL
+     .byte 6, >ZONE0ADDRESS, <ZONE0ADDRESS ; 7 lines, the HUD
+     .byte $80|5, >pfnodl, <pfnodl         ; 6 lines, empty; NMI
+pfnodl
+     .byte 0, 0
 
 ; ---------------------------------------------------------------------------
 ; pf_buildrow: copy map row Y's background objects into ring buffer X.
@@ -459,7 +478,7 @@ pf_frame_scroll
      lda spos_lo
      and #$F0
      sta pft1
-     ldx pflate              ; two game steps this frame: scroll twice as far
+     ldx pflate              ; two or three game steps this frame: as far again
 pf_frame_step
      clc                     ; (under a line a step, so two steps cross at
      lda spos_f              ; most one 16-line boundary)
@@ -957,22 +976,34 @@ pf_drawscreen
      ; more means the logic ran into the next frame. This frame then shows
      ; for two, and the next one runs two game steps (a catch-up step that
      ; draws nothing, then the usual one), so the game keeps its speed and
-     ; only the display drops to 30 frames a second.
-     lda framecounter
-     sec
-     sbc pfframe
-     cmp #2
-     lda #0
-     rol                     ; carry set: late
-     sta pflate
+     ; only the display drops to 30 frames a second. (Counted after the
+     ; wait, below.)
      ifconst FPS30
          ; Always 30: every frame shows for two and runs two steps.
-         bne pf_drawscreen_wait
-         inc pflate
          jsr waitforvblankstart
-pf_drawscreen_wait
      endif
      jsr waitforvblankstart  ; the start of MARIA's vblank (a full frame if late)
+     ; How many frames this one took: the overscan NMIs since it began
+     ; (one a frame, just before each vblank; pfvbl, from userinterrupt).
+     ; Each frame past the first is a step to catch up (at most 2). Counting
+     ; to vblank itself matters: a frame that ends after vblank has begun
+     ; waits for the next one, and must get its catch-up step however close
+     ; it came (the top-of-screen NMI, counted before, is some 25 lines
+     ; later, and a frame ending between the two lost its step).
+     lda pfvbl
+     sec
+     sbc pfvbl0
+     sbc #1                  ; (carry set: 1 or more frames)
+     bcs pf_drawscreen_late
+     lda #0
+pf_drawscreen_late
+     cmp #3
+     bcc pf_drawscreen_cap
+     lda #2
+pf_drawscreen_cap
+     sta pflate
+     lda pfvbl
+     sta pfvbl0
      lda #3
      sta interruptindex
      lda #0

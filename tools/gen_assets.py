@@ -167,7 +167,9 @@ def tile_palette(tile):
 
 
 def font_glyphs():
-    """Astrowing's 8-pixel glyphs (7 lines tall), placed on lines 4-10."""
+    """Astrowing's 8-pixel glyphs (7 lines tall), placed on lines 9-15: the
+    HUD's zone shows only those 7 lines (engine.asm pf_init), so MARIA reads
+    the HUD 7 lines a frame instead of 16."""
     font = np.array(Image.open(ASSETS / "font_astrowing.png"))
     glyphs = []
     for i, ch in enumerate(FONT_CHARS):
@@ -176,7 +178,7 @@ def font_glyphs():
             src = np.array([[c == "1" for c in r] for r in EXTRA_GLYPHS[ch]])
         else:
             src = font[0:7, i * 8:(i + 1) * 8]
-        g[4:11, :] = np.where(src > 0, 3, 0)  # one color: slot 3
+        g[9:16, :] = np.where(src > 0, 3, 0)  # one color: slot 3
         glyphs.append(g)
     return glyphs
 

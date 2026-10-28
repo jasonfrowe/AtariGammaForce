@@ -17,7 +17,7 @@ zone moving with it, a line at a time, across zone boundaries.
 ## Screen layout
 
 ```
- zone 0      HUD                         16 lines, fixed (7800basic's zone)
+ (HUD)      3 empty lines, zone 0 (the HUD: 7 lines), 6 empty lines
  zone 1      playfield, top partial      16-s lines   ring buffer
  zones 2-13  playfield                   16 lines     ring buffers
  zone 14     playfield, bottom partial   1+s lines    its own pair of DLs
@@ -68,8 +68,14 @@ pf_drawscreen   (instead of drawscreen) wait for MARIA's vblank, terminate
 When a frame's logic runs past its frame, that frame shows for two and
 `pflate` is set; the next frame then runs two steps: a catch-up step with
 `pfnodraw` set (`pf_plot` draws nothing, and the game skips its other
-drawing), then the usual one, and `pf_frame` scrolls two steps' worth. So
-the game never slows down; the display drops to 30 frames a second while
+drawing), then the usual one, and `pf_frame` scrolls two steps' worth (a
+frame that took three gets two catch-up steps). `pf_drawscreen` counts the
+frames a frame took after its wait for vblank, by the overscan NMIs
+(`pfvbl`, counted in `userinterrupt`), which come just before each vblank.
+It used to count top-of-screen NMIs before the wait; those come some 25
+lines after vblank begins, and a frame that ended between the two waited a
+whole extra frame without its catch-up step, so the game did slow down
+when the load was high. So the game never slows down; the display drops to 30 frames a second while
 the load is high and comes back to 60 when it eases. `const FPS30 = 1`
 locks it at 30 (two steps every frame). Anything that should alternate as
 *shown* (the HUD's four parts, the boss's hit flash) counts `pfdraws`, the
@@ -217,7 +223,7 @@ that counts up as it dies (`src/boss4.bas`, tables in
 
 | Where | What |
 |---|---|
-| `$1800-$1844` | DLL: 3 blank entries, HUD, 14 playfield entries, 5 non-visible |
+| `$1800-$184A` | DLL: 3 blank entries, the HUD's 3, 14 playfield entries, 5 non-visible |
 | `$1880-$18FF` | Zone 0 (HUD) DL, managed by 7800basic (`DLMEMEND = $18FF`) |
 | `$1900-$1EE7` | 14 ring buffers of 108 bytes |
 | `$1EE8-$1FFF` | Zone 14's two DLs, 140 bytes each |
@@ -269,6 +275,19 @@ costs at least 11 cycles on each line of its zone, drawn or not. With no
 background at all the game holds 60 fps under full load, so the map is
 kept light: open sea is the background color (no objects), and the
 fortress is MegaGammaForce's own 12-column map in the middle of the sea.
+
+The HUD: 7800basic's 16-line zone 0 is split (`pf_init`) into 3 empty
+lines, a 7-line zone 0 and 6 empty lines, and the font's glyphs (and the
+HUD's sprites) sit on the last 7 lines of their 16, which a 7-line zone
+shows: MARIA reads the HUD's 20 characters and 10 sprites 7 lines a frame,
+not 16. (Text in the playfield sits on the same lines of its zone.)
+
+`tools/bench.sh` is the speed benchmark: an invulnerable ship that holds
+fire and never moves, so every build plays the same game (input pressed by
+emulator frame would land on different game steps in builds of different
+speed) and the figures compare. With MARIA's DMA switched off the game
+holds 60 frames a second: what the CPU loses to DMA (the background most of
+all, then the sprites, then the HUD) is what makes frames late.
 
 CPU side: each sprite object costs ~100 cycles of 6502 work (a 16-line
 strip that crosses a zone boundary is two objects), so the hot loops are

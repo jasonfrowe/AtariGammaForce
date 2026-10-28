@@ -11,6 +11,6 @@ rm -rf "$OUT"; mkdir -p "$OUT"; OUT=$(cd "$OUT" && pwd)
 cd "$(dirname "$A7800")"
 PLAY_SCRIPT="$SCRIPT" PLAY_OUT="$OUT/play.txt" "$A7800" ${MACHINE:-a7800} -cart "$ROMFILE" \
   -video none -sound none -nothrottle -seconds_to_run 600 -snapshot_directory "$OUT" \
-  -autoboot_script "$ROOT/tools/emu/play.lua" -skip_gameinfo > "$OUT/emu.log" 2>&1
+  -autoboot_script "$ROOT/tools/emu/play.lua" -skip_gameinfo -nomouse > "$OUT/emu.log" 2>&1
 cat "$OUT/play.txt"
 ls "$OUT/a7800" 2>/dev/null | tr '\n' ' '; echo
