@@ -749,10 +749,38 @@ ENEMY_WIDTH = {"ET_GUNSHIP": 16}
 COLOR_PAL = {"COL_RED": 4, "COL_BLUE": 5, "COL_YELLOW": 6, "COL_GRAY": 2}
 
 
+# Wasps (each fires a fan of 3 needles as it comes in) are spread out from
+# MegaGammaForce's: their waves at least WASP_APART scroll pixels apart
+# (its own units), the wasps of a wave WASP_GAP times further apart, and
+# their weave WASP_WEAVE times as wide. Whole waves of them at once slowed
+# the game, and their loops were too wide.
+WASP_APART = 100
+WASP_GAP = 1.5
+WASP_WEAVE = 0.6
+
+
+def space_wasps(data):
+    """Wasp waves moved later where they come within WASP_APART of the wasp
+    wave before; the waves after are kept in order (moved as far, if need
+    be)."""
+    out, last_wasp, prev = [], None, 0
+    for w in sorted(data, key=lambda w: w[0]):
+        at = max(w[0], prev)
+        if w[1] == "ET_WASP":
+            if last_wasp is not None and at < last_wasp + WASP_APART:
+                at = last_wasp + WASP_APART
+            last_wasp = at
+        out.append([at] + list(w[1:]))
+        prev = at
+    return out
+
+
 def wave_cols(data, scale=1.0):
     """MegaGammaForce air waves -> our wave table fields (their scroll
     positions times scale)."""
-    data = [[round(w[0] * scale)] + list(w[1:]) for w in data if w[1] in ENEMY_TYPES]
+    data = [[round(w[0] * scale)] + list(w[1:]) for w in space_wasps(data) if w[1] in ENEMY_TYPES]
+    data = [w[:6] + [round(w[6] * WASP_GAP), round(w[7] * WASP_WEAVE)] if w[1] == "ET_WASP" else w
+            for w in data]
     cols = {k: [] for k in WAVE_FIELDS}
     for at, typ, color, x, dx, count, gap, param in data:
         w = ENEMY_WIDTH.get(typ, 8)
@@ -1173,19 +1201,23 @@ def spread_waves(w, gr, cap=11, life=260, step=20, most=300, weights=None):
     def load(x, extra):
         evs = ground + placed + [extra]
         return max(sum(c for a, c in evs if a <= y < a + life) for y in range(x, x + life, 20))
-    prev = 0
+    prev, last_wasp = 0, -WASP_APART
     for at, n, t in zip(ats, w["wcount"], w["wtype"]):
         count = n * weight.get(t, 1)
         x0 = max(at, prev)
+        if t == ENEMY_TYPES["ET_WASP"]:
+            x0 = max(x0, last_wasp + WASP_APART)
         best = x0
-        for x in range(x0, at + most + 1, step):
+        for x in range(x0, max(x0, at + most) + 1, step):
             if load(x, (x, count)) <= cap:
                 best = x
                 break
         else:
-            best = min(range(x0, at + most + 1, step), key=lambda x: load(x, (x, count)))
+            best = min(range(x0, max(x0, at + most) + 1, step), key=lambda x: load(x, (x, count)))
         placed.append((best, count))
         prev = best
+        if t == ENEMY_TYPES["ET_WASP"]:
+            last_wasp = best
     out = dict(w)
     out["watl"] = [a & 255 for a, _ in placed]
     out["wath"] = [a >> 8 for a, _ in placed]
