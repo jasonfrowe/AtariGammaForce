@@ -431,8 +431,13 @@ step
   if overt > 0 then gosub gameover_tick
   gosub extra_life
   gosub player
-  rem The ship and sword are plotted first, early in the frame, before
-  rem MARIA reaches the bottom of the screen where they usually are.
+  rem The boss moves first, so its wrecks can be drawn under the ship
+  gosub boss
+  asm
+  jsr en_draw_wrecks
+end
+  rem The ship and sword are plotted early in the frame, before MARIA
+  rem reaches the bottom of the screen where they usually are.
   if pfnodraw = 0 then gosub draw_player
   asm
   ifconst PROFILE
@@ -442,7 +447,6 @@ step
 end
   gosub waves
   gosub ground
-  gosub boss
   gosub spawners
   asm
   ifconst PROFILE

@@ -14,12 +14,16 @@
   rem  It lives in stage 3's bank; the shared boss code calls it.
   rem ======================================================================
 
+  rem the escort waves sent so far (stage 2's orbit variable: free here)
+  dim b3wave = $235C
+
 boss3_build
   for k = 0 to 10
     etype[k] = boss3_type[k] : eimg[k] = boss3_img[k] : ehp[k] = boss3_hp[k]
     bwt[k] = boss3_wt[k] : eparam[k] = 0
   next
   for k = 7 to 10 : ecol[k] = 4 : next
+  b3wave = 0
   rem (bx, by: where it burns as it sinks)
   bcorehp = 250 : bx = 80 : by = 120
   return
@@ -98,7 +102,20 @@ end
 boss3_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
-  rem it stops with the reactor in reach
+  rem it crawls while any of its guns, bays, bridge or turrets is on the
+  rem screen above the ship (still to fight: the ship only fires up), comes
+  rem on faster while none is, and stops with the reactor in reach
+  pfspeed = 112
+  for k = 0 to 10
+    temp1 = etype[k]
+    if temp1 < ET_PART then goto b3f_next
+    if temp1 = ET_PWRECK then goto b3f_next
+    if temp1 = ET_PCORE then goto b3f_next
+    temp2 = eyh[k]
+    if temp2 = 0 then goto b3f_next
+    if temp2 < ply then pfspeed = 14
+b3f_next
+  next
   asm
   lda spos_lo
   cmp #<B3_FINAL
@@ -110,6 +127,7 @@ boss3_fight
 b3f_crawl
 end
   gosub boss3_place
+  gosub b3_escort
   rem two minutes, and it sails away
   if bth >= 30 then bescape = 1 : gosub boss_tally : bstate = 4 : btl = 0 : pfspeed = 250 : return
   if plvuln = 0 then return
@@ -224,6 +242,24 @@ b3_bay_slot
   ewamp[k] = 0 : ewang[k] = 0 : ewstep[k] = 3 : eframe[k] = 0
   return
 
+
+  rem Escorts: as the reactor is hurt, waves of fighters come to defend it
+  rem (a spawner each, as the stage's waves are): at 240, 185, 125 and 65
+b3_escort
+  if b3wave >= 4 then return
+  temp1 = b3_escorthp[b3wave]
+  if bcorehp >= temp1 then return
+  for j = 0 to NSP1
+    if spcount[j] = 0 then goto b3_escort_go
+  next
+  return
+b3_escort_go
+  temp1 = b3wave
+  sptype[j] = b3_esctype[temp1] : sppal[j] = b3_escpal[temp1] : spx[j] = b3_escx[temp1]
+  spdx[j] = b3_escdx[temp1] : spcount[j] = b3_esccount[temp1] : spgap[j] = b3_escgap[temp1]
+  spparam[j] = b3_escparam[temp1] : sptimer[j] = 0
+  b3wave = b3wave + 1
+  return
 
   rem It burns on until its stern has sunk away below the screen
 boss3_sinking

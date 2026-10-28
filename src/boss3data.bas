@@ -16,3 +16,31 @@ end
   data boss3_wt
   11, 11, 22, 0, 3, 0, 3, 5, 5, 5, 5
 end
+
+  rem ---- escort waves (boss3.bas b3_escort): the reactor's hit points
+  rem that send each; type, color, x, x step, count, gap, param (darts:
+  rem the line they dive to; saucers: their weave; drones: where they stop)
+  data b3_escorthp
+  240, 185, 125, 65
+end
+  data b3_esctype
+  ET_DART, ET_SAUCER, ET_DART, ET_DRONE
+end
+  data b3_escpal
+  4, 5, 6, 4
+end
+  data b3_escx
+  16, 116, 136, 24
+end
+  data b3_escdx
+  24, 0, 232, 48
+end
+  data b3_esccount
+  6, 3, 6, 3
+end
+  data b3_escgap
+  8, 16, 8, 22
+end
+  data b3_escparam
+  120, 33, 120, 80
+end

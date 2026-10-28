@@ -969,6 +969,11 @@ en_draw_loop
      bne en_draw_live
      jmp en_draw_next
 en_draw_live
+     cmp #ET_PWRECK          ; 2: a wreck (en_draw_wrecks)
+     bne en_draw_notwreck
+     ldy #2
+     jmp en_draw_side
+en_draw_notwreck
      ldy #1                  ; 1: flies
      cmp #ET_TURRET
      beq en_draw_gnd
@@ -1089,6 +1094,19 @@ en_draw_passdone
      jmp en_draw_pass
 en_draw_out
      rts
+
+; en_draw_wrecks: draw only the bosses' wrecks (en_draw leaves them out).
+; Called before the ship is plotted, so the ship and everything else
+; shows over them (a later object in a zone's DL is drawn on top).
+en_draw_wrecks
+     lda tick
+     lsr
+     lsr
+     lsr
+     sta ob8
+     lda #2
+     sta ob7
+     jmp en_draw_pass
 
 ; ---------------------------------------------------------------------------
 ; Score: 4 BCD bytes, score_bcd (most significant) to score_bcd+3.

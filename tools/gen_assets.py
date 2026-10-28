@@ -976,12 +976,22 @@ def stage3():
             if kk == k:
                 y = (n * cr + r + 1) * 16
                 units.append((y, (c + 1) * 8, "ET_TURRET", 4 + (i + n) % 3, 0))
+    # A gunboat sails up the map (en_update) some 5 rows while it is on the
+    # screen: open sea all along its way, or it is moved to the nearest
+    # column that has it, or left out.
+    def sea_ahead(row, c):
+        win = body[max(0, row - 2):row + 8, c:c + 2]
+        return win.shape[1] == 2 and bool((win <= ids["sea3"]).all())
     for j, (k, r, c) in enumerate(meta["water"]):
         for n, kk in enumerate(STAGE3_ORDER):
             if kk == k and (n + j) % 2 == 0:
                 y = (n * cr + r) * 16 + 16           # (32 tall: 8 below its top)
                 if 500 < y:
-                    units.append((y, c * 8, "ET_GUNBOAT", 4 + (j // 2) % 3, 0))
+                    row = n * cr + r
+                    for c2 in sorted(range(cols - 1), key=lambda x: abs(x - c)):
+                        if abs(c2 - c) <= 4 and sea_ahead(row, c2):
+                            units.append((y, c2 * 8, "ET_GUNBOAT", 4 + (j // 2) % 3, 0))
+                            break
 
     # The ship's numbers for its boss code: where each part is (x, and the
     # world height of its top edge: a sprite's line is spos + 240 - it),
@@ -1036,8 +1046,18 @@ def stage3():
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
             "charset": "charset3", "pals": [nearest(c) for p in STAGE3_PALETTES for c in p],
             "bg": nearest(STAGE3_BG), "song": "SONG_STAGE3", "bosssong": "SONG_BOSS3", "bossat": bossat,
-            "waves": wave_cols(meta["waves"], 0.8), "ground": ground_cols(units),
+            "waves": wave_cols(stage3_waves(meta["waves"]), 0.8), "ground": ground_cols(units),
             "pal_codes": [[nearest(c) for c in p] for p in STAGE3_PALETTES]}
+
+
+def stage3_waves(waves):
+    """MegaGammaForce's stage 3 waves, with its last two gunships (at 2720
+    and 2750, just before LEVIATHAN: here the ship comes in with the map,
+    without waiting for a clear sky, so there was no time to shoot them
+    down) brought forward, between the wasps and the darts."""
+    moved = {2720: 2420, 2750: 2450}
+    out = [[moved.get(w[0], w[0])] + list(w[1:]) if w[1] == "ET_GUNSHIP" else list(w) for w in waves]
+    return sorted(out, key=lambda w: w[0])
 
 
 # Stage 4, SCORCHED SANDS: the desert (the sand is the background), rock

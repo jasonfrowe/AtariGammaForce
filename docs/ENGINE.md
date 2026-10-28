@@ -158,6 +158,15 @@ hole at $B000.
 | 5 | stage 4: header, map, boss tune, DUNE WYRM's path, graphics ($A000), song and DUNE WYRM's code (`src/boss4.bas`, $B000) |
 | 9 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
 
+## Wrecks under the ship
+
+A later object in a zone's DL is drawn over an earlier one. The ship is
+plotted early in the frame (before MARIA reaches it), so every enemy went
+over it, the bosses' wrecks too, and the ship vanished under a big one.
+The boss now moves before the ship is plotted, and its wrecks are drawn
+first, in a pass of their own (`en_draw_wrecks`; `en_draw` leaves them
+out): everything else shows over them.
+
 ## Text in the playfield
 
 Screen text (the title, GAME OVER, the results) is a character object
@@ -183,8 +192,9 @@ Stage 3's battleship, LEVIATHAN, is longer than the screen. Its hull is
 map rows (after the stage's last open sea), so it costs no sprites, and
 the boss moves it by the scroll: the open sea is the background color, so
 a change of scroll speed shows nowhere but on the ship. It comes in at the
-stage's speed, crawls while the fight goes on, stops once the reactor is in
-reach, and the scroll runs on to carry it away as it sinks. Its guns,
+stage's speed, crawls while any of its parts is on the screen above the
+player to fight (and comes on faster while none is), stops once the
+reactor is in reach (waves of escorts defend it as it is hurt), and the scroll runs on to carry it away as it sinks. Its guns,
 bridge, reactor, missile bays and turrets are sprites pinned to map rows
 like ground units (a shut bay is drawn the same as its hull tiles, so it
 shows only as it flashes, opens, or lies wrecked): each part's line is `spos + 240 -` the world height of its top
