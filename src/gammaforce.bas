@@ -226,6 +226,8 @@
   dim bfalt = $2398
   rem the next extra life's score (xlife0/xlife1[nextx]; 8: no more)
   dim nextx = $2399
+  rem the results: 1 for all of the boss destroyed (10,000 more)
+  dim bperf = $239A
   rem the results' three lines of text (60 characters), each part's weight
   dim rtline = $23A0
   dim bwt = $23E0
@@ -1190,12 +1192,24 @@ boss_tally
   rem ======================================================================
 results_start
   bmsg = 0 : bready = 0 : bth = 0
-  bbonus = bdestr
-  if bdestr >= 100 then bbonus = bdestr + 100
+  rem the bonus, in hundreds: 100 a percent destroyed, 100 a link of the
+  rem longest chain (8: 800), and 10,000 more for all of it; added to the
+  rem score at once (the BONUS line flashes)
+  bbonus = bdestr + chmax
+  bperf = 0
+  if bdestr >= 100 then bperf = 1
   for k = 0 to 59 : rtline[k] = restmpl[k] : next
   temp1 = bdestr : temp5 = 12 : gosub put3
   temp1 = chmax : temp5 = 33 : gosub put3
   gosub results_bonus
+  temp1 = bbonus : temp2 = bperf : temp3 = 0
+  if temp1 >= 100 then temp1 = temp1 - 100 : temp2 = temp2 + 1
+results_bcd
+  if temp1 >= 10 then temp1 = temp1 - 10 : temp3 = temp3 + 1 : goto results_bcd
+  sadd2 = temp2 : sadd1 = temp3 * 16 + temp1 : sadd0 = 0
+  asm
+  jsr score_add
+end
   pfspeed = 0
   asm
   jsr mus_stop
@@ -1204,9 +1218,13 @@ results_start
 end
   return
 
-  rem the bonus still to count, in hundreds: "xxx00"
+  rem the bonus, in hundreds: "xxx00" (the perfect 100 on the first digit)
 results_bonus
   temp1 = bbonus : temp5 = 51
+  gosub put3
+  rtline[51] = rtline[51] + bperf * 2
+  rtline[54] = CH_0 : rtline[55] = CH_0
+  return
   rem 3 digits of temp1 into rtline from temp5
 put3
   temp2 = 0 : temp3 = 0
@@ -1222,18 +1240,6 @@ put3_t
 boss_clear
   btl = btl + 1
   if btl = 0 then bth = bth + 1
-  if btl < 60 && bth = 0 then return
-  if bbonus = 0 then goto boss_clear_wait
-  rem count the bonus in, 500 a step
-  temp1 = 5
-  if bbonus < 5 then temp1 = bbonus
-  bbonus = bbonus - temp1
-  sadd2 = 0 : sadd1 = temp1 : sadd0 = 0
-  asm
-  jsr score_add
-end
-  gosub results_bonus
-  return
 boss_clear_wait
   if btl < 240 && bth = 0 then return
   rem a fresh press of fire (released first) goes on
@@ -1265,14 +1271,19 @@ results_text
   tzone = 4 : gosub text
   tpal = 3 : tzone = 6 : temp1 = TXT_RESA : gosub text
   tzone = 7 : temp1 = TXT_RESB : gosub text
+  rem the bonus's figure flashes: spaces every other 8 frames (the line is
+  rem RAM; hiding the whole line off the screen needs 12 characters or
+  rem fewer)
+  temp2 = tick & 8
+  if temp2 then for k = 51 to 55 : rtline[k] = CH_SPACE : next
+  if temp2 = 0 then gosub results_bonus
   tpal = 6 : tzone = 8 : temp1 = TXT_RESC : gosub text
   if bdestr >= 100 then tpal = 7 : tzone = 10 : temp1 = TXT_PERFECT : gosub text
-  rem PRESS FIRE blinks once the bonus is in. Hidden (tpal + 128: off the
+  rem PRESS FIRE blinks after 4 seconds. Hidden (tpal + 128: off the
   rem screen), not left out, so the zone's display list keeps its shape.
   tpal = 7 + 128
   temp2 = tick & 32
   if temp2 then tpal = 7
-  if bbonus > 0 then tpal = 7 + 128
   if btl < 240 && bth = 0 then tpal = 7 + 128
   tzone = 12 : temp1 = TXT_PUSH : gosub text
   return
