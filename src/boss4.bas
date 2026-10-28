@@ -72,6 +72,9 @@ b4c_fill
   dex
   bpl b4c_fill
 end
+  rem the head where the trail ends (it is placed before its first tick:
+  rem left at 0, 0 its top would wrap onto the screen's left edge)
+  b4hxh = b4trx[63] : b4hyh = b4try[63] : b4hxl = 128 : b4hyl = 128
   return
 
   rem Each frame: the clock, the head (on the path, chasing, or flying

@@ -1255,7 +1255,8 @@ boss_clear
   btl = btl + 1
   if btl = 0 then bth = bth + 1
 boss_clear_wait
-  if btl < 240 && bth = 0 then return
+  rem (a second first, so a press meant for the fight doesn't skip it)
+  if btl < 60 && bth = 0 then return
   rem a fresh press of fire (released first) goes on
   temp3 = 0
   if joy0fire0 then temp3 = 1
@@ -1293,12 +1294,12 @@ results_text
   if temp2 = 0 then gosub results_bonus
   tpal = 6 : tzone = 8 : temp1 = TXT_RESC : gosub text
   if bdestr >= 100 then tpal = 7 : tzone = 10 : temp1 = TXT_PERFECT : gosub text
-  rem PRESS FIRE blinks after 4 seconds. Hidden (tpal + 128: off the
+  rem PRESS FIRE blinks after a second. Hidden (tpal + 128: off the
   rem screen), not left out, so the zone's display list keeps its shape.
   tpal = 7 + 128
   temp2 = tick & 32
   if temp2 then tpal = 7
-  if btl < 240 && bth = 0 then tpal = 7 + 128
+  if btl < 60 && bth = 0 then tpal = 7 + 128
   tzone = 12 : temp1 = TXT_PUSH : gosub text
   return
 
