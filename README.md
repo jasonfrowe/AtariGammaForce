@@ -40,6 +40,14 @@ work.
 Screenshots and the GIF above are from the A7800 emulator (`tools/play.sh`;
 `tools/make_gif.py` records the GIF), at twice size.
 
+## Manual
+
+A 16-page manual in the style of the old Atari booklets, ready to print
+and fold: [5 x 7 inches](docs/manual/Atari_Gamma_Force_Manual_5x7.pdf) or
+[4 x 6.5 inches](docs/manual/Atari_Gamma_Force_Manual_4x6.5.pdf). Its text is
+`docs/manual/manual.html`; `tools/make_manual.py` prints it (`--shots` takes
+its screenshots again, in the emulator).
+
 ## Controls
 
 | | |

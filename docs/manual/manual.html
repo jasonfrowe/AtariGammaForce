@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Atari Gamma Force Manual</title>
+<!--
+  The game's manual, a 16-page pocket booklet. tools/make_manual.py prints
+  it to PDF at 5 x 7 and 4 x 6.5 inches (it rewrites the SIZE line and the
+  @page rule for each). Open it in a browser to read or edit; everything is
+  sized from --base, so it fits both page sizes.
+-->
+<style>
+:root { /*SIZE*/ --page-w: 5in; --page-h: 7in; --base: 9pt; --pad: 0.38in 0.4in 0.42in; /*END*/
+  --ink: #15151a; --paper: #fffdf7; --muted: #55555e;
+  --navy: #0c1530; --red: #d93a26; --orange: #f08a1c; --yellow: #f4cd2a; --blue: #2f6fd6; --pink: #c25cb5;
+}
+@page { size: 5in 7in; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #777; }
+body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: var(--base); line-height: 1.32; color: var(--ink); }
+.page { width: var(--page-w); height: var(--page-h); padding: var(--pad); background: var(--paper); position: relative; overflow: hidden;
+  page-break-after: always; break-after: page; margin: 0 auto; }
+@media screen { .page { margin: 0.3in auto; box-shadow: 0 2px 12px rgba(0,0,0,.4); } }
+.folio { position: absolute; bottom: 0.17in; left: 0; right: 0; text-align: center; font-family: Futura, "Avenir Next", sans-serif; font-size: 0.8em; color: var(--muted); letter-spacing: .1em; }
+
+h1, h2, h3 { font-family: Futura, "Avenir Next", "Helvetica Neue", sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin: 0; }
+h2 { font-size: 1.55em; line-height: 1.1; margin-bottom: 0.15em; }
+h2 + .stripes { margin-bottom: 0.9em; }
+h3 { font-size: 1.05em; margin: 1em 0 0.3em; letter-spacing: .08em; }
+.stripes { height: 0.55em; display: grid; grid-template-rows: 1fr 1fr 1fr; gap: 0.12em; width: 100%; }
+.stripes i { display: block; } .stripes i:nth-child(1) { background: var(--red); } .stripes i:nth-child(2) { background: var(--orange); } .stripes i:nth-child(3) { background: var(--yellow); }
+p { margin: 0 0 0.6em; } ul { margin: 0 0 0.6em; padding-left: 1.2em; } li { margin-bottom: 0.25em; }
+b, strong { font-weight: 700; }
+.caps { font-family: Futura, "Avenir Next", sans-serif; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.shot { display: block; width: 100%; image-rendering: pixelated; border: 0.06em solid #222; }
+.px { image-rendering: pixelated; }
+.cap { font-size: 0.82em; color: var(--muted); margin: 0.25em 0 0.7em; text-align: center; }
+.note { border-left: 0.3em solid var(--orange); padding: 0.35em 0.6em; background: #fbf1df; margin: 0.6em 0; }
+table { border-collapse: collapse; width: 100%; margin: 0.3em 0 0.7em; }
+td, th { padding: 0.22em 0.3em; vertical-align: middle; text-align: left; border-bottom: 0.06em solid #d8d3c6; }
+th { font-family: Futura, "Avenir Next", sans-serif; text-transform: uppercase; font-size: 0.82em; letter-spacing: .08em; color: var(--muted); }
+td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7em; }
+
+/* the cover */
+.cover { background: var(--navy); color: #fff; padding: 0; }
+.cover .band { background: #000; color: #fff; font-family: Futura, "Avenir Next", sans-serif; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .2em; font-size: 0.95em; padding: 0.55em 0 0.45em; text-align: center; }
+.cover .band + .stripes { height: 0.7em; gap: 0; }
+.cover .logo { display: block; width: 78%; margin: 1.6em auto 0.8em; image-rendering: pixelated; }
+.cover .art { display: block; width: 100%; image-rendering: pixelated; }
+.cover .foot { position: absolute; bottom: 0; left: 0; right: 0; background: #000; text-align: center; padding: 0.55em 0 0.6em;
+  font-family: Futura, "Avenir Next", sans-serif; font-size: 0.85em; letter-spacing: .14em; text-transform: uppercase; }
+.cover .foot b { color: var(--yellow); }
+.cover .sub { text-align: center; font-family: Futura, "Avenir Next", sans-serif; letter-spacing: .3em; text-transform: uppercase; font-size: 0.9em; color: #cfd6ee; margin-bottom: 1em; }
+
+/* contents */
+.toc { list-style: none; padding: 0; margin: 0.4em 0 0; }
+.toc li { display: flex; align-items: baseline; margin-bottom: 0.45em; font-size: 1.05em; }
+.toc li span:first-child { font-family: Futura, "Avenir Next", sans-serif; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.toc li .dots { flex: 1; border-bottom: 0.1em dotted #999; margin: 0 0.4em; transform: translateY(-0.25em); }
+
+/* controls */
+.keys { display: grid; grid-template-columns: 6.2em 1fr; gap: 0.55em 0.7em; align-items: start; margin: 0.6em 0; }
+.key { background: var(--ink); color: #fff; font-family: Futura, "Avenir Next", sans-serif; font-weight: 700; text-transform: uppercase;
+  font-size: 0.85em; letter-spacing: .05em; text-align: center; padding: 0.35em 0.2em; border-radius: 0.35em; }
+.key.b1 { background: var(--red); } .key.b2 { background: var(--blue); } .key.both { background: linear-gradient(90deg, var(--red) 50%, var(--blue) 50%); }
+
+/* the HUD */
+.hud { position: relative; margin: 0.4em 0 1.6em; }
+.hud img { width: 100%; display: block; image-rendering: pixelated; }
+.hud .tag { position: absolute; top: 100%; transform: translateX(-50%); margin-top: 0.15em; width: 1.35em; height: 1.35em; border-radius: 50%;
+  background: var(--orange); color: #000; font-family: Futura, "Avenir Next", sans-serif; font-weight: 700; font-size: 0.85em; text-align: center; line-height: 1.35em; }
+.legend { display: grid; grid-template-columns: 1.6em 1fr; gap: 0.3em 0.4em; }
+.legend .n { width: 1.35em; height: 1.35em; border-radius: 50%; background: var(--orange); font-family: Futura, "Avenir Next", sans-serif; font-weight: 700;
+  font-size: 0.85em; text-align: center; line-height: 1.35em; }
+
+/* enemies */
+.foe { display: grid; grid-template-columns: 5.6em 1fr; gap: 0.7em; align-items: center; padding: 0.6em 0; border-bottom: 0.06em solid #d8d3c6; }
+.foe:last-child { border-bottom: 0; }
+.foe .pic { background: var(--navy); border-radius: 0.3em; height: 4.1em; display: flex; align-items: center; justify-content: center; padding: 0.3em; }
+.foe .pic img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+.foe h3 { margin: 0 0 0.15em; display: flex; justify-content: space-between; }
+.foe h3 .pts { color: var(--muted); font-weight: 400; letter-spacing: .02em; }
+.foe p { margin: 0; font-size: 0.95em; }
+
+/* stages */
+.stage { display: grid; grid-template-columns: 40% 1fr; gap: 0.7em; margin-bottom: 0.8em; }
+.stage .shots { display: grid; gap: 0.35em; }
+.stage h3 { margin-top: 0; }
+.stage h3 small { display: block; font-size: 0.75em; color: var(--muted); letter-spacing: .12em; }
+.stage p { font-size: 0.95em; }
+.boss { color: var(--red); }
+
+/* bullets row */
+.bullets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5em; margin: 0.5em 0 0.7em; text-align: center; }
+.bullets .pic { background: var(--navy); border-radius: 0.3em; height: 2.6em; display: flex; align-items: center; justify-content: center; }
+.bullets img { height: 1.7em; image-rendering: pixelated; }
+.bullets .t { font-size: 0.85em; margin-top: 0.2em; }
+
+/* back cover */
+.back { background: var(--navy); color: #e8ebf5; }
+.back h2 { color: #fff; }
+.back .grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4em; margin: 0.6em 0 0.9em; }
+.back .grid4 img { width: 100%; image-rendering: pixelated; display: block; border: 0.06em solid #000; }
+.back p { color: #cfd6ee; }
+.back .small { font-size: 0.8em; color: #9aa6c8; }
+</style>
+</head>
+<body>
+
+<!-- 1. COVER -->
+<section class="page cover">
+  <div class="band">For the Atari 7800</div>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <img class="logo" src="img/logo.png" alt="Gamma Force">
+  <div class="sub">A vertical shooter</div>
+  <img class="art" src="img/cover.png" alt="">
+  <div class="foot"><b>Game Manual</b> &nbsp;·&nbsp; 1 player &nbsp;·&nbsp; Joystick controller</div>
+</section>
+
+<!-- 2. CONTENTS -->
+<section class="page">
+  <h2>Contents</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <ul class="toc">
+    <li><span>The Mission</span><span class="dots"></span><span>3</span></li>
+    <li><span>Getting Started</span><span class="dots"></span><span>4</span></li>
+    <li><span>Using the Controls</span><span class="dots"></span><span>5</span></li>
+    <li><span>The Screen</span><span class="dots"></span><span>6</span></li>
+    <li><span>Your Weapons</span><span class="dots"></span><span>7</span></li>
+    <li><span>The Hyper Sword</span><span class="dots"></span><span>8</span></li>
+    <li><span>The Chain</span><span class="dots"></span><span>9</span></li>
+    <li><span>The Enemy</span><span class="dots"></span><span>10</span></li>
+    <li><span>The Stages</span><span class="dots"></span><span>12</span></li>
+    <li><span>Scoring</span><span class="dots"></span><span>14</span></li>
+    <li><span>Helpful Hints</span><span class="dots"></span><span>15</span></li>
+  </ul>
+  <div class="note" style="margin-top:2em">
+    Read this booklet before you play, and keep it with your cartridge.
+    It tells you how to fly, how to fight, and how to score big.
+  </div>
+  <div class="folio">2</div>
+</section>
+
+<!-- 3. THE MISSION -->
+<section class="page">
+  <h2>The Mission</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <p>The enemy came out of the dark between the stars. Their fortresses
+  hang in the sky above the cities, their battleships sail the seas, and
+  their armored trains roll across the deserts. One by one, the world's
+  defenses have fallen silent.</p>
+  <p>One fighter is left: the <b>Gamma Force</b>. Its twin <b>Vulcan</b>
+  cannons tear through enemy armor, and its <b>Radiant Sword</b>, a blade
+  of pure energy, can drink in the enemy's own fire and turn it into
+  power.</p>
+  <p>Your mission: fly the Gamma Force through four battlegrounds, from the
+  Sky Fortress to the Scorched Sands, and destroy the great war machine
+  that guards each one.</p>
+  <img class="shot" src="img/stage1.png" alt="The Sky Fortress">
+  <div class="cap">Over the Sky Fortress.</div>
+  <p>Shoot fast, chain your kills, and remember: the pink bullets are your
+  friends, if your sword is out.</p>
+  <div class="folio">3</div>
+</section>
+
+<!-- 4. GETTING STARTED -->
+<section class="page">
+  <h2>Getting Started</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <ol style="padding-left:1.2em;margin:0 0 0.7em">
+    <li>With your Atari 7800 turned <b>off</b>, insert the Gamma Force
+    cartridge, label facing up.</li>
+    <li>Plug a joystick controller into the left controller jack.</li>
+    <li>Turn the power on. The title screen appears.</li>
+  </ol>
+  <img class="shot" src="img/title.png" alt="The title screen">
+  <div class="cap">The title screen.</div>
+  <h3>On the title screen</h3>
+  <ul>
+    <li>Push the joystick <b>left or right</b> to choose the stage you start
+    on, 1 to 4.</li>
+    <li>Push it <b>up or down</b> to choose the mode: <span class="caps">Normal</span>,
+    or <span class="caps">Teddy Bear</span>, where the enemy fires about half
+    as many bullets.</li>
+    <li>Press either <b>button</b> to start.</li>
+  </ul>
+  <p>You begin with <b>3 ships</b>. When the last one is lost, the game is
+  over and you return to the title screen. After stage 4 the battle begins
+  again at stage 1, and your score keeps climbing.</p>
+  <div class="folio">4</div>
+</section>
+
+<!-- 5. CONTROLS -->
+<section class="page">
+  <h2>Using the Controls</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <p>Gamma Force is played with a two-button joystick, such as the one that
+  came with your Atari 7800.</p>
+  <div class="keys">
+    <div class="key">Joystick</div>
+    <div>Flies your ship in eight directions. You fly a little slower while
+    you fire, and slower still with the sword out.</div>
+    <div class="key b1">Button 1</div>
+    <div><b>Vulcan.</b> Hold it down for a stream of twin shots straight
+    ahead.</div>
+    <div class="key b2">Button 2</div>
+    <div><b>Radiant Sword.</b> Hold it down to swing the energy blade over
+    your ship. It cuts enemies that come close, and it
+    <b>absorbs pink bullets</b>.</div>
+    <div class="key both">Both</div>
+    <div><b>Hyper Sword.</b> When the sword gauge is full, press both
+    buttons together (see page 8).</div>
+    <div class="key">Pause</div>
+    <div>The console's <b>Pause</b> button stops the game. Press it again to
+    play on.</div>
+  </div>
+  <div class="note">With a one-button joystick, the button fires the Vulcan.
+  You need two buttons for the swords.</div>
+  <div class="folio">5</div>
+</section>
+
+<!-- 6. THE SCREEN -->
+<section class="page">
+  <h2>The Screen</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <p>The line across the top of the screen keeps you up to date:</p>
+  <div class="hud">
+    <img src="img/hud.png" alt="The status line">
+    <span class="tag" style="left:17%">1</span>
+    <span class="tag" style="left:42.5%">2</span>
+    <span class="tag" style="left:55%">3</span>
+    <span class="tag" style="left:75%">4</span>
+    <span class="tag" style="left:92.5%">5</span>
+  </div>
+  <div class="legend">
+    <span class="n">1</span><div><b>Score.</b></div>
+    <span class="n">2</span><div><b>The chain.</b> Three gems that light up in the color of the
+    enemies you are chaining (page 9).</div>
+    <span class="n">3</span><div><b>Chain level.</b> How many sets of three you have
+    chained.</div>
+    <span class="n">4</span><div><b>Sword gauge.</b> Fills with every pink bullet your
+    sword absorbs. When it is full it flashes gold: the Hyper Sword is
+    ready.</div>
+    <span class="n">5</span><div><b>Ships left.</b></div>
+  </div>
+  <h3>Messages</h3>
+  <p><span class="caps">Stage</span> and its number appear here when a stage
+  begins. <span class="caps">Warning</span> flashes when a boss is on its way:
+  get ready.</p>
+  <h3>Extra ships</h3>
+  <p>You earn an extra ship at <b>50,000</b> points, another at
+  <b>100,000</b>, and one more for every 100,000 after that.</p>
+  <div class="folio">6</div>
+</section>
+
+<!-- 7. YOUR WEAPONS -->
+<section class="page">
+  <h2>Your Weapons</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <h3 style="margin-top:0">The Vulcan</h3>
+  <p>Your main gun. Hold Button 1 and twin shots stream up the screen. It
+  is quick and it never runs out, but bigger enemies take many hits.</p>
+  <h3>The Radiant Sword</h3>
+  <p>Hold Button 2 and an arc of energy forms over your ship. The sword
+  hits hard, so use it on enemies that come close. Its real power is
+  defense: it <b>absorbs every pink bullet</b> that touches it. Each one is
+  worth points, and each one charges your sword gauge.</p>
+  <h3>Enemy fire</h3>
+  <div class="bullets">
+    <div><div class="pic"><img src="img/sp_pinkbullet.png" alt=""></div><div class="t"><b>Pink orb</b><br>absorb it</div></div>
+    <div><div class="pic"><img src="img/sp_needle.png" alt=""></div><div class="t"><b>Pink needle</b><br>absorb it</div></div>
+    <div><div class="pic"><img src="img/sp_bluebullet.png" alt=""></div><div class="t"><b>Blue ring</b><br>dodge it!</div></div>
+  </div>
+  <p><b>Pink</b> bullets can be absorbed by the sword. <b>Blue</b> bullets
+  cannot: they pass straight through the blade, so get out of the way.</p>
+  <img class="shot" src="img/sword.png" alt="The Radiant Sword" style="width:74%;margin:0.2em auto 0">
+  <div class="cap">The Radiant Sword drinks in the pink bullets.</div>
+  <div class="folio">7</div>
+</section>
+
+<!-- 8. HYPER SWORD -->
+<section class="page">
+  <h2>The Hyper Sword</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <p>Absorb <b>36 pink bullets</b> and your sword gauge is full. A chime
+  sounds, the gauge flashes gold, and your ship glows gold: the
+  <b>Hyper Sword</b> is ready.</p>
+  <p>Press <b>both buttons at once</b> to unleash it:</p>
+  <ul>
+    <li>Every enemy bullet on the screen vanishes, and each one is worth
+    20 points.</li>
+    <li>For a few seconds the sword blazes and a beam of light runs up the
+    screen, and nothing can touch your ship.</li>
+  </ul>
+  <img class="shot" src="img/hyper.png" alt="The Hyper Sword">
+  <div class="cap">The Hyper Sword, unleashed.</div>
+  <div class="note">Save the Hyper Sword for when you need it most: a
+  screen full of bullets, or a boss that has you cornered. Losing a ship
+  empties the gauge.</div>
+  <div class="folio">8</div>
+</section>
+
+<!-- 9. THE CHAIN -->
+<section class="page">
+  <h2>The Chain</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <p>Most enemies come in three colors: <b style="color:var(--red)">red</b>,
+  <b style="color:var(--blue)">blue</b> and <b style="color:#b38f00">yellow</b>.
+  Destroy <b>three of one color in a row</b> to complete a set. Each set
+  raises your <b>chain level</b> and pays a bonus, and the bonus grows
+  with every set you chain.</p>
+  <div style="display:flex;justify-content:center;gap:0.8em;margin:0.6em 0 0.8em">
+    <img class="px" src="img/sp_gem_red.png" style="height:1.5em" alt="">
+    <img class="px" src="img/sp_gem_red.png" style="height:1.5em" alt="">
+    <img class="px" src="img/sp_gem_red.png" style="height:1.5em" alt="">
+  </div>
+  <ul>
+    <li>The gems on the status line light up as you build a set.</li>
+    <li>After a full set, start the next with any color you like.</li>
+    <li>Change color <b>before</b> a set is complete and the chain is
+    broken: your chain level drops back to zero.</li>
+    <li>Gray enemies, like gunships, are not part of the chain. Shoot them
+    whenever you like.</li>
+    <li>Losing a ship breaks the chain.</li>
+  </ul>
+  <table>
+    <tr><th>Set</th><th class="num" style="text-align:right">Bonus</th></tr>
+    <tr><td>1st</td><td class="num">100</td></tr>
+    <tr><td>2nd</td><td class="num">200</td></tr>
+    <tr><td>3rd</td><td class="num">500</td></tr>
+    <tr><td>Each set after</td><td class="num">250 more each time</td></tr>
+    <tr><td>Top bonus</td><td class="num">10,000 a set</td></tr>
+  </table>
+  <div class="folio">9</div>
+</section>
+
+<!-- 10. THE ENEMY: in the air -->
+<section class="page">
+  <h2>The Enemy</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="foe"><div class="pic"><img src="img/sp_dart3.png" alt=""></div>
+    <div><h3>Dart <span class="pts">100</span></h3><p>Dives in fast, then turns on you.
+    Comes in waves: chain them.</p></div></div>
+  <div class="foe"><div class="pic"><img src="img/sp_wasp3.png" alt=""></div>
+    <div><h3>Wasp <span class="pts">100</span></h3><p>Weaves down the screen and fires a
+    fan of pink needles as it comes.</p></div></div>
+  <div class="foe"><div class="pic"><img src="img/sp_saucer3.png" alt=""></div>
+    <div><h3>Saucer <span class="pts">200</span></h3><p>Sways from side to side and fires
+    rings of pink bullets.</p></div></div>
+  <div class="foe"><div class="pic"><img src="img/sp_drone3.png" alt=""></div>
+    <div><h3>Drone <span class="pts">300</span></h3><p>Stops in the sky and aims straight
+    at you.</p></div></div>
+  <div class="foe"><div class="pic"><img src="img/sp_gunship.png" alt=""></div>
+    <div><h3>Gunship <span class="pts">2,000</span></h3><p>A heavy, armored craft that
+    hangs over the battle and fills the sky with fire. Gray: no chain.</p></div></div>
+  <div class="folio">10</div>
+</section>
+
+<!-- 11. THE ENEMY: on the ground -->
+<section class="page">
+  <h2>On the Ground</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="foe"><div class="pic"><img src="img/sp_turret.png" alt=""></div>
+    <div><h3>Turret <span class="pts">300</span></h3><p>Dug into fortress decks, rooftops
+    and gun pits. It turns to follow you.</p></div></div>
+  <div class="foe"><div class="pic"><img src="img/sp_tank.png" alt=""></div>
+    <div><h3>Tank <span class="pts">400</span></h3><p>Drives the city streets, its turret
+    tracking you.</p></div></div>
+  <div class="foe"><div class="pic"><img src="img/sp_gunboat.png" alt=""></div>
+    <div><h3>Gunboat <span class="pts">1,500</span></h3><p>Sails the open sea and answers
+    with fans and rings of fire.</p></div></div>
+  <div class="foe"><div class="pic"><img src="img/sp_train.png" alt="" style="max-height:90%"><img src="img/sp_traincar.png" alt="" style="max-height:90%;margin-left:0.25em"></div>
+    <div><h3>Armored train <span class="pts">800 a car</span></h3><p>A locomotive and its
+    gun cars roll up the railway. Each car is tough.</p></div></div>
+  <div class="foe"><div class="pic"><img src="img/sp_tower.png" alt=""></div>
+    <div><h3>Tower</h3><p>The Neon Spires' towers can't be destroyed. They
+    block shots and bullets, and <b>flying into one costs you a ship</b>.</p></div></div>
+  <div class="folio">11</div>
+</section>
+
+<!-- 12. STAGES 1-2 -->
+<section class="page">
+  <h2>The Stages</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="stage">
+    <div class="shots"><img class="shot" src="img/stage1.png" alt=""><img class="shot" src="img/boss1.png" alt=""></div>
+    <div><h3><small>Stage 1</small>Sky Fortress</h3>
+    <p>A steel fortress hangs over the sea, its decks bristling with
+    turrets.</p>
+    <p class="boss"><b>Boss: Gamma Core.</b></p>
+    <p>Its wings carry turrets of their own. Shoot away the wings and the
+    cannon, then crack the armored core.</p></div>
+  </div>
+  <div class="stage">
+    <div class="shots"><img class="shot" src="img/stage2.png" alt=""><img class="shot" src="img/boss2.png" alt=""></div>
+    <div><h3><small>Stage 2</small>Neon Spires</h3>
+    <p>A city at night. Tanks drive the streets, and towers rise in your
+    path: fly around them.</p>
+    <p class="boss"><b>Boss: Spire Warden.</b></p>
+    <p>Pods circle its core and shield it. Destroy every pod and the core
+    opens.</p></div>
+  </div>
+  <div class="folio">12</div>
+</section>
+
+<!-- 13. STAGES 3-4 -->
+<section class="page">
+  <h2>The Stages</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="stage">
+    <div class="shots"><img class="shot" src="img/stage3.png" alt=""><img class="shot" src="img/boss3.png" alt=""></div>
+    <div><h3><small>Stage 3</small>Iron Tide</h3>
+    <p>Islands, gun pits and gunboats on the open sea.</p>
+    <p class="boss"><b>Boss: Leviathan.</b></p>
+    <p>A battleship longer than the screen. Silence its guns and missile
+    bays, and bring down its bridge: then it carries you to the reactor at
+    its stern, where fighters defend it to the last.</p></div>
+  </div>
+  <div class="stage">
+    <div class="shots"><img class="shot" src="img/stage4.png" alt=""><img class="shot" src="img/boss4.png" alt=""></div>
+    <div><h3><small>Stage 4</small>Scorched Sands</h3>
+    <p>Desert, oases, and armored trains on the railway.</p>
+    <p class="boss"><b>Boss: Dune Wyrm.</b></p>
+    <p>A sandworm winding a figure eight. Its head can't be hurt until its
+    tail and every segment are gone, and when you hurt it, it turns and
+    gives chase!</p></div>
+  </div>
+  <div class="folio">13</div>
+</section>
+
+<!-- 14. SCORING -->
+<section class="page">
+  <h2>Scoring</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <table>
+    <tr><td>Pink bullet absorbed by the sword</td><td class="num">10</td></tr>
+    <tr><td>Bullet cleared by the Hyper Sword</td><td class="num">20</td></tr>
+    <tr><td>Enemies</td><td class="num">100 – 2,000</td></tr>
+    <tr><td>Chain bonus, each set</td><td class="num">100 – 10,000</td></tr>
+    <tr><td>Boss part (a gun, a wing, a pod …)</td><td class="num">2,000</td></tr>
+    <tr><td>Boss core</td><td class="num">10,000</td></tr>
+    <tr><td>Every other part destroyed before the core</td><td class="num">20,000</td></tr>
+  </table>
+  <h3>The results</h3>
+  <p>When a boss falls, the results show how much of it you destroyed and
+  your longest chain, and you get a bonus:</p>
+  <table>
+    <tr><td>Each percent of the boss destroyed</td><td class="num">100</td></tr>
+    <tr><td>Each level of your longest chain</td><td class="num">100</td></tr>
+    <tr><td><span class="caps">Perfect destruction</span> (100%)</td><td class="num">10,000</td></tr>
+  </table>
+  <img class="shot" src="img/results.png" alt="The results" style="width:58%;margin:0 auto">
+  <div class="note">A boss won't wait forever. Take too long and it
+  escapes, and you keep only what you destroyed.</div>
+  <div class="folio">14</div>
+</section>
+
+<!-- 15. HINTS -->
+<section class="page">
+  <h2>Helpful Hints</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <ul>
+    <li><b>Turn the sword on the pink.</b> A ring of pink bullets heading
+    your way is a gift: sword out, and the gauge fills.</li>
+    <li><b>Watch for blue.</b> The sword can't stop blue rings. Dodge
+    those, and let the sword take the rest.</li>
+    <li><b>Chain the waves.</b> Darts and saucers come in groups of one
+    color. Finish a set before you switch.</li>
+    <li><b>Strip the boss first.</b> Destroy every part before the core
+    for the 20,000-point bonus and a shot at perfect destruction.</li>
+    <li><b>Stay low, but not too low.</b> You only fire upward. Keep room
+    below you to back away from trouble.</li>
+    <li><b>Mind the towers.</b> In the Neon Spires, never fly into a
+    tower.</li>
+    <li><b>Outrun the Wyrm.</b> When the Dune Wyrm gives chase, keep
+    moving: it is a little slower than you.</li>
+    <li><b>New to shooters?</b> Choose <span class="caps">Teddy Bear</span>
+    mode on the title screen. The enemy fires about half as many bullets.</li>
+  </ul>
+  <div class="folio">15</div>
+</section>
+
+<!-- 16. BACK COVER -->
+<section class="page back">
+  <h2>Gamma Force</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="grid4">
+    <img src="img/boss1.png" alt=""><img src="img/boss2.png" alt="">
+    <img src="img/boss3.png" alt=""><img src="img/boss4.png" alt="">
+  </div>
+  <p>Four battlegrounds. Four colossal bosses. One fighter with a sword of
+  light.</p>
+  <p>Gamma Force is a demake of <b>MegaGammaForce</b> for the Picocomputer
+  6502, rebuilt for the Atari 7800 with smooth scrolling, POKEY music, and
+  the chain, the sword and the bosses of the original.</p>
+  <p class="small">Atari Gamma Force © 2026 Jason Rowe. Free software,
+  released under the GNU General Public License, version 3.<br>
+  Atari and Atari 7800 are trademarks of their owners. This is an
+  independent game, not made or endorsed by Atari.</p>
+</section>
+
+</body>
+</html>
