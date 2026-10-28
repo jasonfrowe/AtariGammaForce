@@ -1138,8 +1138,45 @@ def stage4():
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
             "charset": "charset4", "pals": [nearest(c) for p in STAGE4_PALETTES for c in p],
             "bg": nearest(STAGE4_BG), "song": "SONG_STAGE4", "bosssong": "SONG_BOSS4",
-            "waves": wave_cols(meta["waves"]), "ground": ground_cols(units),
+            "waves": spread_waves(wave_cols(meta["waves"]), ground_cols(units)), "ground": ground_cols(units),
             "pal_codes": [[nearest(c) for c in p] for p in STAGE4_PALETTES]}
+
+
+# What a unit costs the frame, roughly, for spread_waves: train cars and
+# gunships are tall (3 objects or more), saucers fire rings of 8
+UNIT_WEIGHT = {"ET_TRAIN": 3, "ET_GUNSHIP": 3, "ET_GUNBOAT": 3, "ET_SAUCER": 2}
+
+
+def spread_waves(w, gr, cap=11, life=260, step=20, most=300, weights=None):
+    """Air waves moved later (never earlier, in order, at most `most`
+    pixels) where they would pile up: a rough load of the units on the
+    screen (each about `life` pixels of scroll, ground units included,
+    each 1 or, with weights=UNIT_WEIGHT, by kind) is kept to `cap` if
+    moving a wave can do it. (Stage 4 measured best unweighted, cap 11.)"""
+    weight = {ENEMY_TYPES[k]: v for k, v in (weights or {}).items()}
+    ground = [((h << 8) | l, weight.get(t, 1)) for l, h, t in zip(gr["gtl"], gr["gth"], gr["gtype"])]
+    ats = [(h << 8) | l for l, h in zip(w["watl"], w["wath"])]
+    placed = []
+    def load(x, extra):
+        evs = ground + placed + [extra]
+        return max(sum(c for a, c in evs if a <= y < a + life) for y in range(x, x + life, 20))
+    prev = 0
+    for at, n, t in zip(ats, w["wcount"], w["wtype"]):
+        count = n * weight.get(t, 1)
+        x0 = max(at, prev)
+        best = x0
+        for x in range(x0, at + most + 1, step):
+            if load(x, (x, count)) <= cap:
+                best = x
+                break
+        else:
+            best = min(range(x0, at + most + 1, step), key=lambda x: load(x, (x, count)))
+        placed.append((best, count))
+        prev = best
+    out = dict(w)
+    out["watl"] = [a & 255 for a, _ in placed]
+    out["wath"] = [a >> 8 for a, _ in placed]
+    return out
 
 
 def trig_tables():

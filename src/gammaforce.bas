@@ -1422,6 +1422,7 @@ end
   inline stage4.asm
   inline musicdata4b.asm
   inline boss4tab.asm
+  incbasic boss4b.bas
   incbasic gen/gfx4.bas
   dmahole 0
   inline musicdata4.asm

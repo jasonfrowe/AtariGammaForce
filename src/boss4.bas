@@ -2,15 +2,16 @@
   rem  DUNE WYRM, the stage 4 boss (MegaGammaForce's boss4.c): a sandworm
   rem  whose head winds a figure of eight, its body following. Slots: 0 the
   rem  tail, 1-8 body segments (8 nearest the head), 9-10 the head (top;
-  rem  bottom), which is the core. Every slot follows the head's path some
-  rem  frames behind it (gen/boss4tab.asm: the path, each slot's lag and
-  rem  offset), so no trail is kept: the path is worked out again for each
-  rem  part from the path clock. A shot-off segment stays on, as a wreck.
-  rem  Once three of its tail and segments are down it gives chase: the head
-  rem  steers for the ship, slower than the ship can fly, and the body
-  rem  follows a trail of where the head has been. The head can't be hurt
-  rem  until the tail and every segment are down.
-  rem  It lives in stage 4's bank; the shared boss code calls it.
+  rem  bottom), which is the core. The head's path is a clock and two tables
+  rem  (gen/boss4tab.asm); the body follows a trail of where the head has
+  rem  been (64 positions, one every 2 frames, each part its lag back, the
+  rem  frames between taking the middle of two). As 3, then 6, of its tail
+  rem  and segments fall it gives chase for 4 seconds: the head steers for
+  rem  the ship, a little slower than the ship flies, then flies back to
+  rem  where its path has got to and goes on along it. The trail carries the
+  rem  body through all of it without a jump. A shot-off segment stays on,
+  rem  as a wreck. The head can't be hurt until the tail and every segment
+  rem  are down. It lives in stage 4's bank; the shared boss code calls it.
   rem ======================================================================
 
   rem the path clock (16 bits), how far it still has to rise into view,
@@ -19,8 +20,9 @@
   dim b4thi = $235D
   dim b4yoff = $235E
   dim b4drop = $2380
-  rem the chase: on (1); the head's centre (8.8) and heading; the trail
-  rem (64 positions, one every 2 frames) and its newest entry
+  rem 0 the path, 1 the chase, 2 back to the path; the head's centre (8.8)
+  rem and heading; the trail's newest entry, and 1 between entries; the
+  rem chase's time left; the number of parts down for the next chase
   dim b4mode = $2326
   dim b4hxl = $2327
   dim b4hxh = $2328
@@ -28,7 +30,9 @@
   dim b4hyh = $232A
   dim b4ang = $232B
   dim b4ti = $232C
-  dim b4pc = $232D
+  dim b4ph = $232D
+  dim b4ct = $232E
+  dim b4next = $232F
   dim b4trx = $2740
   dim b4try = $2780
 
@@ -38,50 +42,111 @@ boss4_build
     bwt[k] = boss4_wt[k] : eparam[k] = 0
   next
   rem (the head at the top of the figure: t = 384, then up out of sight)
-  bcorehp = 250 : b4tlo = 128 : b4thi = 1 : b4yoff = 150 : b4drop = 0 : b4mode = 0
+  bcorehp = 250 : b4tlo = 128 : b4thi = 1 : b4yoff = 150 : b4drop = 0
+  b4mode = 0 : b4next = 3 : b4ti = 63 : b4ph = 0
+  rem the trail: the path behind the head, 2 frames an entry
+  asm
+  lda b4tlo
+  sta temp1
+  lda b4thi
+  sta temp2
+  ldx #63
+b4c_fill
+  ldy temp1
+  lda b4px,y
+  sta b4trx,x
+  lda temp2
+  lsr
+  lda temp1
+  ror
+  tay
+  lda b4py,y
+  sta b4try,x
+  sec
+  lda temp1
+  sbc #2
+  sta temp1
+  lda temp2
+  sbc #0
+  sta temp2
+  dex
+  bpl b4c_fill
+end
   return
 
+  rem Each frame: the clock, the head (on the path, chasing, or flying
+  rem back to the path), and every other frame the trail's next entry
 boss4_tick
   b4tlo = b4tlo + 1
   if b4tlo = 0 then b4thi = b4thi + 1
+  rem the path's point now: temp4, temp5
+  asm
+  ldy b4tlo
+  lda b4px,y
+  sta temp4
+  lda b4thi
+  lsr
+  lda b4tlo
+  ror
+  tay
+  lda b4py,y
+  sta temp5
+end
+  if b4mode = 1 then gosub b4_chase : goto b4t_trail
+  if b4mode = 2 then gosub b4_back : goto b4t_trail
+  b4hxh = temp4 : b4hyh = temp5 : b4hxl = 128 : b4hyl = 128
+b4t_trail
+  b4ph = b4ph ^ 1
+  if b4ph then return
+  b4ti = (b4ti + 1) & 63
+  temp1 = b4ti
+  b4trx[temp1] = b4hxh : b4try[temp1] = b4hyh
   return
 
-  rem Each part where the head was its lag ago: on the path, x by t and
-  rem the line by t / 2 (an 8: across twice for each time down); in the
-  rem chase, from the trail. Less the rise still to come, plus the sinking.
-  rem Above or below the screen it waits off to the right.
+  rem Each part where the head was its lag ago (the head itself: where it
+  rem is), less the rise still to come, plus the sinking. Above or below
+  rem the screen it waits off to the right.
 boss4_place
   asm
   ldx #10
 b4p_loop
   lda etype,x
   beq b4p_next
-  lda b4mode
-  beq b4p_path
-  lda b4ti                ; the chase: the trail, lag entries back
+  lda b4lagt,x
+  bne b4p_trail
+  lda b4hxh               ; the head
+  sta temp2
+  lda b4hyh
+  jmp b4p_y
+b4p_trail
+  sta temp1
+  lda b4ti
   sec
-  sbc b4lagt,x
+  sbc temp1
   and #63
   tay
   lda b4trx,y
   sta temp2
   lda b4try,y
-  jmp b4p_y
-b4p_path
-  sec
-  lda b4tlo
-  sbc b4lag,x
-  sta temp1               ; t & 255
+  sta temp3
+  lda b4ph                ; between entries: halfway to the next
+  beq b4p_one
+  iny
+  tya
+  and #63
   tay
-  lda b4px,y
-  sta temp2
-  lda b4thi
-  sbc #0
-  lsr                     ; (t / 2) & 255
-  lda temp1
+  lda b4trx,y
+  clc
+  adc temp2
   ror
-  tay
-  lda b4py,y
+  sta temp2
+  lda b4try,y
+  clc
+  adc temp3
+  ror
+  sta temp3
+b4p_one
+  lda temp3
 b4p_y
   clc
   adc b4dy,x              ; (the sum never wraps: lines 40-222)
@@ -123,99 +188,40 @@ b4p_frames
 end
   return
 
-  rem The chase begins: the trail filled from the path behind the head
-  rem (each entry 2 frames of the path apart), the head where it is, and
-  rem heading for the ship
-b4_chase_start
-  b4mode = 1 : b4ti = 63 : b4pc = 0
-  asm
-  lda b4tlo
-  sta temp1
-  lda b4thi
-  sta temp2
-  ldx #63
-b4c_fill
-  ldy temp1
-  lda b4px,y
-  sta b4trx,x
-  lda temp2
-  lsr
-  lda temp1
-  ror
-  tay
-  lda b4py,y
-  sta b4try,x
-  sec
-  lda temp1
-  sbc #2
-  sta temp1
-  lda temp2
-  sbc #0
-  sta temp2
-  dex
-  bpl b4c_fill
-end
-  b4hxh = b4trx[63] : b4hyh = b4try[63] : b4hxl = 128 : b4hyl = 128
-  fx = b4hxh : fy = b4hyh : gosub aim
-  b4ang = fang
-  return
-
-  rem The chase, each frame: the heading turns toward the ship (1 every
-  rem other frame: a wide, snaking turn), the head moves on (speed 16: about half a line a
-  rem frame, slower than the ship), and every 9th frame the trail takes its
-  rem place (the head is slow now: entries 4 or 5 lines apart keep the body's
-  rem segments about 25 lines apart; those from the path were 2 frames
-  rem apart, and the body draws together as they pass)
+  rem The chase: the heading turns toward the ship (2 a frame), but held
+  rem when close (2|dx| + |dy| < 60 lines: it lunges on past and swings
+  rem back, rather than coiling round the ship); speed 44, about 1.4 lines
+  rem a frame (the ship flies 1.5-2). After 4 seconds, back to the path.
 b4_chase
-  rem close to the ship (2|dx| + |dy| < 60 lines) it holds its heading:
-  rem it lunges on past and swings back, rather than circling the ship
-  rem with its body coiled round it; and it turns only every other frame
-  rem (a circle about as long as its body)
-  temp1 = tick & 1
-  if temp1 then goto b4_go
+  b4ct = b4ct - 1
+  if b4ct = 0 then b4mode = 2
   temp2 = b4hxh - pcx
   if temp2 >= 128 then temp2 = 0 - temp2
   temp3 = b4hyh - pcy
   if temp3 >= 128 then temp3 = 0 - temp3
-  if temp2 < 30 && temp3 < 60 then temp4 = temp2 * 2 + temp3 : if temp4 < 60 then goto b4_go
+  if temp2 < 30 && temp3 < 60 then temp6 = temp2 * 2 + temp3 : if temp6 < 60 then goto b4_go
   fx = b4hxh : fy = b4hyh : gosub aim
   temp1 = fang - b4ang
-  if temp1 >= 1 && temp1 < 128 then b4ang = b4ang + 1
-  if temp1 >= 128 then b4ang = b4ang - 1
+  if temp1 >= 2 && temp1 < 128 then b4ang = b4ang + 2
+  if temp1 >= 128 && temp1 < 255 then b4ang = b4ang - 2
 b4_go
-  fang = b4ang : fspd = 16
-  asm
-  jsr ang_vel
-  lda velx
-  jsr ob_x8
-  clc
-  lda b4hxl
-  adc ob1
-  sta b4hxl
-  lda b4hxh
-  adc ob2
-  sta b4hxh
-  lda vely
-  jsr ob_x8
-  clc
-  lda b4hyl
-  adc ob1
-  sta b4hyl
-  lda b4hyh
-  adc ob2
-  sta b4hyh
-end
-  if b4hxh < 20 then b4hxh = 20
-  if b4hxh > 140 then b4hxh = 140
-  if b4hyh < 64 then b4hyh = 64
-  if b4hyh > 210 then b4hyh = 210
-  b4pc = b4pc + 1
-  if b4pc < 9 then return
-  b4pc = 0
-  b4ti = (b4ti + 1) & 63
-  temp1 = b4ti
-  b4trx[temp1] = b4hxh : b4try[temp1] = b4hyh
-  return
+  fang = b4ang : fspd = 44
+  goto b4_move
+
+  rem Back: straight for the path's point (speed 100, faster than the path
+  rem runs), and on along the path once there
+b4_back
+  temp2 = b4hxh - temp4
+  if temp2 >= 128 then temp2 = 0 - temp2
+  temp3 = b4hyh - temp5
+  if temp3 >= 128 then temp3 = 0 - temp3
+  if temp2 < 3 && temp3 < 6 then b4mode = 0 : b4hxh = temp4 : b4hyh = temp5 : return
+  rem (aim at the point: aim_player aims at pcx, pcy)
+  temp2 = pcx : temp3 = pcy : pcx = temp4 : pcy = temp5
+  fx = b4hxh : fy = b4hyh : gosub aim
+  pcx = temp2 : pcy = temp3
+  b4ang = fang : fspd = 100
+  goto b4_move
 
   rem It rises into view along its path
 boss4_enter
@@ -229,13 +235,16 @@ boss4_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
   gosub boss4_tick
-  rem three of the tail and segments down: the chase
-  if b4mode then gosub b4_chase : goto b4f_place
+  rem 3, then 6, of the tail and segments down: a chase
+  if b4mode then goto b4f_place
   temp2 = 0
   for k = 0 to 8
     if etype[k] <> ET_PCANNON then temp2 = temp2 + 1
   next
-  if temp2 >= 3 then gosub b4_chase_start
+  if temp2 < b4next then goto b4f_place
+  b4next = b4next + 3 : b4mode = 1 : b4ct = 240
+  fx = b4hxh : fy = b4hyh : gosub aim
+  b4ang = fang
 b4f_place
   gosub boss4_place
   rem 90 seconds and it escapes
@@ -243,6 +252,9 @@ b4f_place
   if plvuln = 0 then return
   gosub boss4_attack
   return
+
+  rem (the head's move, its sinking and its tables: boss4b.bas, in the
+  rem bank's main area; this file is in the DMA hole)
 
 boss4_attack
   rem the head: a pink fan of five straight down, then an aimed blue three
@@ -291,31 +303,3 @@ b4_fan
 end
   return
 
-  rem Dying: it stops and sinks into the sand, bursting along its length
-  rem (the next blast at a part chosen at random)
-boss4_sinking
-  temp1 = btl & 3
-  if temp1 = 0 then b4drop = b4drop + 1
-  k = rand & 7
-  bx = exh[k] + 12 : by = eyh[k] + 24
-  return
-
-  rem ---- parts: type, image, hit points, share of the boss (%) ----
-  rem (the head's 30 is counted apart)
-  data boss4_type
-  ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PCORE, ET_PCORE
-end
-  data boss4_img
-  IMG_B4TAIL, IMG_B4SEG, IMG_B4SEG, IMG_B4SEG, IMG_B4SEG, IMG_B4SEG, IMG_B4SEG, IMG_B4SEG, IMG_B4SEG, IMG_B4HEADT, IMG_B4HEADB
-end
-  data boss4_hp
-  90, 50, 50, 50, 50, 50, 50, 50, 50, 0, 0
-end
-  data boss4_wt
-  14, 7, 7, 7, 7, 7, 7, 7, 7, 0, 0
-end
-  rem each slot's lag on the chase's trail (entries, 2 frames each: the
-  rem path's lag, b4lag, halved)
-  data b4lagt
-  50, 44, 39, 33, 28, 22, 17, 11, 6, 0, 0
-end
