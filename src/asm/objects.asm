@@ -968,6 +968,15 @@ en_hits_ship
      ; Ship: its centre inside the box shrunk by 2
      lda plvuln
      beq en_hits_next
+     ; (not a boss's parts once it is beaten or gone: LEVIATHAN sinks or
+     ; sails away down the screen, over the ship)
+     lda etype,x
+     cmp #ET_PART
+     bcc en_hits_shipgo
+     lda bstate
+     cmp #4
+     bcs en_hits_next
+en_hits_shipgo
      lda pcx
      sec
      sbc #2
