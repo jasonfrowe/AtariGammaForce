@@ -986,6 +986,17 @@ pf_drawscreen
          jsr waitforvblankstart
      endif
      jsr waitforvblankstart  ; the start of MARIA's vblank (a full frame if late)
+     ifconst IDLELOG
+         jsr il_take         ; (from main_early's il_go: the early steps too)
+         sec
+         sbc il_e
+         sta il_w
+         ldx #5
+il_pub   lda il_c,x          ; publish this frame's record at once
+         sta il_out,x
+         dex
+         bpl il_pub
+     endif
      ; How many frames this one took: the overscan NMIs since it began
      ; (one a frame, just before each vblank; pfvbl, from userinterrupt).
      ; Each frame past the first is a step to catch up (at most 2). Counting
@@ -1088,6 +1099,81 @@ RINGI SET RINGI+1
      REPEND
 
 ; ---------------------------------------------------------------------------
+; pf_early: after the draw step, should a catch-up step run now? (A = 1,
+; Z clear: yes.) Only when the frame is late already: a vblank has passed
+; since it began, so at the next one it will owe a catch-up step for each
+; (at most 2; pfahead of them run so far). And only when one fits before
+; that vblank: the RIOT timer, restarted by the NMI just before each
+; vblank (userinterrupt), says how far into the frame it is, in 1024-cycle
+; ticks (29 a frame): up to 16 in, as a catch-up step takes 11 (16 at
+; most in 99 of 100, stage 2's busiest stretches). One that runs over only
+; shows the frame one later, with a step fewer owed. (13, 16 and 19 did
+; about the same; 10 less well.)
+PF_EARLYMAX = 16
+pfahead     = $22C6 ; catch-up steps run early, before the frame showed
+pfowe       = $22C7 ; catch-up steps still owed when the next frame begins
+pf_early
+     lda pfvbl
+     sec
+     sbc pfvbl0              ; vblanks passed: steps owed at the next
+     beq pf_early_no
+     cmp #3
+     bcc pf_early_cap
+     lda #2
+pf_early_cap
+     cmp pfahead
+     beq pf_early_no
+     bcc pf_early_no
+     lda #255
+     sec
+     sbc INTIM               ; ticks since the NMI
+     cmp #PF_EARLYMAX+1
+     bcs pf_early_no
+     lda #1
+     rts
+pf_early_no
+     lda #0
+     rts
+
+; Idle log (debug, IDLELOG): each displayed frame's catch-up steps after
+; the vblank (il_c, il_n of them), draw step (il_d), catch-up steps run
+; early (il_e, il_a of them) and wait for vblank (il_w), in 1024-cycle
+; ticks, published together at il_out for a script to read.
+il_out      = $25F0 ; [6] c, d, w, n, e, a
+il_c        = $25F6
+il_d        = $25F7
+il_w        = $25F8
+il_n        = $25F9
+il_e        = $25FA
+il_a        = $25FB
+il_v0       = $25FC
+il_t0       = $25FD
+     ifconst IDLELOG
+il_go
+     lda pfvbl
+     sta il_v0
+     lda INTIM
+     sta il_t0
+     rts
+; A = ticks since il_go: frames passed * 29 + the timer's fall
+il_take
+     lda pfvbl
+     sec
+     sbc il_v0
+     tax
+     lda il_t0
+     sec
+     sbc INTIM
+il_take_v
+     dex
+     bmi il_take_done
+     clc
+     adc #29
+     jmp il_take_v
+il_take_done
+     rts
+     endif
+
 ; Profiling (debug): prof_start starts the RIOT timer counting down in
 ; 64-cycle steps; prof_mark stores the time since the last mark (in 64s of
 ; cycles, wall time, so MARIA's DMA counts too) at profbuf+A, and restarts.

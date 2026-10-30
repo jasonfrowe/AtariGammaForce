@@ -41,6 +41,9 @@
 
   rem Uncomment to time the main loop's sections (tools/profile.py).
   rem const PROFILE = 1
+  rem Uncomment to log each displayed frame's catch-up, draw and wait time
+  rem (engine.asm il_*; RIOT timer, 1024-cycle ticks, at $25F0).
+  rem const IDLELOG = 1
   rem Testing: start at the boss, and/or never get hit.
   rem const BOSSTEST = 1
   rem const CHEAT = 1
@@ -101,6 +104,8 @@
   dim spos_hi = $2232
   dim pflate = $22C1
   dim pfnodraw = $22C2
+  dim pfahead = $22C6
+  dim pfowe = $22C7
   dim pfdraws = $22C3
   dim hudtext = $2240
 
@@ -400,7 +405,7 @@ newgame
   lives = 3 : gauge = 0 : hyper = 0 : nextx0 = 0 : nextx = $05
   chlevel = 0 : chcount = 0 : chcolor = 255 : chmax = 0
   vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0 : gn = 0 : gcolor = 0
-  swcd = 0
+  swcd = 0 : pfahead = 0
   for i = 0 to NE1 : etype[i] = 0 : next
   for i = 0 to NB1 : bkind[i] = 0 : next
   for i = 0 to NS1 : shy[i] = 0 : next
@@ -429,17 +434,65 @@ main
 end
   rem After a late frame (the last one showed for two or three), a
   rem catch-up step for each extra frame, drawing nothing, so the game
-  rem keeps its speed (engine.asm pf_drawscreen).
-  if pflate = 0 then goto main_step
+  rem keeps its speed (engine.asm pf_drawscreen); less those already run
+  rem early, while waiting for the frame to show (below).
+  pfowe = 0 : if pflate > pfahead then pfowe = pflate - pfahead
+  pfahead = 0
+  asm
+  ifconst IDLELOG
+  lda #0
+  sta il_c
+  lda pfowe
+  sta il_n
+  jsr il_go
+  endif
+end
+  if pfowe = 0 then goto main_step
   pfnodraw = 1 : gosub step
-  if pflate >= 2 then gosub step
+  if pfowe >= 2 then gosub step
   pfnodraw = 0
+  asm
+  ifconst IDLELOG
+  jsr il_take
+  sta il_c
+  jsr il_go
+  endif
+end
 main_step
   gosub step
   rem Text after the sprites, on top of them (engine.asm pf_text)
   if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
   if bstate = 5 then gosub results_text
   asm
+  ifconst IDLELOG
+  jsr il_take
+  sta il_d
+  lda #0
+  sta il_e
+  jsr il_go
+  endif
+end
+  rem Late already (the logic ran past a vblank)? Rather than wait for the
+  rem next one idle, run the catch-up steps it will owe now, each only if
+  rem it fits before that vblank (engine.asm pf_early). Otherwise a frame
+  rem that showed for three left two steps for the next, and with them it
+  rem took three again: slow spots stuck at 20 frames a second.
+main_early
+  asm
+  jsr pf_early
+  beq .main_wait
+end
+  pfnodraw = 1 : gosub step : pfnodraw = 0
+  pfahead = pfahead + 1
+  goto main_early
+main_wait
+  asm
+  ifconst IDLELOG
+  jsr il_take
+  sta il_e
+  lda pfahead
+  sta il_a
+  endif
   jsr pf_drawscreen
 end
   if overt = 1 then goto title
@@ -1443,6 +1496,10 @@ hud_over
 userinterrupt
   asm
   inc pfvbl
+  ifnconst PROFILE
+  lda #255                ; the RIOT timer: time since this NMI (pf_early)
+  sta T1024T
+  endif
   lda bgwant
   beq ui_bg
   sta BACKGRND
