@@ -230,7 +230,10 @@ b5_hatches
   fkind = BK_BLUE : fspd = 40 : fcount = 3 : fstep = 16 : gosub b5_fan
 b5_reactor
   rem the reactor, once in view: a pink ring, a blue one late in the
-  rem fight, and a two-armed spiral once it is hurt
+  rem fight, and once it is hurt a two-armed spray at the ship: every 8
+  rem frames a pink and a blue, aimed, the arms swinging across each other
+  rem through a 30-degree cone (aim +- 11 cos(bspin): +-15 degrees). (It
+  rem was a spiral, MegaGammaForce's, half of it wasted away from the ship.)
   if eyh[5] = 0 then return
   temp1 = btl & 127
   fx = exh[5] + 6 : fy = eyh[5] + 14
@@ -239,15 +242,20 @@ b5_reactor
   if bcorehp >= 125 then return
   temp1 = btl & 7
   if temp1 then return
-  fang = bspin : fspd = 36 : fkind = BK_PINK
+  gosub aim
+  wang = bspin : wamp = 11
+  asm
+  jsr weave
+end
+  fang = aimang + woff : fspd = 36 : fkind = BK_PINK
   asm
   jsr bul_fire
 end
-  fang = bspin + 128 : fkind = BK_BLUE
+  fang = aimang - woff : fkind = BK_BLUE
   asm
   jsr bul_fire
 end
-  bspin = bspin + 11
+  bspin = bspin + 16
   return
 
 b5_fan
