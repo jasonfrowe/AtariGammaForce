@@ -195,7 +195,8 @@ boss6_fight
   rem 100 seconds, and it drifts away
   if bth >= 23 then bescape = 1 : gosub boss_tally : bstate = 4 : btl = 0 : pfspeed = 250 : return
   rem now and then (about every 17 seconds) a pair of gunships comes down
-  rem to guard it, strafing halfway down the screen
+  rem to guard it, strafing a quarter of the way down the screen (its
+  rem middle at line 52)
   temp1 = bth & 3
   if btl = 128 && temp1 = 1 then temp2 = 40 : gosub b6_gun : temp2 = 104 : gosub b6_gun
   if plvuln = 0 then return
@@ -211,7 +212,7 @@ b6_gun
   next
   return
 b6_gun_slot
-  j = 0 : sptype[0] = ET_GUNSHIP : sppal[0] = 2 : spx[0] = temp2 : spparam[0] = 120
+  j = 0 : sptype[0] = ET_GUNSHIP : sppal[0] = 2 : spx[0] = temp2 : spparam[0] = 68
   goto spawn_slot
 
   rem Satellite i, destroyed, becomes debris: a tower falling half a line
