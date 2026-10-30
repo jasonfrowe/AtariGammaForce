@@ -105,6 +105,7 @@ a7800 a7800 -cart build/gammaforce.a78
 | `tools/7800basic/` | 7800basic v0.41 (stock) |
 | `tools/test_scroll.sh` | Headless engine regression test |
 | `tools/play.sh` | Headless scripted play (inputs, screenshots, memory peeks) |
+| `tools/pcprof.py`, `tools/dmalog.py` | CPU cycle profile and MARIA DMA load per line, from the [a7800 fork](https://github.com/jasonfrowe/a7800)'s development tools (`A7800_PROFILE`, `A7800_DMA_LOG`) |
 | `tests/` | Play scripts (`tools/fps_test.sh` runs `stage1_fps.txt` for the frame rate) |
 | `docs/reference/` | Local copy of the 7800basic guide |
 

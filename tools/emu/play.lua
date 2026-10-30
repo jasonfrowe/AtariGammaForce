@@ -8,6 +8,11 @@
 --   650 peek 2312 4           log 4 bytes from $2312 to PLAY_OUT
 --   650 poke 2621 01 02      write bytes from $2621
 --   650 pc                    log the CPU registers
+--   650 dma                   log MARIA's figures for the last frame: DMA cycles,
+--                               CPU cycles stolen, lines cut short, busiest line
+--                               (needs the a7800 fork's outputs)
+--   650 prof on / prof off    start / pause the emulator's cycle profiler
+--                               (A7800_PROFILE; see tools/pcprof.py)
 --   900 exit
 -- Lines starting with # are comments.
 
@@ -64,6 +69,14 @@ emu.register_frame_done(function()
       out:write(string.format("%d pc %04x sp %02x a %02x x %02x y %02x\n", f, st["PC"].value,
         st["SP"].value, st["A"].value, st["X"].value, st["Y"].value))
       out:flush()
+    elseif verb == "dma" then
+      local o = manager:machine():outputs()
+      out:write(string.format("%d dma %d stolen %d over %d peak %d line %d\n", f,
+        o:get_value("maria_cycles"), o:get_value("maria_stolen"), o:get_value("maria_over"),
+        o:get_value("maria_peak"), o:get_value("maria_peak_line")))
+      out:flush()
+    elseif verb == "prof" then
+      manager:machine():outputs():set_value("a7800_prof", arg == "on" and 1 or 2)
     elseif verb == "exit" then
       out:close()
       manager:machine():exit()
