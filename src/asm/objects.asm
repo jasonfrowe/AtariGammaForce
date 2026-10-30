@@ -1507,7 +1507,8 @@ think_dart
 th_rts
      rts
 
-; Weaves down (en_update); every so often a 3-way pink fan at the player.
+; Weaves down (en_update); every so often a 3-way pink fan at the player
+; (in stage 6, every other one blue: there the sword had little to fear).
 think_saucer
      lda #24
      sta evy,x
@@ -1520,9 +1521,17 @@ think_saucer
      bcs th_rts
      lda plvuln
      beq th_rts
+     ldy #BK_PINK
+     lda stage
+     cmp #6
+     bne th_sau_kind
+     lda etimer,x
+     and #64
+     beq th_sau_kind
+     ldy #BK_BLUE
+th_sau_kind
+     sty fkind
      jsr th_aim
-     lda #BK_PINK
-     sta fkind
      lda #52
      sta fspd
      lda #3

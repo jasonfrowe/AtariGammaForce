@@ -1455,7 +1455,6 @@ B6_PARTS = {"CORE": (3, 3), "TUR0": (0, 3), "TUR1": (7, 4), "TUR2": (1, 1), "TUR
             "TUR4": (1, 6), "TUR5": (6, 6)}
 B6_SLOTS = ["HUB", "HUB", "HUB", "HUB", "TUR0", "CORE", "TUR1", "TUR2", "TUR3", "TUR4", "TUR5"]
 B6_TOP = 10                          # the fight: the station's top at line 10
-B6_ORBIT = (42, 66)                  # the satellites' orbit: px across, lines up and down
 
 
 def _noise6(rows, cols, cell, seed):
@@ -1620,11 +1619,6 @@ def stage6():
     lines.append("b6_yhi .byte " + ",".join(str(v) for v in yhi))
     for name, v in b6.items():
         lines.append(f"{name.upper()} = {v}")
-    # the satellites' orbit, by angle / 4: offsets from its centre
-    rx, ry = B6_ORBIT
-    lines.append("; the satellites' orbit: x and line offsets by angle / 4 (64 a turn)")
-    lines.append("b6_ox .byte " + ",".join(str(round(rx * math.cos(2 * math.pi * i / 64)) & 255) for i in range(64)))
-    lines.append("b6_oy .byte " + ",".join(str(round(ry * math.sin(2 * math.pi * i / 64)) & 255) for i in range(64)))
     # the fade: the background and P1 for each 64 pixels of scroll
     steps = (FADE6_TO + FADE6_STEP - 1) // FADE6_STEP + 1
     fbg, fp = [], [[], [], []]

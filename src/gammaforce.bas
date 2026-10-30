@@ -1261,8 +1261,9 @@ part_core_2
   rem stage 2's core is shut while any of its pods orbits, stage 6's
   rem while any of its satellites does
   if stage <> 6 then goto part_core_6
-  temp6 = etype[0] | etype[1] | etype[2] | etype[3]
-  if temp6 then return
+  for k = 0 to 3
+    if etype[k] = ET_PPOD then return
+  next
 part_core_6
   if stage <> 2 then goto part_core_open
   temp6 = etype[8] | etype[9] | etype[10]

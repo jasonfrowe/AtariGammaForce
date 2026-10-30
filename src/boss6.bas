@@ -5,8 +5,10 @@
   rem  it costs no sprites, and the scroll brings it in and stops with it
   rem  near the top of the screen. Six turrets on the ring and the core in
   rem  the hub are sprites pinned to map rows (gen/boss6tab.asm); four gun
-  rem  satellites orbit outside the ring, faster as they fall; the core
-  rem  is shut while any of them orbits (gammaforce.bas part_core).
+  rem  satellites orbit outside the ring, faster as they fall, the orbit
+  rem  swelling and shrinking (at its widest it sweeps the bottom of the
+  rem  screen); the core is shut while any of them orbits (gammaforce.bas
+  rem  part_core). Now and then a pair of gunships comes down to guard it.
   rem  Slots: 0-3 the satellites, 5 the core, 4 and 6-10 the turrets.
   rem  Beaten (or gone), it drifts away below: the scroll carries it off.
   rem  It lives in stage 6's bank; the shared boss code calls it.
@@ -62,12 +64,14 @@ b6p_off
 b6p_next
   dex
   bpl b6p_loop
-  ; the orbit: a step a frame, and one more for each satellite gone
+  ; the orbit: a step a frame, and one more for each satellite gone (a
+  ; gone one's slot may hold an escort)
   ldy #1
   ldx #3
 b6p_dead
   lda etype,x
-  bne b6p_alive
+  cmp #ET_PPOD
+  beq b6p_alive
   iny
 b6p_alive
   dex
@@ -80,6 +84,25 @@ b6p_alive
   adc borbit
   sta borbit
 b6p_still
+  ; the orbit's size swells and shrinks over 512 frames: s = 0..63 and
+  ; back, up and down 56 + s lines, across 36 + s / 2 pixels
+  lda bth
+  lsr
+  lda btl
+  ror                     ; (bth & 1) * 128 + btl / 2
+  bpl b6p_grow
+  eor #$FF
+b6p_grow
+  lsr
+  sta temp3
+  clc
+  adc #56
+  sta temp4
+  lda temp3
+  lsr
+  clc
+  adc #36
+  sta temp5
   ldx #3
 b6p_sat
   lda etype,x
@@ -87,24 +110,33 @@ b6p_sat
   bne b6p_satnext
   lda eyh,x
   beq b6p_satnext         ; (the centre is off the screen: so is it)
-  txa                     ; angle / 4: borbit / 4 + a quarter turn a slot
-  asl
-  asl
-  asl
-  asl
-  sta temp1
-  lda borbit
-  lsr
-  lsr
+  stx temp6
+  txa                     ; its angle: borbit + a quarter turn a slot
   clc
-  adc temp1
-  and #63
-  tay
+  ror
+  ror
+  ror
+  clc
+  adc borbit
+  sta temp7
+  sta wang                ; x: cos * across
+  lda temp5
+  sta wamp
+  jsr weave
+  ldx temp6
   lda exh,x
   clc
-  adc b6_ox,y
+  adc woff
   sta exh,x
-  lda b6_oy,y
+  lda temp7               ; line: sin * up and down
+  sec
+  sbc #64
+  sta wang
+  lda temp4
+  sta wamp
+  jsr weave
+  ldx temp6
+  lda woff
   bmi b6p_up
   clc
   adc eyh,x
@@ -175,9 +207,25 @@ boss6_fight
   gosub boss6_place
   rem 100 seconds, and it drifts away
   if bth >= 23 then bescape = 1 : gosub boss_tally : bstate = 4 : btl = 0 : pfspeed = 250 : return
+  rem now and then (about every 17 seconds) a pair of gunships comes down
+  rem to guard it, strafing below it
+  temp1 = bth & 3
+  if btl = 128 && temp1 = 1 then temp2 = 40 : gosub b6_gun : temp2 = 104 : gosub b6_gun
   if plvuln = 0 then return
   gosub boss6_attack
   return
+
+  rem A gunship at x temp2 into a free enemy slot (11, 12, or a fallen
+  rem satellite's), as the stage's waves bring them in (spawn_slot,
+  rem through spawner 0, idle in the fight)
+b6_gun
+  for k = 0 to NE1
+    if etype[k] = 0 then goto b6_gun_slot
+  next
+  return
+b6_gun_slot
+  j = 0 : sptype[0] = ET_GUNSHIP : sppal[0] = 2 : spx[0] = temp2 : spparam[0] = 160
+  goto spawn_slot
 
 boss6_attack
   rem turrets: aimed blue, by turns (each every 128 frames)
@@ -194,7 +242,7 @@ boss6_attack
 end
 b6_tur_next
   next
-  rem satellites: an aimed pink three, by turns (each every 128 frames)
+  rem satellites: an aimed blue three, by turns (each every 128 frames)
   for k = 0 to 3
     if etype[k] <> ET_PPOD then goto b6_sat_next
     if eyh[k] = 0 then goto b6_sat_next
@@ -202,7 +250,7 @@ b6_tur_next
     if temp1 <> 16 then goto b6_sat_next
     fx = exh[k] + 6 : fy = eyh[k] + 16
     gosub aim
-    fkind = BK_PINK : fspd = 40 : fcount = 3 : fstep = 14 : gosub b6_fan
+    fkind = BK_BLUE : fspd = 40 : fcount = 3 : fstep = 14 : gosub b6_fan
 b6_sat_next
   next
   rem the core: a blue ring now and then, a pink one late in the fight,
