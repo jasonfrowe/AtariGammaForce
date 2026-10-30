@@ -52,6 +52,7 @@
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
+  rem const Z14OFF = 1
 
   rem ---- enemy types (as in MegaGammaForce's enemies.h) ----
   const ET_DART = 1

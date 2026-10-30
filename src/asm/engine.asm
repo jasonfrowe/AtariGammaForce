@@ -430,6 +430,9 @@ pf_zone14_end
 pf_zone14_hi
      ldx pfz14back
      lda pfz14bg,x
+     ifconst Z14OFF
+     lda #0                  ; (experiment: zone 14 without its tiles)
+     endif
      sta dlendsave+14
      beq pf_zone14_done      ; all sea
      sta pft3
