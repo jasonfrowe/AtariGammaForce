@@ -550,7 +550,10 @@ pf_palettes_loop
 pf_palettes_next
      cpx #24
      bne pf_palettes_loop
-     ; the stage's own background color and palettes 0-2
+     ; the stage's own background color and palettes 0-2 (and no color
+     ; for userinterrupt to set: bgwant)
+     lda #0
+     sta bgwant
      lda stg_bg
      sta BACKGRND
      ldx #2

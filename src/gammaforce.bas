@@ -231,6 +231,9 @@
   dim nextx0 = $239B
   rem the results: 1 for all of the boss destroyed (10,000 more)
   dim bperf = $239A
+  rem a background color for userinterrupt to set off the screen (0: none;
+  rem stage 5's blizzard gusts; engine.asm pf_palettes clears it)
+  dim bgwant = $239C
   rem the results' three lines of text (60 characters), each part's weight
   dim rtline = $23A0
   dim bwt = $23E0
@@ -539,6 +542,8 @@ end
   asm
   jsr bul_update
 end
+  rem stage 5's blizzards (stage5.bas, in its bank)
+  if stage = 5 then gosub blizzard
   asm
   ifconst PROFILE
   lda #8
@@ -1435,6 +1440,10 @@ hud_over
 userinterrupt
   asm
   inc pfvbl
+  lda bgwant
+  beq ui_bg
+  sta BACKGRND
+ui_bg
   jmp mus_tick
 end
 
@@ -1525,6 +1534,7 @@ end
   inline musicdata5.asm
   inline boss5tab.asm
   incbasic boss5.bas
+  incbasic stage5.bas
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

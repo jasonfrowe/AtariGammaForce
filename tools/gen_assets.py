@@ -317,6 +317,7 @@ SPRITES = [
     ("b5gun", "boss5", 0, 0, None, None, 0),
     ("b5bridge", "boss5", 0, 0, None, None, 0),
     ("slab", "boss5", 0, 0, None, None, 1),
+    ("flake", "boss5", 0, 0, None, None, 1),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -340,7 +341,7 @@ SPRITES = [
     ("hudgem0", "art", 0, 0, None, None, 3),
     ("hudship", "art", 0, 0, None, None, 3),
 ]
-BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5")} - {"gunboat", "train", "berg", "slab"}
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5")} - {"gunboat", "train", "berg", "slab", "flake"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
 STAGE2_SPRITES = {"tower", "b2coret", "b2coreb", "b2pod", "b2cannon"}
@@ -349,7 +350,7 @@ STAGE3_STRIPS = {"gunboat0", "gunboat1", "b3bridget0", "b3bridget1", "b3bridgeb0
                  "b3reactor0", "b3reactor1", "b3gun"}  # (b3bay: in the last bank, no room here)
 STAGE4_STRIPS = {"train0", "train1", "b4headt0", "b4headt1", "b4headb", "b4seg0", "b4seg1", "b4tail0", "b4tail1"}
 STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "berg0", "berg1",
-                 "b5bridge0", "b5bridge1", "slab"}
+                 "b5bridge0", "b5bridge1", "slab", "flake"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -1230,6 +1231,7 @@ B5_SLOTS = {0: ("GUN_L", 8, 2), 1: ("GUN_R", 8, 2), 2: ("DRILL", 0, 0), 3: ("BRI
             7: ("TUR0", 3, 0), 8: ("TUR1", 3, 0), 9: ("TUR2", 3, 0), 10: ("TUR3", 3, 0)}
 B5_FRONT = 6                         # first stop: the bridge's top at line 6
 B5_FINAL = 66                        # last stop: the reactor's top at line 66
+B5_GUST = (176, 198, 224)            # the ice in the blizzard's gusts: paler, the snow on it lost
 # Falling shelves: (scroll position, count, x step) of each fall; their
 # x from 16 by the step, wrapping within 0-127; one every 40 frames,
 # falling 200/256 of a line a frame faster than the scroll
@@ -1289,6 +1291,39 @@ def stage5():
         if j % 2:
             chunks[r, c] = ids["snow0"]
     body = np.concatenate([chunks[k * cr:(k + 1) * cr] for k in STAGE5_ORDER])
+    # Icebergs: obstacles in three lanes by turns, every 10-14 rows, clear
+    # of the roads (the tanks drive along them)
+    roads = sorted(n * cr + r for n, k in enumerate(STAGE5_ORDER) for kk, r in meta["roads"] if kk == k)
+    lanes = [8, 64, 120]
+    rng = np.random.default_rng(21)
+    bergs = []
+    r, lane = 14, 1
+    while r < body.shape[0] - 6:
+        if all(abs(r - rr) > 3 and abs(r + 1 - rr) > 3 for rr in roads):
+            bergs.append((r, lanes[lane]))
+            lane = (lane + int(rng.integers(1, 3))) % 3
+            r += int(rng.integers(10, 15))
+        else:
+            r += 1
+    # Turrets dug in behind every other berg: a bunker just above it, half
+    # out to one side (the right first, else the left), on clear ice. The
+    # berg shields it from below, but it can fire round the berg, and the
+    # ship can reach it from beside the berg.
+    snow = {ids[f"snow{k}"] for k in range(4)}
+    dug = []
+    for k, (r, x) in enumerate(bergs[1::2]):
+        if (r + 3) * 16 >= WAVES_END_5:
+            continue
+        sides = [(x + 24) // 8, x // 8 - 1]
+        if k % 2:
+            sides.reverse()
+        for c in sides:
+            if 0 <= c <= 18 and r + 3 < body.shape[0] and \
+                    all(int(t) in snow for t in body[r + 2:r + 4, c:c + 2].ravel()):
+                body[r + 3, c], body[r + 3, c + 1] = ids["bunker0"], ids["bunker1"]
+                body[r + 2, c], body[r + 2, c + 1] = ids["bunker2"], ids["bunker3"]
+                dug.append(((r + 3) * 16, (c + 1) * 8))
+                break
     hull = crawler_map(meta["hull_tile_ids"])
     hh, hw = hull.shape
     loop = 16
@@ -1308,26 +1343,12 @@ def stage5():
     # Snow tanks along the roads, by turns from the left and the right;
     # bit 6 of their param: veterans (objects.asm think_tank), and slower,
     # so they stay to fight
-    roads = sorted(n * cr + r for n, k in enumerate(STAGE5_ORDER) for kk, r in meta["roads"] if kk == k)
     for j, r in enumerate(roads):
         y = r * 16 + 8
         if 300 < y < WAVES_END_5:
             left = j % 2 == 1
             units.append((y, 148 if left else 8, "ET_TANK", 4 + j % 3, (0x80 if left else 0) | 0x40 | 6))
-    # Icebergs: obstacles in three lanes by turns, every 10-14 rows, clear
-    # of the roads (the tanks drive along them)
     bunkers = sorted((n * cr + r, c) for n, k in enumerate(STAGE5_ORDER) for kk, r, c in kept if kk == k)
-    lanes = [8, 64, 120]
-    rng = np.random.default_rng(21)
-    bergs = []
-    r, lane = 14, 1
-    while r < body.shape[0] - 6:
-        if all(abs(r - rr) > 3 and abs(r + 1 - rr) > 3 for rr in roads):
-            bergs.append((r, lanes[lane]))
-            lane = (lane + int(rng.integers(1, 3))) % 3
-            r += int(rng.integers(10, 15))
-        else:
-            r += 1
     for r, x in bergs:
         units.append(((r + 2) * 16 - 8, x + 4, "ET_TOWER", 1, 0))
     # Turrets on every other bunker that no berg stands on (one under a berg
@@ -1339,13 +1360,8 @@ def stage5():
                     if 300 < (r + 1) * 16 < WAVES_END_5 and not under_berg(r, c * 8, c * 8 + 16)]
     for r, c in open_bunkers[::2]:
         tur.append(((r + 1) * 16, (c + 1) * 8))
-    # ... and dug in behind every other berg, just above it, half out to one
-    # side: the berg shields it from below, but it can fire round the berg,
-    # and the ship can reach it from beside the berg
-    for k, (r, x) in enumerate(bergs[1::2]):
-        if (r + 2) * 16 < WAVES_END_5:
-            tx = x + 30 if (k % 2 == 0 and x < 120) or x < 8 else x - 6
-            tur.append(((r + 2) * 16 + 12, tx + 4))
+    # ... and the dug-in ones behind the bergs
+    tur += dug
     for i, (y, x) in enumerate(sorted(tur)):
         units.append((y, x, "ET_TURRET", 4 + i % 3, 0))
 
@@ -1356,7 +1372,7 @@ def stage5():
     def top(name, dy=0):
         c, r, w, h = B5_PARTS[name]
         return (stern - r + 1) * 16 - dy
-    b5 = {"b5_stop": top("BRIDGE") - 208 + B5_FRONT, "b5_final": top("REACTOR") - 208 + B5_FINAL,
+    b5 = {"b5_gust": nearest(B5_GUST), "b5_stop": top("BRIDGE") - 208 + B5_FRONT, "b5_final": top("REACTOR") - 208 + B5_FINAL,
           "b5_gone": (stern + 1) * 16 + 8}
     xs, ylo, yhi = [], [], []
     for k in range(11):

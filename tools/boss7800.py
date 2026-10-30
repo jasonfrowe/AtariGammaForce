@@ -532,6 +532,18 @@ def slab():
     return [c.a]
 
 
+def flake():
+    """Blowing snow for the blizzard: 8 px by 8 lines, a long streak
+    driving down and to the left and a short one, white (P1)."""
+    a = np.zeros((8, 8), dtype=np.uint8)
+    for k in range(8):
+        a[k, 7 - k] = 3                                 # the long streak
+    for k in range(3):
+        a[5 + k // 2, 2 - k] = 3 if k else 2            # a short one
+    a[1, 3] = 2
+    return [a]
+
+
 def parts5():
     return {"b5reactor": reactor5(), "b5drill": drill5()[:1], "b5gun": gun3(), "berg": berg(),
-            "b5bridge": bridge5(), "slab": slab()}
+            "b5bridge": bridge5(), "slab": slab(), "flake": flake()}
