@@ -782,7 +782,7 @@ spawn_slot
   rem wasps weave faster (MegaGammaForce: base + sin(4t) * w)
   if temp1 = ET_WASP then ewamp[k] = spparam[j] : ewstep[k] = 4
   rem stage 5's falling shelves: towers that fall (objects.asm en_update),
-  rem param the speed (256ths of a line a frame faster than the scroll); a
+  rem param the speed (128ths of a line a frame faster than the scroll); a
   rem tower's line is the scroll plus eparam, so it starts above the screen
   if temp1 <> ET_TOWER then return
   eimg[k] = IMG_SLAB : ewamp[k] = spparam[j] : eparam[k] = 16 - spos_lo
@@ -1529,12 +1529,12 @@ end
   inline stage5.asm
   inline musicdata5c.asm
   inline musicdata5b.asm
+  incbasic stage5.bas
   incbasic gen/gfx5.bas
   dmahole 0
   inline musicdata5.asm
   inline boss5tab.asm
   incbasic boss5.bas
-  incbasic stage5.bas
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

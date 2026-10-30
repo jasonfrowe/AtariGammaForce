@@ -1216,46 +1216,53 @@ STAGE5_PALETTES = [
     [(8, 20, 48), (24, 56, 104), (236, 244, 255)],       # P2 water: deep, water, white rim
 ]
 STAGE5_ORDER = [1, 0, 3, 2, 1, 0]    # ice chunks (32 rows each)
-STAGE5_GAP = 19                      # bare ice before the crawler
+STAGE5_GAP = 13                      # bare ice before the crawler
 WAVES_END_5 = 2950                   # no ground units past this
-# The crawler (13 rows from its rear down to the drill, 10 tiles wide):
-# where each part sits, tile column and row of its top left, size in tiles
+# The crawler: a reactor sled (rows 0-3) towed on a coupling beam (rows
+# 4-10, bare ice either side) by the tractor (rows 11-18: the bridge, guns
+# and hatches, the drill), 10 tiles wide. Where each part sits: tile
+# column and row of its top left, size in tiles.
 B5_PARTS = {"REACTOR": (4, 1, 2, 2), "TUR0": (2, 1, 1, 1), "TUR1": (7, 1, 1, 1),
-            "BRIDGE": (4, 5, 2, 2), "GUN_L": (2, 8, 2, 2), "GUN_R": (6, 8, 2, 2),
-            "HATCH_L": (4, 8, 1, 2), "HATCH_R": (5, 8, 1, 2),
-            "TUR2": (2, 11, 1, 1), "TUR3": (7, 11, 1, 1), "DRILL": (4, 11, 2, 2)}
-B5_H = 13
+            "BRIDGE": (4, 11, 2, 2), "GUN_L": (2, 14, 2, 2), "GUN_R": (6, 14, 2, 2),
+            "HATCH_L": (4, 14, 1, 2), "HATCH_R": (5, 14, 1, 2),
+            "TUR2": (2, 17, 1, 1), "TUR3": (7, 17, 1, 1), "DRILL": (4, 17, 2, 2)}
+B5_SLED, B5_TRACTOR, B5_H = (0, 3), (11, 18), 19
 # slots: name, lines down, pixels right (guns: 16 lines tall in a 32-line well)
 B5_SLOTS = {0: ("GUN_L", 8, 2), 1: ("GUN_R", 8, 2), 2: ("DRILL", 0, 0), 3: ("BRIDGE", 0, 0),
             4: ("HATCH_L", 0, 0), 5: ("REACTOR", 0, 0), 6: ("HATCH_R", 0, 0),
             7: ("TUR0", 3, 0), 8: ("TUR1", 3, 0), 9: ("TUR2", 3, 0), 10: ("TUR3", 3, 0)}
 B5_FRONT = 6                         # first stop: the bridge's top at line 6
-B5_FINAL = 66                        # last stop: the reactor's top at line 66
+B5_FINAL = 66                        # last stop: the reactor's top at line 66 (the
+                                     # tractor then wholly below the screen)
 B5_GUST = (176, 198, 224)            # the ice in the blizzard's gusts: paler, the snow on it lost
 # Falling shelves: (scroll position, count, x step) of each fall; their
 # x from 16 by the step, wrapping within 0-127; one every 40 frames,
-# falling 200/256 of a line a frame faster than the scroll
+# falling B5_FALL/128 of a line a frame faster than the scroll
 B5_FALLS = [(640, 3, 88), (1180, 4, 40), (1720, 4, 88), (2240, 5, 56), (2700, 6, 88)]
+B5_FALL = 145
 
 
 def crawler_map(ids):
     """GLACIER CRAWLER's hull, MegaGammaForce's tiles (crawler.py) laid out
-    longer: rear, reactor, the bridge mid-deck, guns and hatches, drill."""
+    as a tractor towing a reactor sled."""
     m = np.zeros((B5_H, 10), dtype=np.uint8)
     rng = np.random.default_rng(5)
-    for r in range(B5_H):
-        for c in range(2, 8):
-            m[r, c] = ids[f"deck{int(rng.integers(0, 4))}"]
-        end = "top" if r == 0 else "bottom" if r == B5_H - 1 else ""
-        m[r, 0], m[r, 1] = ids[f"tread0{end}"], ids[f"tread1{end}"]
-        m[r, 9], m[r, 8] = ids[f"treadr0{end}"], ids[f"treadr1{end}"]
+    for r0, r1 in (B5_SLED, B5_TRACTOR):
+        for r in range(r0, r1 + 1):
+            for c in range(2, 8):
+                m[r, c] = ids[f"deck{int(rng.integers(0, 4))}"]
+            end = "top" if r == r0 else "bottom" if r == r1 else ""
+            m[r, 0], m[r, 1] = ids[f"tread0{end}"], ids[f"tread1{end}"]
+            m[r, 9], m[r, 8] = ids[f"treadr0{end}"], ids[f"treadr1{end}"]
+    for r in range(B5_SLED[1] + 1, B5_TRACTOR[0]):   # the coupling beam
+        m[r, 4], m[r, 5] = ids["deck0"], ids["deck1"]
     for c in range(2, 8):
         m[0, c] = ids["rear"]
-        m[3, c] = m[7, c] = ids["paint"]
-        m[4, c] = m[10, c] = ids["stripe"]
-    for r, name in ((3, "vent"), (4, "lamp"), (5, "vent"), (7, "vent"), (10, "lamp")):
-        m[r, 2] = m[r, 7] = ids[name]
-    m[12, 2], m[12, 3], m[12, 6], m[12, 7] = ids["plow_l"], ids["deck0"], ids["deck1"], ids["plow_r"]
+        m[3, c] = m[13, c] = ids["paint"]
+        m[16, c] = ids["stripe"]
+    for r in (3, 11, 13, 16):
+        m[r, 2] = m[r, 7] = ids["vent"]
+    m[18, 2], m[18, 3], m[18, 6], m[18, 7] = ids["plow_l"], ids["deck0"], ids["deck1"], ids["plow_r"]
     for name, (c, r, w, h) in B5_PARTS.items():
         if w == 2:
             for k in range(4):
@@ -1396,7 +1403,7 @@ def stage5():
     w = wave_cols(meta["waves"])
     rowsw = [tuple(w[f][i] for f in WAVE_FIELDS) for i in range(len(w["watl"]))]
     for at, n, dx in B5_FALLS:
-        rowsw.append((at & 255, at >> 8, ENEMY_TYPES["ET_TOWER"], 1, 16, dx, n, 40, 200))
+        rowsw.append((at & 255, at >> 8, ENEMY_TYPES["ET_TOWER"], 1, 16, dx, n, 40, B5_FALL))
     rowsw.sort(key=lambda t: (t[1] << 8) | t[0])
     w = {f: [t[i] for t in rowsw] for i, f in enumerate(WAVE_FIELDS)}
     # the warning when its front is about 9 rows above the screen

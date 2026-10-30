@@ -710,7 +710,8 @@ def arctic_tiles(ids):
     tiles, pals, lut = [np.zeros((H, W), dtype=np.uint8)], [SNOW], {}
     bunker = _quarters(_bunker5())
     for name, i in ids.items():
-        if name.startswith("snow") and name != "snow3":
+        # (the beacons are bare ice: stage 5's graphics block is full)
+        if (name.startswith("snow") and name != "snow3") or name == "beacon":
             lut[i] = 0
             continue
         lut[i] = len(tiles)
@@ -839,10 +840,21 @@ def crawler_tiles(ids):
             if mirror:
                 t = t[:, ::-1].copy()
             out[i] = add(name, t, WATER)
-        elif name in ("vent", "lamp", "stripe", "paint", "rear", "plow_l", "plow_r"):
+        elif name == "lamp":
+            out[i] = add("vent", vent, CRAWLER)        # (no room for a lamp of its own)
+        elif name in ("vent", "stripe", "paint", "rear", "plow_l", "plow_r"):
             out[i] = add(name, locals()[name], CRAWLER)
         elif name.startswith("big"):
             out[i] = add(name, bigq[int(name[3:])], CRAWLER)
-        elif name in ("small", "hatch0", "hatch1"):
+        elif name == "small":
             out[i] = add("socket", socket, CRAWLER)
+        elif name in ("hatch0", "hatch1"):
+            # the doors of LEVIATHAN's bays (boss7800.bay3's shut frame,
+            # the same colors in P0), so the shut hatch's sprite needn't
+            # be drawn
+            door = np.full((H, W), 1, dtype=np.uint8)
+            for y in range(1, H):
+                for x in range(1, W - 1):
+                    door[y, x] = 3 if ((x + y) // 3) % 2 == 0 else 1
+            out[i] = add(name, door if name == "hatch0" else door[::-1].copy(), CRAWLER)
     return tiles, pals, out, ids.get("clear")

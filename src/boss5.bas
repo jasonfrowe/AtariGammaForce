@@ -5,11 +5,14 @@
   rem  no sprites, and the boss moves it by the scroll (the bare ice shows
   rem  no movement); its treads run (two colors of palette 2 swapped to and
   rem  fro). Its parts are sprites pinned to map rows (gen/boss5tab.asm).
-  rem  The fight, as LEVIATHAN's: it stops with its front half in view (the
-  rem  drill, two turrets, the hatches and guns, the command bridge at the
-  rem  top). Once the bridge falls it drives on, its front off the bottom of
-  rem  the screen, spraying bullets while shelves of ice fall; then it stops
-  rem  with the cryo reactor at its rear in reach, and shelves keep falling.
+  rem  It is a tractor towing a reactor sled on a coupling beam. The fight,
+  rem  as LEVIATHAN's: it stops with the tractor in view (the drill, two
+  rem  turrets, the hatches and guns, the command bridge at the top). Once
+  rem  the bridge falls it drives on, the tractor off the bottom of the
+  rem  screen, spraying bullets while shelves of ice fall; then it stops with
+  rem  the sled's cryo reactor in reach, and shelves keep falling. (With the
+  rem  tractor gone below, the screen's bottom zone is bare ice: a hull row
+  rem  there costs the engine an object a tile, every frame.)
   rem  Slots: 0-1 the guns, 2 the ice drill, 3 the bridge, 4 and 6 the
   rem  launch hatches (LEVIATHAN's bays: shut, open, a crater), 5 the
   rem  reactor (the core), 7-8 the rear turrets, 9-10 the front ones (the
@@ -123,9 +126,9 @@ end
 boss5_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
-  rem the bridge is down: it drives on (a quarter of a line a frame), and
-  rem a shelf of ice breaks away behind it: six slabs falling
-  if b5phase = 0 && etype[3] <> ET_PCANNON then b5phase = 1 : pfspeed = 64 : temp3 = 6 : gosub b5_shelves
+  rem the bridge is down: it drives on (half a line a frame), and a shelf
+  rem of ice breaks away behind it: eight slabs falling
+  if b5phase = 0 && etype[3] <> ET_PCANNON then b5phase = 1 : pfspeed = 128 : temp3 = 8 : gosub b5_shelves
   if b5phase = 1 then gosub b5_drive
   rem at the reactor, more slabs every 4 seconds or so
   if b5phase = 2 && btl = 0 then temp3 = 3 : gosub b5_shelves
@@ -162,21 +165,24 @@ b5_shelves
   return
 b5_shelves_go
   sptype[j] = ET_TOWER : sppal[j] = 1 : spx[j] = 16 + (btl & 32) : spdx[j] = 88
-  spcount[j] = temp3 : spgap[j] = 36 : spparam[j] = 200 : sptimer[j] = 0
+  spcount[j] = temp3 : spgap[j] = 36 : spparam[j] = 128 : sptimer[j] = 0
   return
 
 boss5_attack
   rem as it drives on, its guns and turrets fire four times as often
   temp9 = 127
   if b5phase = 1 then temp9 = 31
-  rem guns: turn to the player, and fans of five blue by turns
+  rem guns: turn to the player (each every 8 frames, by turns: aiming is
+  rem dear), and fans of five blue by turns
   for k = 0 to 1
     if etype[k] <> ET_PCANNON then goto b5_gun_next
     if eyh[k] = 0 then goto b5_gun_next
+    temp1 = (btl + k * 16) & temp9
+    temp2 = (btl + k * 4) & 7
+    if temp1 && temp2 then goto b5_gun_next
     fx = exh[k] + 6 : fy = eyh[k] + 8
     gosub aim
     eframe[k] = (fang - 48) / 32 & 7
-    temp1 = (btl + k * 16) & temp9
     if temp1 then goto b5_gun_next
     fkind = BK_BLUE : fspd = 36 : fcount = 5 : fstep = 12
     asm
@@ -188,7 +194,7 @@ b5_gun_next
   for k = 7 to 10
     if etype[k] = 0 then goto b5_tur_next
     if eyh[k] = 0 then goto b5_tur_next
-    temp1 = (btl + k * 22) & temp9
+    temp1 = (btl + b5_tph[k]) & temp9
     if temp1 then goto b5_tur_next
     fx = exh[k] + 4 : fy = eyh[k] + 8
     gosub aim
@@ -271,8 +277,10 @@ b5_hatch_slot
   ewamp[k] = 0 : ewang[k] = 0 : ewstep[k] = 3 : eframe[k] = 0
   return
 
-  rem It burns on until it has gone below the screen
+  rem It burns on until it has gone below the screen. Beaten (or gone), the
+  rem falling slabs shatter at once, and no more fall.
 boss5_sinking
+  if btl = 1 then gosub b5_clear
   if btl < 230 then return
   asm
   lda spos_lo
@@ -285,6 +293,21 @@ boss5_sinking
 b5s_gone
 end
   return
+
+b5_clear
+  for j = 0 to NSP1 : spcount[j] = 0 : next
+  for i = 0 to NE1
+    if etype[i] <> ET_TOWER then goto b5_clear_next
+    etype[i] = 0
+    temp7 = exh[i] + 8 : temp8 = eyh[i] : gosub spawn_fx
+b5_clear_next
+  next
+  return
+
+  rem each turret's phase (slots 7-10), so they fire by turns
+  data b5_tph
+  0, 0, 0, 0, 0, 0, 0, 26, 48, 70, 92
+end
 
   rem ---- parts: type, image, hit points, share of the boss (%) ----
   rem (the reactor's 30 is counted apart; positions in gen/boss5tab.asm)

@@ -28,10 +28,10 @@ blizzard
   sta bgwant
 end
 bz_wind
-  rem the wind: half a pixel a step to the left (a full one in a gust)
-  temp3 = tick & 1
-  if temp2 < 40 then temp3 = 1
-  if temp3 && plx > 6 && pdead = 0 then plx = plx - 1
+  rem the wind: a pixel every 4 steps to the left (every 2 in a gust)
+  temp3 = tick & 3
+  if temp2 < 40 then temp3 = tick & 1
+  if temp3 = 0 && plx > 6 && pdead = 0 then plx = plx - 1
   rem the streaks: 3 pixels left and 2-3 lines down a step; one that
   rem leaves comes back in from the top or the right
   for k = 0 to 7

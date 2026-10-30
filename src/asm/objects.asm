@@ -602,10 +602,15 @@ en_update_nottrain
 en_update_tankoff
      jmp en_update_kill
 en_update_tower
-     ; a falling tower (stage 5's shelves, ewamp its speed): it slips down
-     ; the map, a line each time etimer carries
+     ; a falling tower (stage 5's shelves, ewamp its speed in 128ths of a
+     ; line a frame): it slips down the map, a line for ewamp's top bit and
+     ; a line each time etimer carries
      lda ewamp,x
      beq en_update_ground
+     asl
+     bcc en_update_tfrac
+     inc eparam,x
+en_update_tfrac
      clc
      adc etimer,x
      sta etimer,x
@@ -812,7 +817,10 @@ eht_down
      sta ply
      jmp eht_done
 eht_aside
-     ; at the bottom: shoved aside instead, the shorter way that fits
+     ; at the bottom: a falling tower crushes the ship; a standing one
+     ; shoves it aside instead, the shorter way that fits
+     lda ewamp,x
+     bne eht_crush
      lda ob1
      cmp ob5
      bcs eht_tryright
@@ -828,6 +836,7 @@ eht_tryright
      lda plx                 ; (right doesn't fit: left, if that does)
      cmp ob1
      bcs eht_goleft
+eht_crush
      lda plvuln              ; pinned in a corner: crushed
      beq eht_done
      lda #1
@@ -1042,6 +1051,14 @@ en_draw_live
      ldy #2
      jmp en_draw_side
 en_draw_notwreck
+     cmp #ET_TOWER           ; a tower: the ground, but a falling one
+     bne en_draw_nottower    ; (stage 5's slabs) 3: last, over everything
+     ldy #0
+     lda ewamp,x
+     beq en_draw_side
+     ldy #3
+     bne en_draw_side
+en_draw_nottower
      ldy #1                  ; 1: flies
      cmp #ET_TURRET
      beq en_draw_gnd
@@ -1056,6 +1073,22 @@ en_draw_side
      beq en_draw_go
      jmp en_draw_next
 en_draw_go
+     ; not drawn: a boss's part parked off the screen (x 200: out of view),
+     ; and a shut bay or hatch that isn't flashing (its hull tiles show the
+     ; same doors)
+     lda exh,x
+     cmp #160
+     bcs en_draw_skip
+     lda eflash,x
+     bne en_draw_show
+     lda eimg,x
+     cmp #IMG_B3BAY
+     bne en_draw_show
+     lda eframe,x
+     bne en_draw_show
+en_draw_skip
+     jmp en_draw_next
+en_draw_show
      ldy eimg,x
      ; palette | width: white (palette 3) while flashing
      lda eflash,x
@@ -1155,9 +1188,13 @@ en_draw_next
      bcs en_draw_passdone
      jmp en_draw_loop
 en_draw_passdone
-     inc ob7
-     lda ob7
+     inc ob7                 ; passes 0, 1, then 3 (2, the wrecks, is
+     lda ob7                 ; en_draw_wrecks')
      cmp #2
+     bne en_draw_pass3
+     inc ob7
+en_draw_pass3
+     cmp #4
      bcs en_draw_out
      jmp en_draw_pass
 en_draw_out
