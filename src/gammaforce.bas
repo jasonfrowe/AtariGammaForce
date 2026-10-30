@@ -1222,7 +1222,12 @@ part_hit
   rem a part is destroyed: 2,000 points
   temp7 = exh[i] : temp8 = eyh[i]
   if temp2 = ET_PTURRET then gosub spawn_fx : etype[i] = 0 : goto part_score
-  if temp2 = ET_PPOD then temp7 = temp7 + 4 : temp8 = temp8 + 8 : gosub spawn_fx : etype[i] = 0 : goto part_score
+  if temp2 <> ET_PPOD then goto part_notpod
+  temp7 = temp7 + 4 : temp8 = temp8 + 8 : gosub spawn_fx : etype[i] = 0
+  rem (stage 6's satellites fall as debris)
+  if stage = 6 then gosub b6_debris
+  goto part_score
+part_notpod
   rem stage 5's guns, drill and bridge blow apart, leaving their wells bare
   rem (its hatches leave craters, as LEVIATHAN's bays)
   if stage = 5 && eimg[i] <> IMG_B3BAY then goto part_blast

@@ -5,10 +5,11 @@
   rem  it costs no sprites, and the scroll brings it in and stops with it
   rem  near the top of the screen. Six turrets on the ring and the core in
   rem  the hub are sprites pinned to map rows (gen/boss6tab.asm); four gun
-  rem  satellites orbit outside the ring, faster as they fall, the orbit
-  rem  swelling and shrinking (at its widest it sweeps the bottom of the
-  rem  screen); the core is shut while any of them orbits (gammaforce.bas
-  rem  part_core). Now and then a pair of gunships comes down to guard it.
+  rem  satellites orbit outside the ring, faster as they fall, and a
+  rem  destroyed one tumbles down the screen, burning, as debris (a falling
+  rem  tower: it shoves the ship, and crushes it against the bottom); the
+  rem  core is shut while any of them orbits (gammaforce.bas part_core).
+  rem  Now and then a pair of gunships comes down to guard it.
   rem  Slots: 0-3 the satellites, 5 the core, 4 and 6-10 the turrets.
   rem  Beaten (or gone), it drifts away below: the scroll carries it off.
   rem  It lives in stage 6's bank; the shared boss code calls it.
@@ -84,24 +85,10 @@ b6p_alive
   adc borbit
   sta borbit
 b6p_still
-  ; the orbit's size swells and shrinks over 512 frames: s = 0..63 and
-  ; back, up and down 56 + s lines, across 36 + s / 2 pixels
-  lda bth
-  lsr
-  lda btl
-  ror                     ; (bth & 1) * 128 + btl / 2
-  bpl b6p_grow
-  eor #$FF
-b6p_grow
-  lsr
-  sta temp3
-  clc
-  adc #56
+  ; the orbit: 66 lines up and down, 42 pixels across
+  lda #66
   sta temp4
-  lda temp3
-  lsr
-  clc
-  adc #36
+  lda #42
   sta temp5
   ldx #3
 b6p_sat
@@ -208,7 +195,7 @@ boss6_fight
   rem 100 seconds, and it drifts away
   if bth >= 23 then bescape = 1 : gosub boss_tally : bstate = 4 : btl = 0 : pfspeed = 250 : return
   rem now and then (about every 17 seconds) a pair of gunships comes down
-  rem to guard it, strafing below it
+  rem to guard it, strafing halfway down the screen
   temp1 = bth & 3
   if btl = 128 && temp1 = 1 then temp2 = 40 : gosub b6_gun : temp2 = 104 : gosub b6_gun
   if plvuln = 0 then return
@@ -224,8 +211,16 @@ b6_gun
   next
   return
 b6_gun_slot
-  j = 0 : sptype[0] = ET_GUNSHIP : sppal[0] = 2 : spx[0] = temp2 : spparam[0] = 160
+  j = 0 : sptype[0] = ET_GUNSHIP : sppal[0] = 2 : spx[0] = temp2 : spparam[0] = 120
   goto spawn_slot
+
+  rem Satellite i, destroyed, becomes debris: a tower falling half a line
+  rem a frame (its line the scroll plus eparam; objects.asm en_update),
+  rem burning red, tumbling (boss6_place turns slots 0-3's frames)
+b6_debris
+  etype[i] = ET_TOWER : ecol[i] = 4 : ewamp[i] = 64 : etimer[i] = 0
+  eparam[i] = eyh[i] - spos_lo : ehit[i] = 0 : eflash[i] = 0
+  return
 
 boss6_attack
   rem turrets: aimed blue, by turns (each every 128 frames)
