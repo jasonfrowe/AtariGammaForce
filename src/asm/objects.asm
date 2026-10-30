@@ -1079,6 +1079,20 @@ en_draw_go
      lda exh,x
      cmp #160
      bcs en_draw_skip
+     ; a boss part (or wreck) in a crowded band of the screen is drawn on
+     ; alternate frames (en_crowded), so the shots and bullets drawn after
+     ; it still fit in MARIA's time for the line
+     lda etype,x
+     cmp #ET_PART
+     bcc en_draw_roomy
+     jsr en_crowded
+     bcc en_draw_roomy
+     txa
+     eor pfdraws
+     lsr
+     bcc en_draw_roomy
+     jmp en_draw_next
+en_draw_roomy
      lda eflash,x
      bne en_draw_show
      lda eimg,x
@@ -1188,6 +1202,9 @@ en_draw_next
      bcs en_draw_passdone
      jmp en_draw_loop
 en_draw_passdone
+     lda ob7                 ; the wrecks' pass is en_draw_wrecks' alone
+     cmp #2
+     beq en_draw_out
      inc ob7                 ; passes 0, 1, then 3 (2, the wrecks, is
      lda ob7                 ; en_draw_wrecks')
      cmp #2
@@ -1203,7 +1220,44 @@ en_draw_out
 ; en_draw_wrecks: draw only the bosses' wrecks (en_draw leaves them out).
 ; Called before the ship is plotted, so the ship and everything else
 ; shows over them (a later object in a zone's DL is drawn on top).
+; en_crowded: carry set if the zone below the top of enemy X's sprite
+; (eyh), where a 32-line sprite has both its strips, already holds CROWD
+; bytes of objects besides its background: then MARIA, which has 430
+; cycles a line, could run out of time on its lines (about 20 cycles an
+; object), and the objects drawn last, the enemy bullets, would lose
+; lines. Keeps X.
+CROWD = 11*4
+en_crowded
+     lda eyh,x
+     clc
+     adc pfs
+     bcs en_crowded_out      ; (carry set: below the playfield, not drawn)
+     lsr                     ; zone = (y + s - 16) / 16 + 1
+     lsr
+     lsr
+     lsr
+     beq en_crowded_out      ; (carry clear) zone 0, the HUD
+     tay
+     cpy #15
+     bcs en_crowded_no
+     lda dlend,y
+     sec
+     sbc dlendsave,y
+     ldy ob7                 ; the wrecks are drawn before the ship: count
+     cpy #2                  ; its 4 objects as there already
+     bne en_crowded_cmp
+     adc #16-1               ; (carry set)
+en_crowded_cmp
+     cmp #CROWD
+en_crowded_out
+     rts
+en_crowded_no
+     clc
+     rts
+
 en_draw_wrecks
+     lda pfnodraw            ; (nothing to draw in a catch-up step)
+     bne en_draw_wrecks_out
      lda bstate              ; only while a boss is on the screen (2-4)
      cmp #2
      bcc en_draw_wrecks_out

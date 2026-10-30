@@ -11,6 +11,9 @@
 --   650 dma                   log MARIA's figures for the last frame: DMA cycles,
 --                               CPU cycles stolen, lines cut short, busiest line
 --                               (needs the a7800 fork's outputs)
+--   650 dl [1800]             log the display lists as MARIA reads them: each
+--                               DLL entry (first line, lines, DL address) and
+--                               its objects (graphics, width, x, palette)
 --   650 prof on / prof off    start / pause the emulator's cycle profiler
 --                               (A7800_PROFILE; see tools/pcprof.py)
 --   900 exit
@@ -74,6 +77,39 @@ emu.register_frame_done(function()
       out:write(string.format("%d dma %d stolen %d over %d peak %d line %d\n", f,
         o:get_value("maria_cycles"), o:get_value("maria_stolen"), o:get_value("maria_over"),
         o:get_value("maria_peak"), o:get_value("maria_peak_line")))
+      out:flush()
+    elseif verb == "dl" then
+      local mem = manager:machine().devices[":maincpu"].spaces["program"]
+      local dll = tonumber(arg ~= "" and arg or "1800", 16)
+      local line = 0
+      for e = 0, 40 do
+        local b0 = mem:read_u8(dll + 3 * e)
+        local dl = mem:read_u8(dll + 3 * e + 1) * 256 + mem:read_u8(dll + 3 * e + 2)
+        local h = (b0 & 15) + 1
+        local objs = {}
+        local a = dl
+        for _ = 1, 64 do
+          local m1 = mem:read_u8(a + 1)
+          if m1 & 0x5f == 0 then break end
+          local lo, hi, w, x, pal, ind
+          if m1 & 0x1f == 0 then -- extended header
+            lo, hi = mem:read_u8(a), mem:read_u8(a + 2)
+            local m3 = mem:read_u8(a + 3)
+            w = ((m3 ~ 0xff) & 0x1f) + 1; pal = m3 >> 5; x = mem:read_u8(a + 4)
+            ind = (m1 & 0x20) ~= 0 and "i" or ""
+            a = a + 5
+          else
+            lo, hi = mem:read_u8(a), mem:read_u8(a + 2)
+            w = ((m1 ~ 0xff) & 0x1f) + 1; pal = m1 >> 5; x = mem:read_u8(a + 3); ind = ""
+            a = a + 4
+          end
+          objs[#objs + 1] = string.format("%02x%02x%s/%d@%d p%d", hi, lo, ind, w, x, pal)
+        end
+        out:write(string.format("%d dl %3d +%2d %04x %s: %s\n", f, line, h, dl,
+          (b0 & 0x80) ~= 0 and "dli" or "", table.concat(objs, " ")))
+        line = line + h
+        if line >= 243 then break end
+      end
       out:flush()
     elseif verb == "prof" then
       manager:machine():outputs():set_value("a7800_prof", arg == "on" and 1 or 2)
