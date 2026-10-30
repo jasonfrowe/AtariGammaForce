@@ -109,41 +109,11 @@ weave
 ; ---------------------------------------------------------------------------
 ; Enemy bullets.
 
-; bul_crowded: carry set if, on the map (not in a boss fight), BUL_GATE
-; enemy bullets are already out: the enemy holds its shot (a whole fan),
-; so a crowded screen doesn't fill every bullet slot, which is what sank
-; the display to 20 frames a second where waves overlap. Keeps X.
-BUL_GATE = 6
-bul_crowded
-     lda bstate
-     bne bul_crowded_no
-     lda #BUL_GATE
-     sta pft5
-     ldy #NB-1
-bul_crowded_loop
-     lda bkind,y
-     beq bul_crowded_next
-     dec pft5
-     beq bul_crowded_yes
-bul_crowded_next
-     dey
-     bpl bul_crowded_loop
-bul_crowded_no
-     clc
-     rts
-bul_crowded_yes
-     sec
-     rts
-
 ; Teddy Bear mode (easy): single shots go every other time, and bullets
 ; take only the first NB_EASY slots. (Fans and rings thin themselves in
 ; bul_fan, which comes in at bul_fire_go.)
 NB_EASY = 10
 bul_fire
-     jsr bul_crowded
-     bcc bul_fire_room
-     rts
-bul_fire_room
      lda easy
      beq bul_fire_go
      lda bfalt
@@ -195,10 +165,6 @@ bul_fire_slot
 ; as many over the same spread (5 -> 3, a ring of 8 -> 4); an odd fan
 ; stays odd, so its middle bullet (often the aimed one) stays (3 -> 1).
 bul_fan
-     jsr bul_crowded
-     bcc bul_fan_room
-     rts
-bul_fan_room
      lda fcount
      pha
      lda fstep
