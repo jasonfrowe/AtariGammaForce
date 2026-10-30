@@ -1248,12 +1248,15 @@ end
   return
 
   rem How much of the boss was destroyed (%): the weights of the parts
-  rem that are gone (the core's 30 is added when it falls)
+  rem that are gone (the core's 30 is added when it falls). A part's slot
+  rem is empty, a wreck, or holds something else once the part is gone:
+  rem a dart, an escort or a falling slab can take a freed slot (a live
+  rem part never gives up its own).
 boss_tally
   bdestr = 0
   for k = 0 to 10
     temp1 = etype[k]
-    if temp1 = 0 then bdestr = bdestr + bwt[k]
+    if temp1 < ET_PART then bdestr = bdestr + bwt[k]
     if temp1 = ET_PWRECK then bdestr = bdestr + bwt[k]
   next
   return
