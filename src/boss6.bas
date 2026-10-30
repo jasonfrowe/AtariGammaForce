@@ -237,7 +237,7 @@ boss6_attack
 end
 b6_tur_next
   next
-  rem satellites: an aimed blue three, by turns (each every 128 frames)
+  rem satellites: an aimed pink three, by turns (each every 128 frames)
   for k = 0 to 3
     if etype[k] <> ET_PPOD then goto b6_sat_next
     if eyh[k] = 0 then goto b6_sat_next
@@ -245,7 +245,7 @@ b6_tur_next
     if temp1 <> 16 then goto b6_sat_next
     fx = exh[k] + 6 : fy = eyh[k] + 16
     gosub aim
-    fkind = BK_BLUE : fspd = 40 : fcount = 3 : fstep = 14 : gosub b6_fan
+    fkind = BK_PINK : fspd = 40 : fcount = 3 : fstep = 14 : gosub b6_fan
 b6_sat_next
   next
   rem the core: a blue ring now and then, a pink one late in the fight,
