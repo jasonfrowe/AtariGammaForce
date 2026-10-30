@@ -774,6 +774,26 @@ WASP_GAP = 1.5
 WASP_WEAVE = 0.6
 
 
+# Waves moved by hand (MegaGammaForce's position, kind -> new position;
+# spread_waves still places them after): stage 5's second saucer wave and
+# its drones, which spread_waves had piled onto the first saucer wave in
+# the second blizzard, where the display fell to 20-24 frames a second
+# (tools/survey.sh). Whole waves move: waves of 3 are for chaining.
+WAVE_MOVES = {
+    5: [(2350, "ET_SAUCER", 2750), (2500, "ET_DRONE", 2700)],
+}
+
+
+def moved(data, n):
+    """Stage n's waves with WAVE_MOVES applied (each matches one wave)."""
+    out = [list(w) for w in data]
+    for at, typ, to in WAVE_MOVES.get(n, []):
+        hits = [w for w in out if w[0] == at and w[1] == typ]
+        assert len(hits) == 1, (n, at, typ)
+        hits[0][0] = to
+    return sorted(out, key=lambda w: w[0])
+
+
 def space_wasps(data):
     """Wasp waves moved later where they come within WASP_APART of the wasp
     wave before; the waves after are kept in order (moved as far, if need
@@ -858,7 +878,7 @@ def stage1():
             "blank": {0, 1, 2, 3}, "col0": 4, "col1": 16, "loop": meta["loop_rows"],
             "charset": "charset", "pals": [c for p in PAL_CODES[0:3] for c in p], "bg": BG_CODE,
             "song": "SONG_STAGE1", "bosssong": "SONG_BOSS",
-            "waves": wave_cols(waves), "ground": ground_cols(ground)}
+            "waves": wave_cols(moved(waves, 1)), "ground": ground_cols(ground)}
 
 
 # Stage 2, NEON SPIRES: the city. Its colors: the night (the asphalt is
@@ -965,7 +985,7 @@ def stage2():
             "blank": {0}, "col0": 4, "col1": 16, "loop": meta["loop_rows"],
             "charset": "charset2", "pals": [nearest(c) for p in STAGE2_PALETTES for c in p],
             "bg": nearest(STAGE2_BG), "song": "SONG_STAGE2", "bosssong": "SONG_BOSS2",
-            "waves": wave_cols(meta["waves"]), "ground": ground_cols(units),
+            "waves": wave_cols(moved(meta["waves"], 2)), "ground": ground_cols(units),
             "pal_codes": [[nearest(c) for c in p] for p in STAGE2_PALETTES]}
 
 
@@ -1237,8 +1257,10 @@ B5_FINAL = 66                        # last stop: the reactor's top at line 66 (
 B5_GUST = (176, 198, 224)            # the ice in the blizzard's gusts: paler, the snow on it lost
 # Falling shelves: (scroll position, count, x step) of each fall; their
 # x from 16 by the step, wrapping within 0-127; one every 40 frames,
-# falling B5_FALL/128 of a line a frame faster than the scroll
-B5_FALLS = [(640, 3, 88), (1180, 4, 40), (1720, 4, 88), (2240, 5, 56), (2700, 6, 88)]
+# falling B5_FALL/128 of a line a frame faster than the scroll (the
+# fourth at 2100, not 2240: spread_waves had moved it into the saucers in
+# the second blizzard)
+B5_FALLS = [(640, 3, 88), (1180, 4, 40), (1720, 4, 88), (2100, 5, 56), (2700, 6, 88)]
 B5_FALL = 145
 
 
@@ -1402,7 +1424,7 @@ def stage5():
     gr = ground_cols(units)
     # (MegaGammaForce's last wave, a gunship at 2780, is left out: here it
     # came in as the crawler did)
-    waves = [wv for wv in meta["waves"] if not (wv[1] == "ET_GUNSHIP" and wv[0] >= 2780)]
+    waves = moved([wv for wv in meta["waves"] if not (wv[1] == "ET_GUNSHIP" and wv[0] >= 2780)], 5)
     w = wave_cols(waves)
     rowsw = [tuple(w[f][i] for f in WAVE_FIELDS) for i in range(len(w["watl"]))]
     for at, n, dx in B5_FALLS:
