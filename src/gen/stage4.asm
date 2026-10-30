@@ -86,6 +86,7 @@ s4_rowlo
   .byte <s4o71,<s4o72,<s4o73,<s4o74,<s4o75,<s4o76,<s4o77,<s4o0
   .byte <s4o0,<s4o0,<s4o0,<s4o0,<s4o0,<s4o0,<s4o0,<s4o0
   .byte <s4o0,<s4o0,<s4o0,<s4o0,<s4o0,<s4o0,<s4o0,<s4o0
+  ds 32,0
 s4_rowhi
   .byte >s4o0,>s4o1,>s4o2,>s4o3,>s4o4,>s4o5,>s4o6,>s4o7
   .byte >s4o8,>s4o9,>s4o10,>s4o11,>s4o12,>s4o13,>s4o14,>s4o15
@@ -113,6 +114,7 @@ s4_rowhi
   .byte >s4o71,>s4o72,>s4o73,>s4o74,>s4o75,>s4o76,>s4o77,>s4o0
   .byte >s4o0,>s4o0,>s4o0,>s4o0,>s4o0,>s4o0,>s4o0,>s4o0
   .byte >s4o0,>s4o0,>s4o0,>s4o0,>s4o0,>s4o0,>s4o0,>s4o0
+  ds 32,0
 s4_rowshift
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -127,7 +129,9 @@ s4_rowshift
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  if . - stage4_header != 1296
+  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  if . - stage4_header != 1392
     echo "ERROR: stage 4 header layout"
     err
   endif

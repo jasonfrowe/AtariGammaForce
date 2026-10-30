@@ -86,6 +86,7 @@ s3_rowlo
   .byte <s3o103,<s3o104,<s3o105,<s3o106,<s3o107,<s3o108,<s3o109,<s3o110
   .byte <s3o0,<s3o0,<s3o0,<s3o0,<s3o0,<s3o0,<s3o0,<s3o0
   .byte <s3o0,<s3o0,<s3o0,<s3o0,<s3o0,<s3o0,<s3o0,<s3o0
+  ds 32,0
 s3_rowhi
   .byte >s3o0,>s3o1,>s3o2,>s3o3,>s3o4,>s3o5,>s3o6,>s3o7
   .byte >s3o7,>s3o8,>s3o9,>s3o0,>s3o10,>s3o11,>s3o12,>s3o13
@@ -113,6 +114,7 @@ s3_rowhi
   .byte >s3o103,>s3o104,>s3o105,>s3o106,>s3o107,>s3o108,>s3o109,>s3o110
   .byte >s3o0,>s3o0,>s3o0,>s3o0,>s3o0,>s3o0,>s3o0,>s3o0
   .byte >s3o0,>s3o0,>s3o0,>s3o0,>s3o0,>s3o0,>s3o0,>s3o0
+  ds 32,0
 s3_rowshift
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -127,7 +129,9 @@ s3_rowshift
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  if . - stage3_header != 1296
+  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  if . - stage3_header != 1392
     echo "ERROR: stage 3 header layout"
     err
   endif

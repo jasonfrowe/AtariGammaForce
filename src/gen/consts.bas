@@ -36,8 +36,8 @@
   dim gpal = $8250
   dim gparam = $8278
   dim stg_rowlo = $82A0
-  dim stg_rowhi = $8370
-  dim stg_rowshift = $8440
+  dim stg_rowhi = $8390
+  dim stg_rowshift = $8480
   const TXT_ATARI = 0
   const TXT_PUSH = 1
   const TXT_B1 = 2

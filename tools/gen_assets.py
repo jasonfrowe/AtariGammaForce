@@ -518,7 +518,7 @@ def build_sprites():
 # the same are stored once.
 
 MAX_RUNS = 6
-MAX_ROWS = 208
+MAX_ROWS = 240
 MAX_WAVES = 40
 MAX_GROUND = 40
 MAX_TILES = 64
@@ -1207,9 +1207,9 @@ STAGE5_PALETTES = [
     [(36, 48, 80), (84, 96, 120), (236, 244, 255)],      # P1 snow: shadow, concrete, snow
     [(8, 20, 48), (24, 56, 104), (236, 244, 255)],       # P2 water: deep, water, white rim
 ]
-STAGE5_ORDER = [1, 0, 3, 1, 0]       # ice chunks (32 rows each)
-STAGE5_GAP = 16                      # bare ice before the crawler
-WAVES_END_5 = 2450                   # no ground units past this
+STAGE5_ORDER = [1, 0, 3, 2, 1, 0]    # ice chunks (32 rows each)
+STAGE5_GAP = 23                      # bare ice before the crawler
+WAVES_END_5 = 2950                   # no ground units past this
 B5_TOP = 6                           # the crawler's top line, where it stops
 B5_SLOTS = {0: ("GUN_L", 8, 2), 1: ("GUN_R", 8, 2), 2: ("DRILL", 0, 0), 4: ("HATCH_L", 0, 0),
             5: ("REACTOR", 0, 0), 6: ("HATCH_R", 0, 0), 7: ("TUR0", 3, 0), 8: ("TUR1", 3, 0),
@@ -1234,10 +1234,10 @@ def stage5():
             kept.append((k, r, c))
         else:
             chunks[k * cr + r:k * cr + r + 2, c:c + 2] = ids["snow0"]
-    # and three cracks in four in the snow (each makes its row one more to store)
+    # and half the cracks in the snow (each makes its row one more to store)
     cracks = list(zip(*np.nonzero(chunks == ids["snow3"])))
     for j, (r, c) in enumerate(cracks):
-        if j % 4:
+        if j % 2:
             chunks[r, c] = ids["snow0"]
     body = np.concatenate([chunks[k * cr:(k + 1) * cr] for k in STAGE5_ORDER])
     hull = np.frombuffer((MGF / "stage5_hull.bin").read_bytes(), dtype=np.uint8).reshape(meta["hull_h"], meta["hull_w"])
@@ -1318,7 +1318,7 @@ def stage5():
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
             "charset": "charset5", "pals": [nearest(c) for p in STAGE5_PALETTES for c in p],
             "bg": nearest(STAGE5_BG), "song": "SONG_STAGE5", "bosssong": "SONG_BOSS5", "bossat": bossat,
-            "waves": spread_waves(wave_cols(meta["waves"], 0.85), gr), "ground": gr,
+            "waves": spread_waves(wave_cols(meta["waves"]), gr), "ground": gr,
             "pal_codes": [[nearest(c) for c in p] for p in STAGE5_PALETTES]}
 
 
