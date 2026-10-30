@@ -44,10 +44,11 @@
   rem Testing: start at the boss, and/or never get hit.
   rem const BOSSTEST = 1
   rem const CHEAT = 1
-  rem Start at stage 2, 3 or 4.
+  rem Start at stage 2, 3, 4 or 5.
   rem const STAGE2TEST = 1
   rem const STAGE3TEST = 1
   rem const STAGE4TEST = 1
+  rem const STAGE5TEST = 1
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
@@ -67,7 +68,7 @@
   rem stage 4's armored train cars, on the railway (eframe 0: the engine)
   const ET_TRAIN = 10
   rem the stages, round and round
-  const NSTAGES = 4
+  const NSTAGES = 5
   rem boss parts: types from ET_PART up are placed by the boss code
   const ET_PART = 11
   const ET_PCANNON = 11
@@ -200,7 +201,7 @@
   dim bmsg = $234C
   dim bburst = $2359
   dim bsrc = $235A
-  rem the stage being played (1-4)
+  rem the stage being played (1-5)
   dim stage = $235B
   rem stage 2's boss: the pods' orbit angle, the cannon's sweep
   dim borbit = $235C
@@ -365,6 +366,10 @@ title_fire
   endif
   ifconst STAGE4TEST
   lda #4
+  sta stage
+  endif
+  ifconst STAGE5TEST
+  lda #5
   sta stage
   endif
   lda #160
@@ -932,6 +937,8 @@ ground_find
 ground_slot
   temp2 = gtype[temp1]
   etype[k] = temp2 : eimg[k] = enemy_img[temp2] : ehp[k] = enemy_hp[temp2]
+  rem (stage 5's obstacles are icebergs)
+  if temp2 = ET_TOWER && stage = 5 then eimg[k] = IMG_BERG
   exh[k] = gtx[temp1] : eparam[k] = gtbase[temp1] : ewamp[k] = gparam[temp1]
   eyh[k] = spos_lo + gtbase[temp1]
   ecol[k] = gpal[temp1]
@@ -970,8 +977,10 @@ boss
 boss_wait
   if wn < stg_nwaves then return
   if spos_hi < stg_bossat then return
-  rem (stage 3's ship comes in with the map: it can't wait for a clear sky)
+  rem (stage 3's ship and stage 5's crawler come in with the map: they
+  rem can't wait for a clear sky)
   if stage = 3 then goto boss_go
+  if stage = 5 then goto boss_go
   for k = 0 to NE1
     if etype[k] then return
   next
@@ -1000,6 +1009,7 @@ boss_warning
   if stage = 2 then gosub boss2_build
   if stage = 3 then gosub boss3_build
   if stage = 4 then gosub boss4_build
+  if stage = 5 then gosub boss5_build
   gosub boss_place
   bstate = 2 : btl = 0 : bth = 0
   return
@@ -1007,6 +1017,7 @@ boss_warning
 boss_enter
   if stage = 3 then goto boss3_enter
   if stage = 4 then goto boss4_enter
+  if stage = 5 then goto boss5_enter
   by = by + 1
   gosub boss_place
   if by < 89 then return
@@ -1016,6 +1027,7 @@ boss_enter
 boss_fight
   if stage = 3 then goto boss3_fight
   if stage = 4 then goto boss4_fight
+  if stage = 5 then goto boss5_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
   rem sway: x = 80 + 17 sin(t/2), y = 89 + 6 sin(t/4) (stage 2: 12, 7)
@@ -1061,6 +1073,7 @@ boss_nodive
 boss_place
   if stage = 3 then goto boss3_place
   if stage = 4 then goto boss4_place
+  if stage = 5 then goto boss5_place
   asm
   ldx #10
 boss_place_loop
@@ -1102,6 +1115,7 @@ boss_attack
   if stage = 2 then goto boss2_attack
   if stage = 3 then goto boss3_attack
   if stage = 4 then goto boss4_attack
+  if stage = 5 then goto boss5_attack
   goto boss1_attack
 
   rem Damage temp1 to boss part i. A wing's bottom half passes its hits
@@ -1154,10 +1168,12 @@ part_core_2
   temp6 = etype[8] | etype[9] | etype[10]
   if temp6 then return
 part_core_open
-  rem (stage 4's core, the wyrm's head, is slots 9 and 10)
+  rem (stage 4's core, the wyrm's head, is slots 9 and 10; stage 3's and
+  rem 5's reactor is slot 5 alone, a hatch beside it)
   temp5 = 5
   if stage = 4 then temp5 = 9
-  eflash[temp5] = 3 : temp5 = temp5 + 1 : eflash[temp5] = 3
+  eflash[temp5] = 3 : temp5 = temp5 + 1
+  if stage <> 3 && stage <> 5 then eflash[temp5] = 3
   rem the core is armored: half damage
   temp1 = temp1 / 2 + 1
   if bcorehp > temp1 then bcorehp = bcorehp - temp1 : return
@@ -1176,8 +1192,10 @@ end
   next
   if temp3 = 0 then sadd2 = $02 : sadd1 = 0 : sadd0 = 0 : gosub boss_bonus
   bstate = 4 : btl = 0
-  rem stage 3's ship sinks: the scroll carries it away
+  rem stage 3's ship sinks, stage 5's crawler breaks through the ice: the
+  rem scroll carries it away
   if stage = 3 then pfspeed = 250
+  if stage = 5 then pfspeed = 250
   return
 boss_bonus
   asm
@@ -1192,6 +1210,7 @@ boss_dying
   if temp1 = 0 then gosub boss_boom
   if stage = 3 then gosub boss3_sinking
   if stage = 4 then gosub boss4_sinking
+  if stage = 5 then gosub boss5_sinking
   if btl < 240 then gosub boss_place : return
   for k = 0 to 10 : etype[k] = 0 : next
   bstate = 5 : btl = 0
@@ -1473,6 +1492,22 @@ end
   dmahole 0
   inline musicdata4.asm
   incbasic boss4.bas
+
+  rem ======================================================================
+  rem  Bank 6: stage 5 (map, the stage song's drums, the boss's song,
+  rem  GLACIER CRAWLER's code and tables; its graphics block at $A000; the
+  rem  rest of the stage's song after it)
+  rem ======================================================================
+  bank 6
+  rem the stage header must come first: it is read at $8000
+  inline stage5.asm
+  inline musicdata5c.asm
+  inline musicdata5b.asm
+  incbasic gen/gfx5.bas
+  dmahole 0
+  inline musicdata5.asm
+  inline boss5tab.asm
+  incbasic boss5.bas
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

@@ -217,10 +217,12 @@ SCREEN_TEXTS = {
     "name2": "NEON SPIRES",
     "name3": "IRON TIDE",
     "name4": "SCORCHED SANDS",
+    "name5": "FROZEN STRAIT",
     "sel1": "<   STAGE 1   >",
     "sel2": "<   STAGE 2   >",
     "sel3": "<   STAGE 3   >",
     "sel4": "<   STAGE 4   >",
+    "sel5": "<   STAGE 5   >",
     # the title's difficulty (TXT_MODE0 + easy): up and down choose
     "mode0": "^   NORMAL   _",
     "mode1": "^ TEDDY BEAR _",
@@ -308,6 +310,11 @@ SPRITES = [
     ("b4headb", "boss4", 0, 0, None, None, 0),
     ("b4seg", "boss4", 0, 0, None, None, 0),
     ("b4tail", "boss4", 0, 0, None, None, 0),
+    # Stage 5's: the iceberg, and GLACIER CRAWLER's parts (in its bank)
+    ("berg", "boss5", 0, 0, None, None, 1),
+    ("b5reactor", "boss5", 0, 0, None, None, 0),
+    ("b5drill", "boss5", 0, 0, None, None, 0),
+    ("b5gun", "boss5", 0, 0, None, None, 0),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -331,7 +338,7 @@ SPRITES = [
     ("hudgem0", "art", 0, 0, None, None, 3),
     ("hudship", "art", 0, 0, None, None, 3),
 ]
-BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4")} - {"gunboat", "train"}
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5")} - {"gunboat", "train", "berg"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
 STAGE2_SPRITES = {"tower", "b2coret", "b2coreb", "b2pod", "b2cannon"}
@@ -339,6 +346,7 @@ STAGE3_SPRITES = {"gunboat", "b3bridget", "b3bridgeb", "b3reactor", "b3gun"}
 STAGE3_STRIPS = {"gunboat0", "gunboat1", "b3bridget0", "b3bridget1", "b3bridgeb0", "b3bridgeb1",
                  "b3reactor0", "b3reactor1", "b3gun"}  # (b3bay: in the last bank, no room here)
 STAGE4_STRIPS = {"train0", "train1", "b4headt0", "b4headt1", "b4headb", "b4seg0", "b4seg1", "b4tail0", "b4tail1"}
+STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "berg0", "berg1"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -448,6 +456,9 @@ def build_sprites():
         elif fn == "boss4":
             import boss7800
             conv = boss7800.parts4()[name]
+        elif fn == "boss5":
+            import boss7800
+            conv = boss7800.parts5()[name]
         elif fn == "logo":
             import logo7800
             conv = [logo7800.words()[name]]
@@ -1183,6 +1194,134 @@ def stage4():
             "pal_codes": [[nearest(c) for c in p] for p in STAGE4_PALETTES]}
 
 
+# Stage 5, FROZEN STRAIT: pack ice (the ice is the background), leads of
+# open water, plowed roads with snow tanks, bunkers, and icebergs standing
+# out of the ice (obstacles: ET_TOWER, with a berg's picture). Its boss,
+# GLACIER CRAWLER, is part of the map, as LEVIATHAN is: a tracked fortress
+# that comes in with the scroll and holds its place at the top of the
+# screen, the scroll stopped (the arena is bare ice: no movement shows),
+# its treads running (the game swaps two colors of P2).
+STAGE5_BG = (128, 156, 196)
+STAGE5_PALETTES = [
+    [(36, 46, 64), (100, 116, 140), (180, 230, 250)],    # P0 the crawler: dark steel, steel, frost
+    [(36, 48, 80), (84, 96, 120), (236, 244, 255)],      # P1 snow: shadow, concrete, snow
+    [(8, 20, 48), (24, 56, 104), (236, 244, 255)],       # P2 water: deep, water, white rim
+]
+STAGE5_ORDER = [1, 0, 3, 1, 0]       # ice chunks (32 rows each)
+STAGE5_GAP = 16                      # bare ice before the crawler
+WAVES_END_5 = 2450                   # no ground units past this
+B5_TOP = 6                           # the crawler's top line, where it stops
+B5_SLOTS = {0: ("GUN_L", 8, 2), 1: ("GUN_R", 8, 2), 2: ("DRILL", 0, 0), 4: ("HATCH_L", 0, 0),
+            5: ("REACTOR", 0, 0), 6: ("HATCH_R", 0, 0), 7: ("TUR0", 3, 0), 8: ("TUR1", 3, 0),
+            9: ("TUR2", 3, 0), 10: ("TUR3", 3, 0)}
+
+
+def stage5():
+    import tiles7800
+    meta = json.loads((MGF / "stage5.json").read_text())
+    cols, cr = meta["cols"], meta["chunk_rows"]
+    i_tiles, i_pals, i_lut = tiles7800.arctic_tiles(meta["tile_ids"])
+    h_tiles, h_pals, h_lut, h_clear = tiles7800.crawler_tiles(meta["hull_tile_ids"])
+    base = len(i_tiles)
+    t_slots, t_pals = i_tiles + h_tiles, i_pals + h_pals
+    chunks = np.frombuffer((MGF / "stage5_chunks.bin").read_bytes(), dtype=np.uint8).reshape(-1, cols).copy()
+    # One bunker in three is kept (each with a turret), the others made
+    # bare ice: they cost the bank's room and MARIA's time
+    ids = meta["tile_ids"]
+    kept = []
+    for i, (k, r, c) in enumerate(sorted(meta["bunkers"])):
+        if i % 3 == 1:
+            kept.append((k, r, c))
+        else:
+            chunks[k * cr + r:k * cr + r + 2, c:c + 2] = ids["snow0"]
+    # and three cracks in four in the snow (each makes its row one more to store)
+    cracks = list(zip(*np.nonzero(chunks == ids["snow3"])))
+    for j, (r, c) in enumerate(cracks):
+        if j % 4:
+            chunks[r, c] = ids["snow0"]
+    body = np.concatenate([chunks[k * cr:(k + 1) * cr] for k in STAGE5_ORDER])
+    hull = np.frombuffer((MGF / "stage5_hull.bin").read_bytes(), dtype=np.uint8).reshape(meta["hull_h"], meta["hull_w"])
+    hh, hw = hull.shape
+    loop = 16
+    rows = body.shape[0] + STAGE5_GAP + hh + loop
+    m = np.zeros((rows, 20), dtype=np.uint8)
+    m[:body.shape[0], :] = np.vectorize(lambda t: i_lut[int(t)])(body)
+    bow = body.shape[0] + STAGE5_GAP                 # the hull's first row (the drill's end)
+    stern = bow + hh - 1
+    for r in range(hh):                              # hull row r (from the rear) is map row stern - r
+        for c in range(hw):
+            t = int(hull[r, c])
+            if t != h_clear:
+                m[stern - r, HULL_COL + c] = base + h_lut[t]
+
+    units = []
+    # Turrets on the bunkers
+    bunkers = [(n * cr + r, c) for n, k in enumerate(STAGE5_ORDER) for kk, r, c in kept if kk == k]
+    for i, (r, c) in enumerate(sorted(bunkers)):
+        y = (r + 1) * 16
+        if 300 < y < WAVES_END_5:
+            units.append((y, (c + 1) * 8, "ET_TURRET", 4 + i % 3, 0))
+    # Snow tanks along the roads, by turns from the left and the right
+    roads = sorted(n * cr + r for n, k in enumerate(STAGE5_ORDER) for kk, r in meta["roads"] if kk == k)
+    for j, r in enumerate(roads):
+        y = r * 16 + 8
+        if 300 < y < WAVES_END_5:
+            left = j % 2 == 1
+            units.append((y, 148 if left else 8, "ET_TANK", 4 + j % 3, (0x80 if left else 0) | 9))
+    # Icebergs: obstacles in three lanes by turns, every 10-14 rows, clear
+    # of the roads (the tanks drive along them)
+    names = {v: k for k, v in meta["tile_ids"].items()}
+    lanes = [8, 64, 120]
+    rng = np.random.default_rng(21)
+    r, lane = 14, 1
+    while r < body.shape[0] - 6:
+        if all(abs(r - rr) > 3 and abs(r + 1 - rr) > 3 for rr in roads):
+            units.append(((r + 2) * 16 - 8, lanes[lane] + 4, "ET_TOWER", 1, 0))
+            lane = (lane + int(rng.integers(1, 3))) % 3
+            r += int(rng.integers(10, 15))
+        else:
+            r += 1
+
+    # The crawler's numbers for its boss code (as LEVIATHAN's): each part's
+    # x and the world height of its top (a sprite's line is spos + 240 -
+    # it); where the scroll stops (its top at line B5_TOP) and where it has
+    # gone (its top below the screen).
+    parts = meta["hull_parts"]
+    def top(name, dy=0):
+        c, r, w, h = parts[name]
+        return (stern - r + 1) * 16 - dy
+    b5 = {"b5_stop": (stern + 1) * 16 - 208 + B5_TOP, "b5_gone": (stern + 1) * 16 + 8}
+    xs, ylo, yhi = [], [], []
+    for k in range(11):
+        if k in B5_SLOTS:
+            name, dy, dx = B5_SLOTS[k]
+            xs.append(8 * (HULL_COL + parts[name][0]) + dx)
+            y = top(name, dy)
+        else:
+            xs.append(0)
+            y = 0
+        ylo.append(y & 255)
+        yhi.append(y >> 8)
+    lines = ["; Generated by tools/gen_assets.py. Do not edit.",
+             "; GLACIER CRAWLER's parts: x, and the world height of each one's top (lo, hi)."]
+    lines.append("b5_x .byte " + ",".join(str(v) for v in xs))
+    lines.append("b5_ylo .byte " + ",".join(str(v) for v in ylo))
+    lines.append("b5_yhi .byte " + ",".join(str(v) for v in yhi))
+    for name, v in b5.items():
+        lines.append(f"{name.upper()} = {v}")
+    (GEN / "boss5tab.asm").write_text("\n".join(lines) + "\n")
+
+    # the warning when its front is about 9 rows above the screen
+    bossat = (bow * 16 - 208 - 144) >> 8
+    gr = ground_cols(units)
+    return {"n": 5, "map": m, "t_slots": t_slots, "t_pals": t_pals,
+            "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
+            "charset": "charset5", "pals": [nearest(c) for p in STAGE5_PALETTES for c in p],
+            "bg": nearest(STAGE5_BG), "song": "SONG_STAGE5", "bosssong": "SONG_BOSS5", "bossat": bossat,
+            "waves": spread_waves(wave_cols(meta["waves"], 0.85), gr), "ground": gr,
+            "pal_codes": [[nearest(c) for c in p] for p in STAGE5_PALETTES]}
+
+
 # What a unit costs the frame, roughly, for spread_waves: train cars and
 # gunships are tall (3 objects or more), saucers fire rings of 8
 UNIT_WEIGHT = {"ET_TRAIN": 3, "ET_GUNSHIP": 3, "ET_GUNBOAT": 3, "ET_SAUCER": 2}
@@ -1246,7 +1385,7 @@ def main():
     PREVIEW.mkdir(parents=True, exist_ok=True)
 
     font_base = 0
-    stages = [stage1(), stage2(), stage3(), stage4()]
+    stages = [stage1(), stage2(), stage3(), stage4(), stage5()]
     build_charset("charset", stages[0]["t_slots"], 1)
     for st in stages[1:]:
         build_charset(st["charset"], st["t_slots"], 1)
@@ -1268,11 +1407,11 @@ def main():
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in in_chars]
     bas += ["  newblock"]
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs
-            if n not in in_chars and n not in STAGE2_STRIPS | STAGE3_STRIPS | STAGE4_STRIPS]
+            if n not in in_chars and n not in STAGE2_STRIPS | STAGE3_STRIPS | STAGE4_STRIPS | STAGE5_STRIPS]
     (GEN / "gfx.bas").write_text("\n".join(bas) + "\n")
     # gfxN.bas: stage N's graphics block, in its bank at $A000: the font
     # and the stage's tiles, then its own sprites.
-    for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS), (4, STAGE4_STRIPS)):
+    for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS), (4, STAGE4_STRIPS), (5, STAGE5_STRIPS)):
         bn = ["  rem Generated by tools/gen_assets.py. Do not edit.",
               f"  incgraphic gfx/charset{n}.png 160A 0 1 2 3"]
         bn += [f"  incgraphic gfx/{s}.png 160A 0 1 2 3" for s in incs if s in strips]

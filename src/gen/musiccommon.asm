@@ -51,34 +51,34 @@ mus_drumhi .byte >mus_drum_kick,>mus_drum_snare,>mus_drum_hat
 ; Song table: voice 0-2 stream addresses, envelope tables.
 mus_song_v0lo
   .byte <mus_stage1_v0,<mus_boss_v0,<mus_title_v0,<mus_stage2_v0,<mus_boss2_v0,<mus_stage3_v0,<mus_boss3_v0,<mus_stage4_v0
-  .byte <mus_boss4_v0
+  .byte <mus_boss4_v0,<mus_stage5_v0,<mus_boss5_v0
 mus_song_v0hi
   .byte >mus_stage1_v0,>mus_boss_v0,>mus_title_v0,>mus_stage2_v0,>mus_boss2_v0,>mus_stage3_v0,>mus_boss3_v0,>mus_stage4_v0
-  .byte >mus_boss4_v0
+  .byte >mus_boss4_v0,>mus_stage5_v0,>mus_boss5_v0
 mus_song_v1lo
   .byte <mus_stage1_v1,<mus_boss_v1,<mus_title_v1,<mus_stage2_v1,<mus_boss2_v1,<mus_stage3_v1,<mus_boss3_v1,<mus_stage4_v1
-  .byte <mus_boss4_v1
+  .byte <mus_boss4_v1,<mus_stage5_v1,<mus_boss5_v1
 mus_song_v1hi
   .byte >mus_stage1_v1,>mus_boss_v1,>mus_title_v1,>mus_stage2_v1,>mus_boss2_v1,>mus_stage3_v1,>mus_boss3_v1,>mus_stage4_v1
-  .byte >mus_boss4_v1
+  .byte >mus_boss4_v1,>mus_stage5_v1,>mus_boss5_v1
 mus_song_v2lo
   .byte <mus_stage1_v2,<mus_boss_v2,<mus_title_v2,<mus_stage2_v2,<mus_boss2_v2,<mus_stage3_v2,<mus_boss3_v2,<mus_stage4_v2
-  .byte <mus_boss4_v2
+  .byte <mus_boss4_v2,<mus_stage5_v2,<mus_boss5_v2
 mus_song_v2hi
   .byte >mus_stage1_v2,>mus_boss_v2,>mus_title_v2,>mus_stage2_v2,>mus_boss2_v2,>mus_stage3_v2,>mus_boss3_v2,>mus_stage4_v2
-  .byte >mus_boss4_v2
+  .byte >mus_boss4_v2,>mus_stage5_v2,>mus_boss5_v2
 mus_song_ello
   .byte <mus_stage1_envlo,<mus_boss_envlo,<mus_title_envlo,<mus_stage2_envlo,<mus_boss2_envlo,<mus_stage3_envlo,<mus_boss3_envlo,<mus_stage4_envlo
-  .byte <mus_boss4_envlo
+  .byte <mus_boss4_envlo,<mus_stage5_envlo,<mus_boss5_envlo
 mus_song_elhi
   .byte >mus_stage1_envlo,>mus_boss_envlo,>mus_title_envlo,>mus_stage2_envlo,>mus_boss2_envlo,>mus_stage3_envlo,>mus_boss3_envlo,>mus_stage4_envlo
-  .byte >mus_boss4_envlo
+  .byte >mus_boss4_envlo,>mus_stage5_envlo,>mus_boss5_envlo
 mus_song_ehlo
   .byte <mus_stage1_envhi,<mus_boss_envhi,<mus_title_envhi,<mus_stage2_envhi,<mus_boss2_envhi,<mus_stage3_envhi,<mus_boss3_envhi,<mus_stage4_envhi
-  .byte <mus_boss4_envhi
+  .byte <mus_boss4_envhi,<mus_stage5_envhi,<mus_boss5_envhi
 mus_song_ehhi
   .byte >mus_stage1_envhi,>mus_boss_envhi,>mus_title_envhi,>mus_stage2_envhi,>mus_boss2_envhi,>mus_stage3_envhi,>mus_boss3_envhi,>mus_stage4_envhi
-  .byte >mus_boss4_envhi
+  .byte >mus_boss4_envhi,>mus_stage5_envhi,>mus_boss5_envhi
 SONG_STAGE1 = 0
 SONG_BOSS = 1
 SONG_TITLE = 2
@@ -88,3 +88,5 @@ SONG_STAGE3 = 5
 SONG_BOSS3 = 6
 SONG_STAGE4 = 7
 SONG_BOSS4 = 8
+SONG_STAGE5 = 9
+SONG_BOSS5 = 10

@@ -26,6 +26,13 @@ COLS = 20  # 160 px screen / 8 px tiles
 MGF_COLS = 12  # MegaGammaForce's playfield width in tiles
 RAIL4 = 12  # stage 4's railway: its left column
 ROCK4 = (0.74, 0.70, 0.70, 0.70)  # stage 4's rock level per chunk (MegaGammaForce: 0.62)
+# Stage 5's chunks (32 rows each): their stretches of shelf (s) and floes (f),
+# and the noise level above which a corner is ice, in each kind (MegaGammaForce:
+# shelf 0.18, floes 0.62; here the ice is the background, so the floes are
+# mostly ice too, cut by leads of open water)
+CHUNKS5 = [([("f", 32)], 11), ([("s", 32)], 12), ([("s", 10), ("f", 14), ("s", 8)], 13),
+           ([("f", 12), ("s", 20)], 14)]
+SHELF5, FLOE5 = 0.16, 0.33
 
 SPRITE_SHEETS = [
     "player.png", "enemy16.png", "enemy32.png", "bullet8.png", "bullet16.png",
@@ -199,6 +206,56 @@ def main():
         "bunkers": bunk4,
         "waves": waves.S4_WAVES,
         "note": "chunks: stage order (row 0 first); bunkers: (chunk, row, col) of the bunker's lower row",
+    }, indent=1) + "\n")
+
+    # Stage 5, FROZEN STRAIT: pack ice (20 columns) as four 32-row chunks
+    # from MegaGammaForce's arctic.py, solid ice at both ends of each so any
+    # can follow any; roads half as often (every 16 rows); with bunkers
+    # (turrets), roads (tanks) and open water (icebreakers). The iceberg
+    # layer is left out (gen_assets places a few bergs as obstacles). And
+    # GLACIER CRAWLER: its hull map (crawler.py, rows from the rear down to
+    # the drill) and where its parts sit.
+    import arctic  # noqa: E402
+    import crawler  # noqa: E402
+    _, ids5 = arctic.ground_tileset()
+    arctic.COLS = COLS
+    src = inspect.getsource(arctic.ground_map)
+    for a, b in (("n[r, c] > 0.18", "n[r, c] > SHELF_LEVEL"), ("n[r, c] > 0.62", "n[r, c] > FLOE_LEVEL"),
+                 ("corners[0:3, :] = 0  # open water to begin with",
+                  "corners[0:2, :] = 1\n    corners[rows - 1:, :] = 1"),
+                 ("r % 8 == 4", "r % 16 == 6")):
+        assert a in src, a
+        src = src.replace(a, b)
+    ns = dict(vars(arctic))
+    ns.update(SHELF_LEVEL=SHELF5, FLOE_LEVEL=FLOE5)
+    chunks5, bunk5, roads5, water5 = [], [], [], []
+    for k, (sections, seed) in enumerate(CHUNKS5):
+        ns["SECTIONS"] = sections
+        exec(src, ns)
+        m5, b5, r5, w5 = ns["ground_map"](32, ids5, seed=seed)
+        chunks5.append(m5)
+        bunk5 += [[k, int(r), int(c)] for r, c in b5]
+        roads5 += [[k, int(r)] for r in r5]
+        water5 += [[k, int(r), int(c)] for r, c in w5]
+    (OUT / "stage5_chunks.bin").write_bytes(np.concatenate(chunks5).astype(np.uint8).tobytes())
+    _, hids5 = crawler.hull_tileset()
+    hull5 = crawler.hull_map(hids5)
+    (OUT / "stage5_hull.bin").write_bytes(hull5.astype(np.uint8).tobytes())
+    (OUT / "stage5.json").write_text(json.dumps({
+        "cols": COLS,
+        "chunk_rows": 32,
+        "chunks": len(chunks5),
+        "tile_ids": {k: int(v) for k, v in ids5.items()},
+        "bunkers": bunk5,
+        "roads": roads5,
+        "water": water5,
+        "hull_w": int(hull5.shape[1]),
+        "hull_h": int(hull5.shape[0]),
+        "hull_tile_ids": {k: int(v) for k, v in hids5.items()},
+        "hull_parts": {k: list(v) for k, v in crawler.PARTS.items()},
+        "waves": waves.S5_WAVES,
+        "note": "chunks: stage order (row 0 first); bunkers/water: (chunk, row, col); roads: (chunk, row); "
+                "hull: rows from the rear (top) down to the drill; parts: (col, row, w, h) in hull tiles",
     }, indent=1) + "\n")
 
     # The palettes the sheets were drawn with, for the converters.

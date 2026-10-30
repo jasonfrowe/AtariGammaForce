@@ -162,6 +162,7 @@ hole at $B000.
 | 3 | stage 2: header, map, boss tune copy, SPIRE WARDEN's code (`src/boss2.bas`), graphics ($A000), song ($B000) |
 | 4 | stage 3: header, map, boss tune, LEVIATHAN's code (`src/boss3.bas`), graphics ($A000), song and LEVIATHAN's tables ($B000) |
 | 5 | stage 4: header, map, boss tune, DUNE WYRM's path, graphics ($A000), song and DUNE WYRM's code (`src/boss4.bas`, $B000) |
+| 6 | stage 5: header, map, the stage song's voices 0 and 2, boss tune (less its voice 1), graphics ($A000), the stage song's voice 1, the boss tune's voice 1, GLACIER CRAWLER's code and tables ($B000) |
 | 9 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
 
 ## Wrecks under the ship
@@ -204,8 +205,16 @@ reactor is in reach (waves of escorts defend it as it is hurt), and the scroll r
 bridge, reactor, missile bays and turrets are sprites pinned to map rows
 like ground units (a shut bay is drawn the same as its hull tiles, so it
 shows only as it flashes, opens, or lies wrecked): each part's line is `spos + 240 -` the world height of its top
-(16 bits; off the screen it is parked off to the right). Later stages'
-hull bosses can work the same way.
+(16 bits; off the screen it is parked off to the right).
+
+Stage 5's GLACIER CRAWLER works the same way. MegaGammaForce's crawler
+holds its place on the screen while the ice scrolls under it; here the
+arena is bare ice (the background color), so the scroll simply stops with
+the crawler at the top of the screen and nothing shows that it stopped.
+Its treads are drawn in bands of palette 2's first two colors, which the
+boss code swaps every 4 frames, so they run (palette 2 is the water's,
+and there is no water in the arena). Beaten, or after 100 seconds, the
+scroll runs on and carries it away down the screen.
 
 ## A boss that follows its own path
 

@@ -435,3 +435,70 @@ def parts4():
     head = wyrm_head()
     return {"b4headt": [f[:32] for f in head], "b4headb": [f[32:] for f in head],
             "b4seg": wyrm_segment(), "b4tail": wyrm_tail(), "train": train()}
+
+
+# ---------------------------------------------------------------------------
+# Stage 5: GLACIER CRAWLER's parts (P0 in stage 5: 1 dark steel, 2 steel,
+# 3 frost and the cryo glow), and the icebergs (P1, snow: 1 shadow, 2
+# grey-blue ice, 3 snow).
+
+def reactor5():
+    """The cryo reactor: 16 px by 32 lines, a frosted dome ringed with
+    vents over a glowing core; frames: it pulses."""
+    frames = []
+    for hot in (False, True):
+        c = Canvas(16, 32)
+        c.fill(circle(16, 16, 15), 2)
+        c.outline(1)
+        for a in range(0, 360, 45):
+            x, y = 16 + math.cos(math.radians(a)) * 11.5, 16 + math.sin(math.radians(a)) * 11.5
+            c.fill(circle(x, y, 2), 1)
+        c.fill(circle(16, 16, 8.5), 1)
+        c.fill(circle(16, 16, 7 if hot else 5), 3)
+        if hot:
+            c.fill(lambda x, y: abs(x - 16) < 1.2 and abs(y - 16) < 5, 2)  # the core's rods
+        frames.append(c.a)
+    return frames
+
+
+def drill5():
+    """The ice drill: 16 px by 32 lines, its housing at the top, the bit
+    pointing down; frames: its spiral turns."""
+    frames = []
+    for k in range(2):
+        c = Canvas(16, 32)
+        c.fill(lambda x, y: 6 <= x < 26 and 0 <= y < 8, 2)
+        bit = poly([(5, 7), (27, 7), (16, 31)])
+        c.fill(bit, 2)
+        c.outline(1)
+        c.fill(lambda x, y: bit(x, y) and x > 18, 1)                     # the shaded side
+        for j in range(4):
+            y0 = 10 + j * 5 + k * 2.5
+            c.fill(lambda x, y, y0=y0: bit(x, y) and 0 <= y - y0 - (x - 5) * 0.12 < 1.2, 3)
+        c.fill(circle(16, 3.5, 2.5), 3)
+        frames.append(c.a)
+    return frames
+
+
+def berg():
+    """An iceberg: 32 px by 32 lines, a snowy top with ridges, its cliff
+    face dark below it (the south side, toward the ship)."""
+    c = Canvas(32, 32)
+    rng = np.random.default_rng(5)
+    pts = []
+    for k in range(14):
+        a = 2 * math.pi * k / 14
+        r = 1 + rng.uniform(-0.18, 0.12)
+        pts.append((32 + math.cos(a) * 29 * r, 13 + math.sin(a) * 11 * r))
+    top = poly(pts)
+    face = lambda x, y: any(top(x, y - d) for d in (3, 6, 9))           # noqa: E731
+    c.fill(lambda x, y: face(x, y) and not top(x, y), 1)
+    c.fill(top, 3)                                                       # snow
+    c.fill(lambda x, y: top(x, y) and not top(x + 4, y + 2), 2)          # its shaded edge
+    c.fill(lambda x, y: top(x, y) and abs((x - 2 * y) % 22 - 11) < 1.2 and 6 < y < 20, 2)  # ridges
+    c.fill(lambda x, y: face(x, y) and not top(x, y) and int(x) % 7 == 0, 2)  # streaks in the cliff
+    return [c.a]
+
+
+def parts5():
+    return {"b5reactor": reactor5(), "b5drill": drill5(), "b5gun": gun3(), "berg": berg()}

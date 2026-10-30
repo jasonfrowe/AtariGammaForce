@@ -1,5 +1,5 @@
 #!/bin/sh
-# Speed benchmark: stage 1 (or STAGE=2..4) with an invulnerable ship that
+# Speed benchmark: stage 1 (or STAGE=2..5) with an invulnerable ship that
 # holds fire and never moves, so every build plays the same game. Reports
 # game speed and display rate (tools/fps.py).
 #   tools/bench.sh            STAGE=3 tools/bench.sh

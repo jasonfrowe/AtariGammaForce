@@ -628,3 +628,221 @@ def desert_tiles(ids):
             tiles.append(_palm())
             pals.append(OASIS)
     return tiles, pals, lut
+
+
+# ---------------------------------------------------------------------------
+# Stage 5, FROZEN STRAIT: pack ice (the ice is the background color, so the
+# open shelf costs nothing), leads of open water, plowed roads, bunkers.
+# Palettes: P0 the crawler (1 dark steel, 2 steel, 3 frost), P1 snow (1
+# shadow, 2 concrete, 3 snow white: roads, cracks, bunkers), P2 water (1
+# deep, 2 water, 3 white rim). During the boss fight the game swaps P2's
+# first two colors to and fro, which runs the crawler's treads (drawn in
+# P2's bands); there is no water on the screen by then.
+
+CRAWLER, SNOW, WATER = 0, 1, 2
+
+
+def _water5(seed):
+    t = np.full((H, W), 2, dtype=np.uint8)
+    rng = np.random.default_rng(seed)
+    for _ in range(3):
+        x, y = int(rng.integers(0, W - 3)), int(rng.integers(0, H))
+        t[y, x:x + 3] = 1                           # ripples
+    return t
+
+
+def _crack():
+    """Snow with a crack across it: a dark line, a bright edge under it."""
+    t = np.zeros((H, W), dtype=np.uint8)
+    for x in range(W):
+        y = int(7 + 3 * math.sin(x * 0.9))
+        t[y, x] = 1
+        t[min(H - 1, y + 1), x] = 3
+    return t
+
+
+def _road5(variant):
+    """A plowed track: two pairs of ruts, snow banks on both sides; the
+    packed snow between is the ice itself (background)."""
+    t = np.zeros((H, W), dtype=np.uint8)
+    t[1, :] = 3
+    t[14, :] = 1
+    for y in (5, 10):
+        t[y, :] = 1
+        t[y, (variant * 3)::4] = 2
+    return t
+
+
+def _bunker5():
+    """A 2x2 concrete pillbox (16 px by 32 lines) for a turret: a snowy rim
+    lit on its upper left round a dark gun well."""
+    big = np.zeros((32, 16), dtype=np.uint8)
+    for y in range(32):
+        for x in range(16):
+            sq = max(abs(x + 0.5 - 8) * 2, abs(y + 0.5 - 16))
+            d = math.hypot((x + 0.5 - 8) * 2, y + 0.5 - 16)
+            if sq < 14:
+                big[y, x] = 2
+                if sq >= 12:
+                    big[y, x] = 3 if (x - 8) * 2 < (y - 16) * -1 + 0 and (x - 8) * 2 + (y - 16) < 0 else 1
+            if d < 10:
+                big[y, x] = 1
+            if d < 8:
+                big[y, x] = 2 if (x + y) % 3 == 0 else 1
+    return big
+
+
+def _beacon5():
+    t = np.zeros((H, W), dtype=np.uint8)
+    for y in range(H):
+        for x in range(W):
+            d = math.hypot((x + 0.5 - 4) * 2, y + 0.5 - 8)
+            if d < 5:
+                t[y, x] = 1
+            if d < 3:
+                t[y, x] = 3                         # the lamp (frost, P0)
+    return t
+
+
+def arctic_tiles(ids):
+    """Our tiles for MegaGammaForce's arctic names (arctic.py). Returns
+    (tiles, palettes, lut); tile 0 is blank (open ice)."""
+    tiles, pals, lut = [np.zeros((H, W), dtype=np.uint8)], [SNOW], {}
+    bunker = _quarters(_bunker5())
+    for name, i in ids.items():
+        if name.startswith("snow") and name != "snow3":
+            lut[i] = 0
+            continue
+        lut[i] = len(tiles)
+        if name.startswith("edge"):
+            # water where the corners are not ice: the lead's far bank (ice
+            # above it, facing down the screen) in shadow, the near bank lit
+            cfg = int(name[4:])
+            c = tuple(1 - b for b in ((cfg >> 3) & 1, (cfg >> 2) & 1, (cfg >> 1) & 1, cfg & 1))
+            tiles.append(_blend(c, _water5(cfg + 30), 1, 3))
+            pals.append(WATER)
+        elif name.startswith("water"):
+            # (one open water tile for all four)
+            if "water" not in lut:
+                lut["water"] = len(tiles)
+                tiles.append(_water5(50))
+                pals.append(WATER)
+            lut[i] = lut["water"]
+        elif name == "snow3":
+            tiles.append(_crack())
+            pals.append(SNOW)
+        elif name.startswith("road"):
+            if "road" not in lut:
+                lut["road"] = len(tiles)
+                tiles.append(_road5(0))
+                pals.append(SNOW)
+            lut[i] = lut["road"]
+        elif name.startswith("bunker"):
+            tiles.append(bunker[int(name[6:])])
+            pals.append(SNOW)
+        elif name == "beacon":
+            tiles.append(_beacon5())
+            pals.append(CRAWLER)
+    return tiles, pals, lut
+
+
+def crawler_tiles(ids):
+    """GLACIER CRAWLER's hull, for MegaGammaForce's names (crawler.py), 10
+    tiles by 9 rows. Returns (tiles, palettes, lut, the clear tile). The
+    treads are bands of P2's first two colors, so swapping them runs the
+    treads; the sockets and hatches are left plain (parts cover them)."""
+    tiles, pals, lut = [], [], {}
+
+    def add(key, t, pal):
+        # (the same picture is stored once, whatever its name)
+        key = (t.tobytes(), pal)
+        if key not in lut:
+            lut[key] = len(tiles)
+            tiles.append(t)
+            pals.append(pal)
+        return lut[key]
+
+    deck0, deck1 = _plate(0), _plate(5)
+
+    def tread(inner, end):
+        t = np.zeros((H, W), dtype=np.uint8)
+        for y in range(H):
+            t[y, :] = 1 + (y // 2) % 2              # cleats
+        if inner:
+            t[2::4, 5:7] = 3                        # road wheels through the cleats
+        else:
+            t[:, 0] = 3                             # the outer edge, frosted
+        if end and not inner:
+            # the outer corner rounded off: a quarter ellipse round the
+            # tile's inner corner at that end
+            for y in range(H):
+                for x in range(W):
+                    u = (W - 0.5 - x) / W
+                    v = (H - 0.5 - y) / H if end == "top" else (y + 0.5) / H
+                    if u * u + v * v > 1:
+                        t[y, x] = 0
+        return t
+
+    vent = _plate(0)
+    vent[3:13, 1:7] = 1
+    vent[4:12:2, 2:6] = 2
+    lamp = _plate(0)
+    lamp[6:10, 2:6] = 1
+    lamp[7:9, 3:5] = 3
+    stripe = _plate(0)
+    for y in range(1, H - 1):
+        for x in range(W):
+            if ((x + y) // 3) % 2 == 0:
+                stripe[y, x] = 3                    # hazard stripes, in frost
+    stripe[0, :] = 1
+    paint = _plate(0)
+    paint[4:12, :] = 1
+    paint[5:11, :] = 3                              # a frost-white band
+    rear = np.full((H, W), 2, dtype=np.uint8)
+    rear[0, :] = 1
+    rear[1, :] = 3
+    rear[4:11, 1:4] = 1
+    rear[5:10, 2:3] = 3                             # exhaust stacks
+    rear[4:11, 5:8] = 1
+    rear[5:10, 6:7] = 3
+    socket = _plate(0)
+    socket[2:14, 1:7] = 1
+    # the big sockets (2 x 2 tiles: guns, the reactor, the drill): a
+    # round well with a frosted rim, so a gun shows mounted in it
+    big = np.concatenate([np.concatenate([_plate(0), _plate(5)], axis=1)] * 2)
+    for y in range(2 * H):
+        for x in range(2 * W):
+            d = math.hypot((x + 0.5 - W) * 2, y + 0.5 - H)
+            if d < 14:
+                big[y, x] = 3
+            if d < 12:
+                big[y, x] = 1
+    bigq = _quarters(big)
+    plow_l = np.zeros((H, W), dtype=np.uint8)
+    for y in range(H):
+        e = (H - 1 - y) * W // H                    # the blade sweeps back
+        plow_l[y, e:] = 2
+        plow_l[y, e] = 3
+    plow_r = plow_l[:, ::-1].copy()
+    out = {}
+    for name, i in ids.items():
+        if name == "clear" or name.startswith("crater"):
+            continue
+        if name.startswith("deck"):
+            out[i] = add("deck" + str(int(name[4:]) % 2), deck0 if int(name[4:]) % 2 == 0 else deck1, CRAWLER)
+        elif name.startswith("tread"):
+            mirror = name.startswith("treadr")
+            rest = name[6:] if mirror else name[5:]
+            inner = rest[0] == "1"
+            end = rest[1:] or None
+            t = tread(inner, end)
+            if mirror:
+                t = t[:, ::-1].copy()
+            out[i] = add(name, t, WATER)
+        elif name in ("vent", "lamp", "stripe", "paint", "rear", "plow_l", "plow_r"):
+            out[i] = add(name, locals()[name], CRAWLER)
+        elif name.startswith("big"):
+            out[i] = add(name, bigq[int(name[3:])], CRAWLER)
+        elif name in ("small", "hatch0", "hatch1"):
+            out[i] = add("socket", socket, CRAWLER)
+    return tiles, pals, out, ids.get("clear")
