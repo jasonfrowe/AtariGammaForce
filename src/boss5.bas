@@ -11,8 +11,8 @@
   rem  the bridge falls it drives on, the tractor off the bottom of the
   rem  screen, spraying bullets while shelves of ice fall; then it stops with
   rem  the sled's cryo reactor in reach, and shelves keep falling. (With the
-  rem  tractor gone below, the screen's bottom zone is bare ice: a hull row
-  rem  there costs the engine an object a tile, every frame.)
+  rem  tractor gone below, fewer of the screen's zones have hull rows for
+  rem  MARIA to fetch: about 3 frames a second better at the sled.)
   rem  Slots: 0-1 the guns, 2 the ice drill, 3 the bridge, 4 and 6 the
   rem  launch hatches (LEVIATHAN's bays: shut, open, a crater), 5 the
   rem  reactor (the core), 7-8 the rear turrets, 9-10 the front ones (the
