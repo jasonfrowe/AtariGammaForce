@@ -1400,7 +1400,10 @@ def stage5():
 
     # the air waves, with the falling shelves (towers, palette 1) among them
     gr = ground_cols(units)
-    w = wave_cols(meta["waves"])
+    # (MegaGammaForce's last wave, a gunship at 2780, is left out: here it
+    # came in as the crawler did)
+    waves = [wv for wv in meta["waves"] if not (wv[1] == "ET_GUNSHIP" and wv[0] >= 2780)]
+    w = wave_cols(waves)
     rowsw = [tuple(w[f][i] for f in WAVE_FIELDS) for i in range(len(w["watl"]))]
     for at, n, dx in B5_FALLS:
         rowsw.append((at & 255, at >> 8, ENEMY_TYPES["ET_TOWER"], 1, 16, dx, n, 40, B5_FALL))

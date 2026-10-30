@@ -1,6 +1,7 @@
   rem ======================================================================
   rem  FROZEN STRAIT's blizzards (stage 5's bank; the main loop calls it
   rem  each step while stage 5 is played). Over two stretches of the stage
+  rem  (and by turns at GLACIER CRAWLER's reactor sled)
   rem  snow drives across the screen (eight streak sprites), the wind drifts
   rem  the ship to the left, and in its gusts the ice turns paler, so the
   rem  white bergs, slabs and snow are harder to see. The background color
@@ -13,11 +14,13 @@
   dim sny = $2748
 
 blizzard
-  rem the blizzards: scroll 1280-1791 and 2304-2815, not in the boss fight
+  rem the blizzards: scroll 1280-1791 and 2304-2815; and at the crawler's
+  rem reactor sled (boss5.bas: phase 2), every other 256 steps
   temp1 = 0
   if spos_hi = 5 || spos_hi = 6 then temp1 = 1
   if spos_hi = 9 || spos_hi = 10 then temp1 = 1
   if bstate then temp1 = 0
+  if bstate = 3 && b5phase = 2 then temp1 = bth & 1
   bgwant = stg_bg
   if temp1 = 0 then return
   rem a gust for 40 steps in every 128
