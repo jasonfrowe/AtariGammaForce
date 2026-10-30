@@ -858,3 +858,106 @@ def crawler_tiles(ids):
                     door[y, x] = 3 if ((x + y) // 3) % 2 == 0 else 1
             out[i] = add(name, door if name == "hatch0" else door[::-1].copy(), CRAWLER)
     return tiles, pals, out, ids.get("clear")
+
+
+# ---------------------------------------------------------------------------
+# Stage 6, ASCENT: the ocean far below (the background color), clouds over
+# it, the Earth's limb, then space and stars; and HALO STATION's hull.
+# Palettes: P0 the station and the satellites (1 solar blue, 2 steel, 3
+# gold), P1 the clouds (1 shadow, 2 cloud, 3 sunlit: they fade toward
+# black with the ocean as the ship climbs), P2 the sky (1 atmosphere blue,
+# 2 its bright rim, 3 white: the limb and the stars).
+
+STATION6, CLOUD6, SKY6 = 0, 1, 2
+
+
+def cloud6(corners, seed):
+    """A cloud's edge over the ocean (marching squares, corners tl, tr, br,
+    bl, 1 = cloud; all four: the cloud's body): billowed white, sunlit
+    along its top and left, shadowed along its bottom and right."""
+    t = _blend(corners, 2, 3, 1, cut=0.45)
+    # a soft edge: every other one of the outermost pixels (the ocean shows
+    # through), so the clouds look like vapor, not land
+    edge = np.zeros(t.shape, dtype=bool)
+    for y in range(H):
+        for x in range(W):
+            if t[y, x] and any(0 <= y + dy < H and 0 <= x + dx < W and t[y + dy, x + dx] == 0
+                               for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1))):
+                edge[y, x] = True
+    t[edge & (np.add.outer(np.arange(H), np.arange(W)) % 2 == 1)] = 0
+    rng = np.random.default_rng(seed)
+    body = t == 2
+    for _ in range(5):                               # billows: bright tufts
+        x, y = int(rng.integers(0, W - 1)), int(rng.integers(0, H - 1))
+        if body[y, x] and body[y, x + 1] and body[y + 1, x]:
+            t[y, x] = t[y, x + 1] = 3
+            t[y + 1, x] = 1 if y + 2 < H and not body[y + 2, x] else 2
+    return t
+
+
+def star6(kind):
+    """Space: one star (a dim blue one, a bright one, a white one), or a
+    bright white star with arms."""
+    t = np.zeros((H, W), dtype=np.uint8)
+    rng = np.random.default_rng(60 + kind)
+    x, y = int(rng.integers(1, W - 1)), int(rng.integers(2, H - 2))
+    if kind < 3:
+        t[y, x] = 1 + kind
+    else:
+        t[y, x] = 3
+        t[y - 1, x] = t[y + 1, x] = t[y, x - 1] = t[y, x + 1] = 2
+    if kind == 0:
+        t[(y + 7) % H, (x + 4) % W] = 1
+    return t
+
+
+def station6():
+    """HALO STATION's hull, 8 tiles by 8 rows (64 px by 128 lines): an
+    octagonal ring round a hub on four spokes. Drawn whole in screen units
+    (a 160A pixel is 2 units wide, a line 1 tall; the tile is 16 x 16),
+    then cut into tiles: the straight sides are a tile thick, and each
+    diagonal runs corner to corner through its tiles, so every step of it
+    is the same two pictures. The hub (the middle 2 x 2) is left clear:
+    the core's sprite covers it. Returns the 8 x 8 grid of tiles."""
+    n = 128
+    img = np.zeros((n, n // 2), dtype=np.uint8)
+
+    def section(s, along):
+        """The ring's cross-section, s from its outer edge (0) in (1): an
+        outer rim, a dark seam, a band of gold windows, steel, the inner
+        shadow."""
+        if s < 0.1:
+            return 1
+        if s < 0.26:
+            return 2
+        if s < 0.34:
+            return 1
+        if s < 0.66:
+            return 3 if (0.42 < s < 0.58 and int(along) % 8 < 3) else 2
+        if s < 0.86:
+            return 2
+        return 1
+
+    for py in range(n):
+        for px in range(n // 2):
+            x, y = px * 2 + 1.0 - 64, py + 0.5 - 64
+            ax, ay = abs(x), abs(y)
+            s_st = (64 - max(ax, ay)) / 16
+            s_dg = (80 - ax - ay) / 16
+            if s_st <= s_dg:
+                s = s_st
+                along = x if ay >= ax else y
+            else:
+                s = s_dg
+                along = (x - y) if x * y > 0 else (x + y)
+            if 0 <= s < 1:
+                img[py, px] = section(s, along % 8 + 8)
+                continue
+            # the spokes, on the diagonals from the hub to the ring
+            if 16 < ax < 32 and 16 < ay < 32 and abs(ax - ay) < 4.5:
+                img[py, px] = 1 if abs(ax - ay) > 3 else (3 if int(ax + ay) % 12 < 2 else 2)
+    tiles = [[img[r * H:(r + 1) * H, c * W:(c + 1) * W].copy() for c in range(8)] for r in range(8)]
+    for r in (3, 4):
+        for c in (3, 4):
+            tiles[r][c][:] = 0
+    return tiles

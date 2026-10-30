@@ -218,11 +218,13 @@ SCREEN_TEXTS = {
     "name3": "IRON TIDE",
     "name4": "SCORCHED SANDS",
     "name5": "FROZEN STRAIT",
+    "name6": "ASCENT",
     "sel1": "<   STAGE 1   >",
     "sel2": "<   STAGE 2   >",
     "sel3": "<   STAGE 3   >",
     "sel4": "<   STAGE 4   >",
     "sel5": "<   STAGE 5   >",
+    "sel6": "<   STAGE 6   >",
     # the title's difficulty (TXT_MODE0 + easy): up and down choose
     "mode0": "^   NORMAL   _",
     "mode1": "^ TEDDY BEAR _",
@@ -318,6 +320,11 @@ SPRITES = [
     ("b5bridge", "boss5", 0, 0, None, None, 0),
     ("slab", "boss5", 0, 0, None, None, 1),
     ("flake", "boss5", 0, 0, None, None, 1),
+    # Stage 6's: the satellite (an obstacle), and HALO STATION's core and
+    # orbiting gun satellites (in its bank)
+    ("sat", "boss6", 0, 0, None, None, 0),
+    ("b6core", "boss6", 0, 0, None, None, 4),
+    ("b6pod", "boss6", 0, 0, None, None, 0),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -341,7 +348,8 @@ SPRITES = [
     ("hudgem0", "art", 0, 0, None, None, 3),
     ("hudship", "art", 0, 0, None, None, 3),
 ]
-BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5")} - {"gunboat", "train", "berg", "slab", "flake"}
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5", "boss6")} - \
+    {"gunboat", "train", "berg", "slab", "flake", "sat"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
 STAGE2_SPRITES = {"tower", "b2coret", "b2coreb", "b2pod", "b2cannon"}
@@ -351,6 +359,7 @@ STAGE3_STRIPS = {"gunboat0", "gunboat1", "b3bridget0", "b3bridget1", "b3bridgeb0
 STAGE4_STRIPS = {"train0", "train1", "b4headt0", "b4headt1", "b4headb", "b4seg0", "b4seg1", "b4tail0", "b4tail1"}
 STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "berg0", "berg1",
                  "b5bridge0", "b5bridge1", "slab", "flake"}
+STAGE6_STRIPS = {"sat0", "sat1", "b6core0", "b6core1", "b6pod0", "b6pod1"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -463,6 +472,9 @@ def build_sprites():
         elif fn == "boss5":
             import boss7800
             conv = boss7800.parts5()[name]
+        elif fn == "boss6":
+            import boss7800
+            conv = boss7800.parts6()[name]
         elif fn == "logo":
             import logo7800
             conv = [logo7800.words()[name]]
@@ -1419,6 +1431,228 @@ def stage5():
             "pal_codes": [[nearest(c) for c in p] for p in STAGE5_PALETTES]}
 
 
+STAGE6_OCEAN = (22, 66, 150)                 # the ocean far below: the background color
+STAGE6_PALETTES = [
+    [(30, 64, 150), (130, 138, 158), (214, 164, 44)],   # P0 the station, satellites: solar blue, steel, gold
+    [(60, 100, 180), (214, 222, 240), (255, 255, 255)], # P1 clouds: shadow, cloud, sunlit (they fade)
+    [(60, 130, 255), (180, 230, 255), (255, 255, 255)], # P2 sky: atmosphere, its bright rim, stars
+]
+STAGE6_BODY = 192                    # rows before the station's gap
+STAGE6_GAP = 12                      # open space before the station
+HULL6_COL = 6                        # the station's left column (8 wide, centred)
+LIMB6_ROW = 112                      # the row where the limb is highest
+CLOUDS6_END = 94                     # no clouds from here (the limb's glow above)
+CLOUD6_CHUNK = 16                    # cloud rows come in chunks, repeated (bank room)
+# The fade: from scroll position FADE6_FROM to FADE6_TO the ocean and the
+# clouds darken to black (MegaGammaForce's stage 6: 200 to 1600), in steps
+# of 64 pixels of scroll
+FADE6_FROM, FADE6_TO, FADE6_STEP = 200, 1600, 64
+SATS6_FROM, SATS6_TO = 1530, 3000    # satellites: world heights of their rows
+# HALO STATION's parts: tile column and row of the top left in the
+# station (8 x 8 tiles); slots 0-3 are the orbiting gun satellites (their
+# orbit's centre: the hub's), 5 the core, the others the ring's turrets
+B6_PARTS = {"CORE": (3, 3), "TUR0": (0, 3), "TUR1": (7, 4), "TUR2": (1, 1), "TUR3": (6, 1),
+            "TUR4": (1, 6), "TUR5": (6, 6)}
+B6_SLOTS = ["HUB", "HUB", "HUB", "HUB", "TUR0", "CORE", "TUR1", "TUR2", "TUR3", "TUR4", "TUR5"]
+B6_TOP = 10                          # the fight: the station's top at line 10
+B6_ORBIT = (42, 66)                  # the satellites' orbit: px across, lines up and down
+
+
+def _noise6(rows, cols, cell, seed):
+    """Smooth value noise in 0..1 (bilinear over a random grid)."""
+    rng = np.random.default_rng(seed)
+    g = rng.random((rows // cell + 2, cols // cell + 2))
+    out = np.zeros((rows, cols))
+    for r in range(rows):
+        for c in range(cols):
+            y, x = r / cell, c / cell
+            y0, x0 = int(y), int(x)
+            fy, fx = y - y0, x - x0
+            fy, fx = fy * fy * (3 - 2 * fy), fx * fx * (3 - 2 * fx)
+            out[r, c] = (g[y0, x0] * (1 - fx) * (1 - fy) + g[y0, x0 + 1] * fx * (1 - fy) +
+                         g[y0 + 1, x0] * (1 - fx) * fy + g[y0 + 1, x0 + 1] * fx * fy)
+    return out
+
+
+def _limb6(px):
+    """The limb's height (world lines) at 160A pixel px, below its top:
+    flat over the middle, then 1 line a pixel, then 2 (straight runs a tile
+    or more long, so its tiles repeat)."""
+    d = px if px < 80 else 159 - px
+    if d >= 48:
+        return 0
+    if d >= 24:
+        return 48 - d
+    return 24 + 2 * (24 - d)
+
+
+def _fade_code(rgb):
+    """The nearest of the grays, the blues and black (fading colors keep
+    their hue: no greens or browns on the way down)."""
+    cands = [c for c in range(256) if c >> 4 in (0, 8, 9) and (c & 15) % 2 == 0]
+    return min(cands, key=lambda c: sum((a - b) ** 2 for a, b in zip(PAL7800[c], rgb)))
+
+
+def stage6():
+    import tiles7800 as t7
+    W8, H16 = TILE_W, TILE_H
+    tiles, pals, ids = [np.zeros((H16, W8), dtype=np.uint8)], [t7.SKY6], {}
+
+    def add(t, pal):
+        key = (t.tobytes(), pal)
+        if key not in ids:
+            ids[key] = len(tiles)
+            tiles.append(t)
+            pals.append(pal)
+        return ids[key]
+
+    blank = {0}
+    rows = STAGE6_BODY + STAGE6_GAP + 8 + 16
+    assert rows <= MAX_ROWS, rows
+    m = np.zeros((rows, 20), dtype=np.uint8)
+    # Clouds: marching squares over a field of noise; in chunks of
+    # CLOUD6_CHUNK rows, three kinds (thick, broken, thin), repeated
+    def chunk(seed, cover):
+        n = _noise6(CLOUD6_CHUNK + 1, 21, 3, seed) * 0.6 + _noise6(CLOUD6_CHUNK + 1, 21, 2, seed + 7) * 0.4
+        g = (n > 1 - cover).astype(int)
+        g[0, :] = g[CLOUD6_CHUNK, :] = 0                 # clear at the joins
+        out = np.zeros((CLOUD6_CHUNK, 20), dtype=np.uint8)
+        for r in range(CLOUD6_CHUNK):
+            for c in range(20):
+                cfg = (g[r + 1, c], g[r + 1, c + 1], g[r, c + 1], g[r, c])
+                if any(cfg):
+                    out[r, c] = add(t7.cloud6(cfg, 8 * cfg[0] + 4 * cfg[1] + 2 * cfg[2] + cfg[3]), t7.CLOUD6)
+        return out
+    kinds = [chunk(61, 0.42), chunk(62, 0.40), chunk(63, 0.30), chunk(64, 0.20)]
+    order = [0, 1, 0, 2, 1, 3]                          # thinning out as it climbs
+    r = 2
+    for k in order:
+        if r + CLOUD6_CHUNK > CLOUDS6_END:
+            break
+        m[r:r + CLOUD6_CHUNK] = kinds[k]
+        r += CLOUD6_CHUNK
+    # The limb: drawn pixel by pixel over the rows it crosses (world
+    # height h from the map's start; a tile's top line is the higher one),
+    # then cut into tiles. Below it the ocean (the background, black by
+    # then); its glow: a bright rim with the atmosphere either side.
+    top = LIMB6_ROW * 16 + 6
+    lo_row, hi_row = (top - 80) // 16, LIMB6_ROW
+    for row in range(lo_row, hi_row + 1):
+        for c in range(20):
+            t = np.zeros((H16, W8), dtype=np.uint8)
+            for y in range(H16):
+                h = row * 16 + 15 - y
+                for x in range(W8):
+                    px = c * W8 + x
+                    d = h - (top - _limb6(px))
+                    if -4 <= d <= -3 or 4 <= d <= 5:
+                        t[y, x] = 1 if (px + h) % 2 == 0 else 0
+                    elif -2 <= d <= -1 or 2 <= d <= 3:
+                        t[y, x] = 1
+                    elif 0 <= d <= 1:
+                        t[y, x] = 2
+            if t.any():
+                m[row, c] = add(t, t7.SKY6)
+    # Stars above it: rows from a few patterns (stored once each), one to
+    # three stars a row
+    rng = np.random.default_rng(66)
+    star_t = [add(t7.star6(k), t7.SKY6) for k in range(4)]
+    pats = []
+    for k in range(10):
+        p = np.zeros(20, dtype=np.uint8)
+        for c in rng.choice(20, size=int(rng.integers(1, 4)), replace=False):
+            p[c] = star_t[int(rng.choice(4, p=[0.45, 0.3, 0.15, 0.1]))]
+        pats.append(p)
+    def starry(row, c):
+        return all(row * 16 > top - _limb6(px) + 8 for px in range(c * W8, c * W8 + W8))
+    for row in range(lo_row, rows):
+        p = pats[int(rng.integers(0, len(pats)))]
+        for c in range(20):
+            if p[c] and not m[row, c] and starry(row, c):
+                m[row, c] = p[c]
+    # HALO STATION: its 8 x 8 tiles over the stars (their row cleared)
+    grid = t7.station6()
+    bow = STAGE6_BODY + STAGE6_GAP                     # its lowest row
+    stern = bow + 7
+    m[bow:stern + 1, :] = 0
+    for hr in range(8):                                 # station row hr (from the top) is map row stern - hr
+        for hc in range(8):
+            t = grid[hr][hc]
+            if t.any():
+                m[stern - hr, HULL6_COL + hc] = add(t, t7.STATION6)
+    print(f"stage 6: {len(tiles)} tiles")
+    assert len(tiles) <= 54, f"stage 6: {len(tiles)} tiles (54 fit beside its sprites)"
+
+    # Satellites: obstacles (towers with the satellite's picture, P0), by
+    # turns at the left and the right, every 6-8 rows
+    units = []
+    srng = np.random.default_rng(67)
+    h, left = SATS6_FROM, True
+    while h < SATS6_TO:
+        x = int(srng.integers(0, 3)) * 4 if left else 96 - int(srng.integers(0, 3)) * 4
+        units.append((h, x + 4, "ET_TOWER", 0, 0))
+        left = not left if srng.random() < 0.8 else left
+        h += 16 * int(srng.integers(6, 9))
+
+    # HALO STATION's numbers for its boss code (as the crawler's): each
+    # part's x and the world height of its top (a sprite's line + 32 is
+    # spos + 240 - it); where the scroll stops; where it has gone.
+    def part(name):
+        if name == "HUB":                               # the orbit's centre, less
+            c, r = 4, 4                                 # half a satellite
+            return 8 * (HULL6_COL + c) - 8, (stern - r + 1) * 16 + 16
+        c, r = B6_PARTS[name]
+        return 8 * (HULL6_COL + c), (stern - r + 1) * 16
+    xs, ylo, yhi = [], [], []
+    for name in B6_SLOTS:
+        x, y = part(name)
+        xs.append(x)
+        ylo.append(y & 255)
+        yhi.append(y >> 8)
+    top6 = (stern + 1) * 16
+    b6 = {"b6_stop": top6 - 208 + B6_TOP, "b6_gone": top6 + 8}
+    lines = ["; Generated by tools/gen_assets.py. Do not edit.",
+             "; HALO STATION's parts: x, and the world height of each one's top (lo, hi);",
+             "; slots 0-3 (the satellites): their orbit's centre, less half a satellite.",
+             "; Its stop (a scroll position) and where it has gone."]
+    lines.append("b6_x .byte " + ",".join(str(v) for v in xs))
+    lines.append("b6_ylo .byte " + ",".join(str(v) for v in ylo))
+    lines.append("b6_yhi .byte " + ",".join(str(v) for v in yhi))
+    for name, v in b6.items():
+        lines.append(f"{name.upper()} = {v}")
+    # the satellites' orbit, by angle / 4: offsets from its centre
+    rx, ry = B6_ORBIT
+    lines.append("; the satellites' orbit: x and line offsets by angle / 4 (64 a turn)")
+    lines.append("b6_ox .byte " + ",".join(str(round(rx * math.cos(2 * math.pi * i / 64)) & 255) for i in range(64)))
+    lines.append("b6_oy .byte " + ",".join(str(round(ry * math.sin(2 * math.pi * i / 64)) & 255) for i in range(64)))
+    # the fade: the background and P1 for each 64 pixels of scroll
+    steps = (FADE6_TO + FADE6_STEP - 1) // FADE6_STEP + 1
+    fbg, fp = [], [[], [], []]
+    for k in range(steps):
+        f = min(1.0, max(0.0, (k * FADE6_STEP - FADE6_FROM) / (FADE6_TO - FADE6_FROM)))
+        dim = lambda c: tuple(v * (1 - f) for v in c)  # noqa: E731
+        fbg.append(_fade_code(dim(STAGE6_OCEAN)) if f < 1 else 0)
+        for i in range(3):
+            fp[i].append(_fade_code(dim(STAGE6_PALETTES[1][i])) if f < 1 else 0)
+    lines.append("; the fade, by scroll position / 64: the background and P1's colors")
+    lines.append(f"B6_FADEN = {steps}")
+    lines.append("b6_fbg .byte " + ",".join(f"${v:02X}" for v in fbg))
+    for i in range(3):
+        lines.append(f"b6_fp{i} .byte " + ",".join(f"${v:02X}" for v in fp[i]))
+    (GEN / "boss6tab.asm").write_text("\n".join(lines) + "\n")
+
+    gr = ground_cols(units)
+    w = wave_cols(json.loads((MGF / "stage6.json").read_text())["waves"])
+    # the warning when the station is about 9 rows above the screen
+    bossat = (bow * 16 - 208 - 144) >> 8
+    return {"n": 6, "map": m, "t_slots": tiles, "t_pals": pals,
+            "blank": blank, "col0": 0, "col1": 20, "loop": 16,
+            "charset": "charset6", "pals": [nearest(c) for p in STAGE6_PALETTES for c in p],
+            "bg": _fade_code(STAGE6_OCEAN), "song": "SONG_STAGE6", "bosssong": "SONG_BOSS6", "bossat": bossat,
+            "waves": spread_waves(w, gr), "ground": gr,
+            "pal_codes": [[nearest(c) for c in p] for p in STAGE6_PALETTES]}
+
+
 # What a unit costs the frame, roughly, for spread_waves: train cars and
 # gunships are tall (3 objects or more), saucers fire rings of 8
 UNIT_WEIGHT = {"ET_TRAIN": 3, "ET_GUNSHIP": 3, "ET_GUNBOAT": 3, "ET_SAUCER": 2}
@@ -1482,7 +1716,7 @@ def main():
     PREVIEW.mkdir(parents=True, exist_ok=True)
 
     font_base = 0
-    stages = [stage1(), stage2(), stage3(), stage4(), stage5()]
+    stages = [stage1(), stage2(), stage3(), stage4(), stage5(), stage6()]
     build_charset("charset", stages[0]["t_slots"], 1)
     for st in stages[1:]:
         build_charset(st["charset"], st["t_slots"], 1)
@@ -1504,11 +1738,13 @@ def main():
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in in_chars]
     bas += ["  newblock"]
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs
-            if n not in in_chars and n not in STAGE2_STRIPS | STAGE3_STRIPS | STAGE4_STRIPS | STAGE5_STRIPS]
+            if n not in in_chars and n not in STAGE2_STRIPS | STAGE3_STRIPS | STAGE4_STRIPS | STAGE5_STRIPS
+            | STAGE6_STRIPS]
     (GEN / "gfx.bas").write_text("\n".join(bas) + "\n")
     # gfxN.bas: stage N's graphics block, in its bank at $A000: the font
     # and the stage's tiles, then its own sprites.
-    for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS), (4, STAGE4_STRIPS), (5, STAGE5_STRIPS)):
+    for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS), (4, STAGE4_STRIPS), (5, STAGE5_STRIPS),
+                          (6, STAGE6_STRIPS)):
         bn = ["  rem Generated by tools/gen_assets.py. Do not edit.",
               f"  incgraphic gfx/charset{n}.png 160A 0 1 2 3"]
         bn += [f"  incgraphic gfx/{s}.png 160A 0 1 2 3" for s in incs if s in strips]

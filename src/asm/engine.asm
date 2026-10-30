@@ -554,6 +554,7 @@ pf_palettes_next
      ; for userinterrupt to set: bgwant)
      lda #0
      sta bgwant
+     sta fadeon              ; (stage 6's fade: off until its code sets it)
      lda stg_bg
      sta BACKGRND
      ldx #2
@@ -593,7 +594,14 @@ pf_newstage
 
 ; pf_stage: switch in stage A's bank (1 = bank 2, 2 = bank 3, ...), point
 ; CHARBASE at its character block and load its palettes. Then pf_reset.
+; The music stops first: a song plays from its stage's bank, and with
+; another bank in its addresses hold other bytes, which can keep the NMI
+; past vblank (the main loop, waiting for vblank, then waits for ever).
+; The caller starts the new stage's song.
 pf_stage
+     pha
+     jsr mus_stop
+     pla
      sec
      sbc #1
      sta $8000               ; SuperGame bank select: bank - 2

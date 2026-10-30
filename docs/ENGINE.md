@@ -163,6 +163,7 @@ hole at $B000.
 | 4 | stage 3: header, map, boss tune, LEVIATHAN's code (`src/boss3.bas`), graphics ($A000), song and LEVIATHAN's tables ($B000) |
 | 5 | stage 4: header, map, boss tune, DUNE WYRM's path, graphics ($A000), song and DUNE WYRM's code (`src/boss4.bas`, $B000) |
 | 6 | stage 5: header, map, the stage song's voices 0 and 2, boss tune (less its voice 1), graphics ($A000), the stage song's voice 1, the boss tune's voice 1, GLACIER CRAWLER's code and tables ($B000) |
+| 7 | stage 6: header, map, HALO STATION's tables and the fade, the fade's code (`src/stage6.bas`), HALO STATION's code (`src/boss6.bas`), the stage song's voices 1 and 2, graphics ($A000), the boss tune and the stage song's voice 0 ($B000) |
 | 9 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
 
 ## Wrecks under the ship
@@ -218,6 +219,22 @@ the arena). The falling slabs are towers that slip down the map
 (`en_update`: `ewamp` their speed), spawned by the waves (and the boss)
 like any enemy: they shove the ship like any tower, and crush it against
 the bottom of the screen.
+
+Stage 6's HALO STATION too: its ring (an octagon a tile thick, every
+diagonal step the same two tiles, `tiles7800.station6`) is map rows over
+the stars, and the scroll stops with it near the top of the screen. Its
+turrets and core are pinned to map rows; its four gun satellites orbit
+the hub (`b6_ox`/`b6_oy`, a step a frame and one more for each one gone),
+and the core is shut while any of them orbits.
+
+Stage 6 also fades: as the ship climbs, the ocean (the background color)
+and its clouds (palette 1) darken to black by the scroll position
+(`src/stage6.bas`, tables from `gen_assets.stage6`). The colors are
+written in the overscan NMI (`fadeon`, `fadebg`, `fadep1`), off the
+screen, so no line shows two. And every bank switch (`pf_stage`) stops
+the music first: a song plays from its own stage's bank, and with another
+bank in, its bytes can keep the NMI past vblank, where the main loop,
+waiting for vblank, would wait for ever.
 
 ## A boss that follows its own path
 

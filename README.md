@@ -9,13 +9,17 @@ with an assembly display engine for smooth vertical scrolling.
 
 ![Atari Gamma Force: the title, four stages and their bosses](docs/gameplay.gif)
 
-**Status:** playable through four stages, round and round. Stage 1 (the
+**Status:** playable through six stages, round and round. Stage 1 (the
 fortress at sea, and the GAMMA CORE), stage 2 (NEON SPIRES, a city at
 night that winds and splits, with wasps, tanks, towers to fly around and
 the SPIRE WARDEN), stage 3 (IRON TIDE: islands, gunboats, and LEVIATHAN,
 a battleship longer than the screen) and stage 4 (SCORCHED SANDS: rock
 plateaus, oases, armored trains on a railway, and DUNE WYRM, a sandworm
-winding a figure of eight) scroll pixel-exact to
+winding a figure of eight), stage 5 (FROZEN STRAIT: pack ice, icebergs,
+blizzards, and GLACIER CRAWLER) and stage 6 (ASCENT: climbing out of the
+atmosphere as the ocean darkens below, past the Earth's limb into space
+among satellites, to HALO STATION, a ring station with orbiting gun
+satellites) scroll pixel-exact to
 MegaGammaForce's music converted to POKEY, with its enemy waves, ground
 units and bullet patterns; the Vulcan, the Radiant Sword (absorbing pink
 bullets), the Hyper Sword, the color chain, score and lives work. See [docs/DESIGN.md](docs/DESIGN.md) for the plan and

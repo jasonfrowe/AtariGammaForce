@@ -52,6 +52,7 @@
   rem const STAGE3TEST = 1
   rem const STAGE4TEST = 1
   rem const STAGE5TEST = 1
+  rem const STAGE6TEST = 1
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
@@ -71,7 +72,7 @@
   rem stage 4's armored train cars, on the railway (eframe 0: the engine)
   const ET_TRAIN = 10
   rem the stages, round and round
-  const NSTAGES = 5
+  const NSTAGES = 6
   rem boss parts: types from ET_PART up are placed by the boss code
   const ET_PART = 11
   const ET_PCANNON = 11
@@ -239,6 +240,12 @@
   rem a background color for userinterrupt to set off the screen (0: none;
   rem stage 5's blizzard gusts; engine.asm pf_palettes clears it)
   dim bgwant = $239C
+  rem stage 6's fade: the background color and palette 1, for
+  rem userinterrupt to set off the screen while fadeon (stage6.bas; engine.asm
+  rem pf_palettes clears it)
+  dim fadeon = $234F
+  dim fadebg = $2350
+  dim fadep1 = $2351
   rem the results' three lines of text (60 characters), each part's weight
   dim rtline = $23A0
   dim bwt = $23E0
@@ -378,6 +385,10 @@ title_fire
   endif
   ifconst STAGE5TEST
   lda #5
+  sta stage
+  endif
+  ifconst STAGE6TEST
+  lda #6
   sta stage
   endif
   lda #160
@@ -597,6 +608,8 @@ end
 end
   rem stage 5's blizzards (stage5.bas, in its bank)
   if stage = 5 then gosub blizzard
+  rem stage 6's fade (stage6.bas, in its bank)
+  if stage = 6 then gosub ascent
   asm
   ifconst PROFILE
   lda #8
@@ -1003,6 +1016,7 @@ ground_slot
   etype[k] = temp2 : eimg[k] = enemy_img[temp2] : ehp[k] = enemy_hp[temp2]
   rem (stage 5's obstacles are icebergs)
   if temp2 = ET_TOWER && stage = 5 then eimg[k] = IMG_BERG
+  if temp2 = ET_TOWER && stage = 6 then eimg[k] = IMG_SAT
   exh[k] = gtx[temp1] : eparam[k] = gtbase[temp1] : ewamp[k] = gparam[temp1]
   eyh[k] = spos_lo + gtbase[temp1]
   ecol[k] = gpal[temp1]
@@ -1047,6 +1061,7 @@ boss_wait
   rem can't wait for a clear sky)
   if stage = 3 then goto boss_go
   if stage = 5 then goto boss_go
+  if stage = 6 then goto boss_go
   for k = 0 to NE1
     if etype[k] then return
   next
@@ -1076,6 +1091,7 @@ boss_warning
   if stage = 3 then gosub boss3_build
   if stage = 4 then gosub boss4_build
   if stage = 5 then gosub boss5_build
+  if stage = 6 then gosub boss6_build
   gosub boss_place
   bstate = 2 : btl = 0 : bth = 0
   return
@@ -1084,6 +1100,7 @@ boss_enter
   if stage = 3 then goto boss3_enter
   if stage = 4 then goto boss4_enter
   if stage = 5 then goto boss5_enter
+  if stage = 6 then goto boss6_enter
   by = by + 1
   gosub boss_place
   if by < 89 then return
@@ -1094,6 +1111,7 @@ boss_fight
   if stage = 3 then goto boss3_fight
   if stage = 4 then goto boss4_fight
   if stage = 5 then goto boss5_fight
+  if stage = 6 then goto boss6_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
   rem sway: x = 80 + 17 sin(t/2), y = 89 + 6 sin(t/4) (stage 2: 12, 7)
@@ -1140,6 +1158,7 @@ boss_place
   if stage = 3 then goto boss3_place
   if stage = 4 then goto boss4_place
   if stage = 5 then goto boss5_place
+  if stage = 6 then goto boss6_place
   asm
   ldx #10
 boss_place_loop
@@ -1182,6 +1201,7 @@ boss_attack
   if stage = 3 then goto boss3_attack
   if stage = 4 then goto boss4_attack
   if stage = 5 then goto boss5_attack
+  if stage = 6 then goto boss6_attack
   goto boss1_attack
 
   rem Damage temp1 to boss part i. A wing's bottom half passes its hits
@@ -1238,7 +1258,12 @@ part_core
     if etype[k] = ET_PCANNON then return
   next
 part_core_2
-  rem stage 2's core is shut while any of its pods orbits
+  rem stage 2's core is shut while any of its pods orbits, stage 6's
+  rem while any of its satellites does
+  if stage <> 6 then goto part_core_6
+  temp6 = etype[0] | etype[1] | etype[2] | etype[3]
+  if temp6 then return
+part_core_6
   if stage <> 2 then goto part_core_open
   temp6 = etype[8] | etype[9] | etype[10]
   if temp6 then return
@@ -1248,7 +1273,9 @@ part_core_open
   temp5 = 5
   if stage = 4 then temp5 = 9
   eflash[temp5] = 3 : temp5 = temp5 + 1
-  if stage <> 3 && stage <> 5 then eflash[temp5] = 3
+  if stage = 3 || stage >= 5 then goto part_core_hit
+  eflash[temp5] = 3
+part_core_hit
   rem the core is armored: half damage
   temp1 = temp1 / 2 + 1
   if bcorehp > temp1 then bcorehp = bcorehp - temp1 : return
@@ -1270,7 +1297,7 @@ end
   rem stage 3's ship sinks, stage 5's crawler breaks through the ice: the
   rem scroll carries it away
   if stage = 3 then pfspeed = 250
-  if stage = 5 then pfspeed = 250
+  if stage >= 5 then pfspeed = 250
   return
 boss_bonus
   asm
@@ -1286,6 +1313,7 @@ boss_dying
   if stage = 3 then gosub boss3_sinking
   if stage = 4 then gosub boss4_sinking
   if stage = 5 then gosub boss5_sinking
+  if stage = 6 then gosub boss6_sinking
   if btl < 240 then gosub boss_place : return
   for k = 0 to 10 : etype[k] = 0 : next
   bstate = 5 : btl = 0
@@ -1496,6 +1524,17 @@ hud_over
 userinterrupt
   asm
   inc pfvbl
+  lda fadeon              ; stage 6's fade (stage6.bas)
+  beq ui_nofade
+  lda fadebg
+  sta BACKGRND
+  lda fadep1
+  sta P1C1
+  lda fadep1+1
+  sta P1C2
+  lda fadep1+2
+  sta P1C3
+ui_nofade
   ifnconst PROFILE
   lda #255                ; the RIOT timer: time since this NMI (pf_early)
   sta T1024T
@@ -1595,6 +1634,21 @@ end
   inline musicdata5.asm
   inline boss5tab.asm
   incbasic boss5.bas
+
+  rem ======================================================================
+  rem  Bank 7: stage 6 (map, waves, the fade, HALO STATION's code and
+  rem  tables, its graphics block at $A000, music)
+  rem ======================================================================
+  bank 7
+  rem the stage header must come first: it is read at $8000
+  inline stage6.asm
+  inline boss6tab.asm
+  incbasic stage6.bas
+  incbasic boss6.bas
+  incbasic gen/gfx6.bas
+  inline musicdata6b.asm
+  dmahole 0
+  inline musicdata6.asm
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

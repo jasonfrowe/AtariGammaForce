@@ -547,3 +547,68 @@ def flake():
 def parts5():
     return {"b5reactor": reactor5(), "b5drill": drill5()[:1], "b5gun": gun3(), "berg": berg(),
             "b5bridge": bridge5(), "slab": slab(), "flake": flake()}
+
+
+def sat6():
+    """A satellite (stage 6's obstacle): 64 px by 32 lines, P0 (1 solar
+    blue, 2 steel, 3 gold). A gold-foil body with a dish, a truss each
+    side, and a wing of solar cells on each."""
+    c = Canvas(64, 32)
+    for x0 in (0, 88):                                    # the wings (screen units)
+        c.fill(lambda x, y, x0=x0: x0 <= x < x0 + 40 and 5 <= y < 27, 2)
+        c.fill(lambda x, y, x0=x0: x0 + 2 <= x < x0 + 38 and 7 <= y < 25 and
+               int(x - x0 - 2) % 9 < 7 and int(y - 7) % 6 < 5, 1)      # the cells
+    c.fill(lambda x, y: (40 <= x < 48 or 80 <= x < 88) and 13 <= y < 19, 2)  # the trusses
+    c.fill(lambda x, y: (40 <= x < 48 or 80 <= x < 88) and 15 <= y < 17 and int(x) % 4 < 2, 1)
+    body = lambda x, y: 48 <= x < 80 and 2 <= y < 30          # noqa: E731
+    c.fill(body, 3)
+    c.fill(lambda x, y: body(x, y) and (x < 50 or x >= 78 or y < 3 or y >= 29), 2)
+    c.fill(lambda x, y: body(x, y) and int(x + 2 * y) % 13 == 0, 2)   # the foil's creases
+    c.fill(circle(64, 16, 9), 2)                                    # the dish
+    c.fill(circle(64, 16, 6.5), 1)
+    c.fill(circle(64, 16, 2.5), 2)
+    return [c.a]
+
+
+def core6():
+    """HALO STATION's core: 16 px by 32 lines, a reactor eye in an armored
+    collar with four vents (P4, red: 1 dark, 2 red, 3 glow); frames: it
+    pulses."""
+    frames = []
+    for hot in (False, True):
+        c = Canvas(16, 32)
+        c.fill(circle(16, 16, 15.5), 1)
+        c.fill(circle(16, 16, 13.5), 2)
+        for a in range(45, 360, 90):
+            x, y = 16 + math.cos(math.radians(a)) * 10, 16 + math.sin(math.radians(a)) * 10
+            c.fill(circle(x, y, 2.6), 1)
+        c.fill(circle(16, 16, 8), 1)
+        c.fill(circle(16, 16, 6.5 if hot else 5), 3)
+        c.fill(circle(16, 16, 2.5 if hot else 1.5), 2)
+        frames.append(c.a)
+    return frames
+
+
+def pod6():
+    """HALO STATION's gun satellite: 16 px by 32 lines, a steel pod with a
+    gold eye and two solar fins (P0); frames: two turns of its spin."""
+    frames = []
+    for k in range(2):
+        c = Canvas(16, 32)
+        a = k * math.pi / 4
+        for side in (-1, 1):
+            cx, cy = 16 + side * math.cos(a) * 11, 16 + side * math.sin(a) * 11
+            dx, dy = math.cos(a) * 5.5, math.sin(a) * 5.5
+            px, py = -math.sin(a) * 4, math.cos(a) * 4
+            c.fill(poly([(cx - dx - px, cy - dy - py), (cx + dx - px, cy + dy - py),
+                         (cx + dx + px, cy + dy + py), (cx - dx + px, cy - dy + py)]), 1)
+        c.fill(circle(16, 16, 8.5), 2)
+        c.outline(1)
+        c.fill(circle(16, 16, 5), 3)
+        c.fill(circle(16, 16, 2), 1)
+        frames.append(c.a)
+    return frames
+
+
+def parts6():
+    return {"sat": sat6(), "b6core": core6(), "b6pod": pod6()}
