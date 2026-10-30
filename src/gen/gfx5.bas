@@ -7,3 +7,6 @@
   incgraphic gfx/b5drill0.png 160A 0 1 2 3
   incgraphic gfx/b5drill1.png 160A 0 1 2 3
   incgraphic gfx/b5gun.png 160A 0 1 2 3
+  incgraphic gfx/b5bridge0.png 160A 0 1 2 3
+  incgraphic gfx/b5bridge1.png 160A 0 1 2 3
+  incgraphic gfx/slab.png 160A 0 1 2 3

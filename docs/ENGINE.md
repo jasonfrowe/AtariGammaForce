@@ -207,14 +207,17 @@ like ground units (a shut bay is drawn the same as its hull tiles, so it
 shows only as it flashes, opens, or lies wrecked): each part's line is `spos + 240 -` the world height of its top
 (16 bits; off the screen it is parked off to the right).
 
-Stage 5's GLACIER CRAWLER works the same way. MegaGammaForce's crawler
-holds its place on the screen while the ice scrolls under it; here the
-arena is bare ice (the background color), so the scroll simply stops with
-the crawler at the top of the screen and nothing shows that it stopped.
-Its treads are drawn in bands of palette 2's first two colors, which the
-boss code swaps every 4 frames, so they run (palette 2 is the water's,
-and there is no water in the arena). Beaten, or after 100 seconds, the
-scroll runs on and carries it away down the screen.
+Stage 5's GLACIER CRAWLER works the same way, LEVIATHAN's fight in
+short: it stops with its front half in view over bare ice (the background
+color, so nothing shows the stop); once its command bridge falls it drives
+on, its front off the bottom of the screen, while slabs of shelf ice fall,
+and stops with the cryo reactor at its rear in reach. Its treads are drawn
+in bands of palette 2's first two colors, which the boss code swaps every
+4 frames, so they run (palette 2 is the water's, and there is no water in
+the arena). The falling slabs are towers that slip down the map
+(`en_update`: `ewamp` their speed), spawned by the waves (and the boss)
+like any enemy: they shove the ship like any tower, and crush it against
+the bottom of the screen.
 
 ## A boss that follows its own path
 

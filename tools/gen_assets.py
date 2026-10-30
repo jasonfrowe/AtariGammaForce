@@ -315,6 +315,8 @@ SPRITES = [
     ("b5reactor", "boss5", 0, 0, None, None, 0),
     ("b5drill", "boss5", 0, 0, None, None, 0),
     ("b5gun", "boss5", 0, 0, None, None, 0),
+    ("b5bridge", "boss5", 0, 0, None, None, 0),
+    ("slab", "boss5", 0, 0, None, None, 1),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -338,7 +340,7 @@ SPRITES = [
     ("hudgem0", "art", 0, 0, None, None, 3),
     ("hudship", "art", 0, 0, None, None, 3),
 ]
-BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5")} - {"gunboat", "train", "berg"}
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5")} - {"gunboat", "train", "berg", "slab"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
 STAGE2_SPRITES = {"tower", "b2coret", "b2coreb", "b2pod", "b2cannon"}
@@ -346,7 +348,8 @@ STAGE3_SPRITES = {"gunboat", "b3bridget", "b3bridgeb", "b3reactor", "b3gun"}
 STAGE3_STRIPS = {"gunboat0", "gunboat1", "b3bridget0", "b3bridget1", "b3bridgeb0", "b3bridgeb1",
                  "b3reactor0", "b3reactor1", "b3gun"}  # (b3bay: in the last bank, no room here)
 STAGE4_STRIPS = {"train0", "train1", "b4headt0", "b4headt1", "b4headb", "b4seg0", "b4seg1", "b4tail0", "b4tail1"}
-STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "berg0", "berg1"}
+STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "berg0", "berg1",
+                 "b5bridge0", "b5bridge1", "slab"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -1195,12 +1198,16 @@ def stage4():
 
 
 # Stage 5, FROZEN STRAIT: pack ice (the ice is the background), leads of
-# open water, plowed roads with snow tanks, bunkers, and icebergs standing
-# out of the ice (obstacles: ET_TOWER, with a berg's picture). Its boss,
-# GLACIER CRAWLER, is part of the map, as LEVIATHAN is: a tracked fortress
-# that comes in with the scroll and holds its place at the top of the
-# screen, the scroll stopped (the arena is bare ice: no movement shows),
-# its treads running (the game swaps two colors of P2).
+# open water, plowed roads with snow tanks, bunkers, icebergs standing out
+# of the ice (obstacles: ET_TOWER, with a berg's picture), turrets dug in
+# behind some of them, and slabs of shelf ice that break away and fall
+# down the screen faster than it scrolls (towers that move: they shove
+# the ship, and crush it against the bottom). Its boss, GLACIER CRAWLER,
+# is part of the map, as LEVIATHAN is: a tracked fortress longer than the
+# first half of the screen. It stops with its front half in view; once
+# its command bridge falls it drives on, its front off the bottom of the
+# screen, and stops with the cryo reactor at its rear in reach. Its treads
+# run (the game swaps two colors of P2).
 STAGE5_BG = (128, 156, 196)
 STAGE5_PALETTES = [
     [(36, 46, 64), (100, 116, 140), (180, 230, 250)],    # P0 the crawler: dark steel, steel, frost
@@ -1208,12 +1215,54 @@ STAGE5_PALETTES = [
     [(8, 20, 48), (24, 56, 104), (236, 244, 255)],       # P2 water: deep, water, white rim
 ]
 STAGE5_ORDER = [1, 0, 3, 2, 1, 0]    # ice chunks (32 rows each)
-STAGE5_GAP = 23                      # bare ice before the crawler
+STAGE5_GAP = 19                      # bare ice before the crawler
 WAVES_END_5 = 2950                   # no ground units past this
-B5_TOP = 6                           # the crawler's top line, where it stops
-B5_SLOTS = {0: ("GUN_L", 8, 2), 1: ("GUN_R", 8, 2), 2: ("DRILL", 0, 0), 4: ("HATCH_L", 0, 0),
-            5: ("REACTOR", 0, 0), 6: ("HATCH_R", 0, 0), 7: ("TUR0", 3, 0), 8: ("TUR1", 3, 0),
-            9: ("TUR2", 3, 0), 10: ("TUR3", 3, 0)}
+# The crawler (13 rows from its rear down to the drill, 10 tiles wide):
+# where each part sits, tile column and row of its top left, size in tiles
+B5_PARTS = {"REACTOR": (4, 1, 2, 2), "TUR0": (2, 1, 1, 1), "TUR1": (7, 1, 1, 1),
+            "BRIDGE": (4, 5, 2, 2), "GUN_L": (2, 8, 2, 2), "GUN_R": (6, 8, 2, 2),
+            "HATCH_L": (4, 8, 1, 2), "HATCH_R": (5, 8, 1, 2),
+            "TUR2": (2, 11, 1, 1), "TUR3": (7, 11, 1, 1), "DRILL": (4, 11, 2, 2)}
+B5_H = 13
+# slots: name, lines down, pixels right (guns: 16 lines tall in a 32-line well)
+B5_SLOTS = {0: ("GUN_L", 8, 2), 1: ("GUN_R", 8, 2), 2: ("DRILL", 0, 0), 3: ("BRIDGE", 0, 0),
+            4: ("HATCH_L", 0, 0), 5: ("REACTOR", 0, 0), 6: ("HATCH_R", 0, 0),
+            7: ("TUR0", 3, 0), 8: ("TUR1", 3, 0), 9: ("TUR2", 3, 0), 10: ("TUR3", 3, 0)}
+B5_FRONT = 6                         # first stop: the bridge's top at line 6
+B5_FINAL = 66                        # last stop: the reactor's top at line 66
+# Falling shelves: (scroll position, count, x step) of each fall; their
+# x from 16 by the step, wrapping within 0-127; one every 40 frames,
+# falling 200/256 of a line a frame faster than the scroll
+B5_FALLS = [(640, 3, 88), (1180, 4, 40), (1720, 4, 88), (2240, 5, 56), (2700, 6, 88)]
+
+
+def crawler_map(ids):
+    """GLACIER CRAWLER's hull, MegaGammaForce's tiles (crawler.py) laid out
+    longer: rear, reactor, the bridge mid-deck, guns and hatches, drill."""
+    m = np.zeros((B5_H, 10), dtype=np.uint8)
+    rng = np.random.default_rng(5)
+    for r in range(B5_H):
+        for c in range(2, 8):
+            m[r, c] = ids[f"deck{int(rng.integers(0, 4))}"]
+        end = "top" if r == 0 else "bottom" if r == B5_H - 1 else ""
+        m[r, 0], m[r, 1] = ids[f"tread0{end}"], ids[f"tread1{end}"]
+        m[r, 9], m[r, 8] = ids[f"treadr0{end}"], ids[f"treadr1{end}"]
+    for c in range(2, 8):
+        m[0, c] = ids["rear"]
+        m[3, c] = m[7, c] = ids["paint"]
+        m[4, c] = m[10, c] = ids["stripe"]
+    for r, name in ((3, "vent"), (4, "lamp"), (5, "vent"), (7, "vent"), (10, "lamp")):
+        m[r, 2] = m[r, 7] = ids[name]
+    m[12, 2], m[12, 3], m[12, 6], m[12, 7] = ids["plow_l"], ids["deck0"], ids["deck1"], ids["plow_r"]
+    for name, (c, r, w, h) in B5_PARTS.items():
+        if w == 2:
+            for k in range(4):
+                m[r + k // 2, c + k % 2] = ids[f"big{k}"]
+        elif name.startswith("TUR"):
+            m[r, c] = ids["small"]
+        else:
+            m[r, c], m[r + 1, c] = ids["hatch0"], ids["hatch1"]
+    return m
 
 
 def stage5():
@@ -1240,10 +1289,11 @@ def stage5():
         if j % 2:
             chunks[r, c] = ids["snow0"]
     body = np.concatenate([chunks[k * cr:(k + 1) * cr] for k in STAGE5_ORDER])
-    hull = np.frombuffer((MGF / "stage5_hull.bin").read_bytes(), dtype=np.uint8).reshape(meta["hull_h"], meta["hull_w"])
+    hull = crawler_map(meta["hull_tile_ids"])
     hh, hw = hull.shape
     loop = 16
     rows = body.shape[0] + STAGE5_GAP + hh + loop
+    assert rows <= MAX_ROWS, rows
     m = np.zeros((rows, 20), dtype=np.uint8)
     m[:body.shape[0], :] = np.vectorize(lambda t: i_lut[int(t)])(body)
     bow = body.shape[0] + STAGE5_GAP                 # the hull's first row (the drill's end)
@@ -1255,55 +1305,69 @@ def stage5():
                 m[stern - r, HULL_COL + c] = base + h_lut[t]
 
     units = []
-    # Turrets on the bunkers
-    bunkers = [(n * cr + r, c) for n, k in enumerate(STAGE5_ORDER) for kk, r, c in kept if kk == k]
-    for i, (r, c) in enumerate(sorted(bunkers)):
-        y = (r + 1) * 16
-        if 300 < y < WAVES_END_5:
-            units.append((y, (c + 1) * 8, "ET_TURRET", 4 + i % 3, 0))
-    # Snow tanks along the roads, by turns from the left and the right
+    # Snow tanks along the roads, by turns from the left and the right;
+    # bit 6 of their param: veterans (objects.asm think_tank), and slower,
+    # so they stay to fight
     roads = sorted(n * cr + r for n, k in enumerate(STAGE5_ORDER) for kk, r in meta["roads"] if kk == k)
     for j, r in enumerate(roads):
         y = r * 16 + 8
         if 300 < y < WAVES_END_5:
             left = j % 2 == 1
-            units.append((y, 148 if left else 8, "ET_TANK", 4 + j % 3, (0x80 if left else 0) | 9))
+            units.append((y, 148 if left else 8, "ET_TANK", 4 + j % 3, (0x80 if left else 0) | 0x40 | 6))
     # Icebergs: obstacles in three lanes by turns, every 10-14 rows, clear
     # of the roads (the tanks drive along them)
-    names = {v: k for k, v in meta["tile_ids"].items()}
+    bunkers = sorted((n * cr + r, c) for n, k in enumerate(STAGE5_ORDER) for kk, r, c in kept if kk == k)
     lanes = [8, 64, 120]
     rng = np.random.default_rng(21)
+    bergs = []
     r, lane = 14, 1
     while r < body.shape[0] - 6:
         if all(abs(r - rr) > 3 and abs(r + 1 - rr) > 3 for rr in roads):
-            units.append(((r + 2) * 16 - 8, lanes[lane] + 4, "ET_TOWER", 1, 0))
+            bergs.append((r, lanes[lane]))
             lane = (lane + int(rng.integers(1, 3))) % 3
             r += int(rng.integers(10, 15))
         else:
             r += 1
+    for r, x in bergs:
+        units.append(((r + 2) * 16 - 8, x + 4, "ET_TOWER", 1, 0))
+    # Turrets on every other bunker that no berg stands on (one under a berg
+    # can't fire: its shells stop in the berg) ...
+    def under_berg(r, x0, x1):
+        return any(br - 1 <= r <= br + 3 and x0 < bx + 32 and bx < x1 for br, bx in bergs)
+    tur = []
+    open_bunkers = [(r, c) for r, c in bunkers
+                    if 300 < (r + 1) * 16 < WAVES_END_5 and not under_berg(r, c * 8, c * 8 + 16)]
+    for r, c in open_bunkers[::2]:
+        tur.append(((r + 1) * 16, (c + 1) * 8))
+    # ... and dug in behind every other berg, just above it, half out to one
+    # side: the berg shields it from below, but it can fire round the berg,
+    # and the ship can reach it from beside the berg
+    for k, (r, x) in enumerate(bergs[1::2]):
+        if (r + 2) * 16 < WAVES_END_5:
+            tx = x + 30 if (k % 2 == 0 and x < 120) or x < 8 else x - 6
+            tur.append(((r + 2) * 16 + 12, tx + 4))
+    for i, (y, x) in enumerate(sorted(tur)):
+        units.append((y, x, "ET_TURRET", 4 + i % 3, 0))
 
     # The crawler's numbers for its boss code (as LEVIATHAN's): each part's
     # x and the world height of its top (a sprite's line is spos + 240 -
-    # it); where the scroll stops (its top at line B5_TOP) and where it has
-    # gone (its top below the screen).
-    parts = meta["hull_parts"]
+    # it); the scroll's stops: its front half in view, the reactor in
+    # reach; and where it has gone (its top below the screen).
     def top(name, dy=0):
-        c, r, w, h = parts[name]
+        c, r, w, h = B5_PARTS[name]
         return (stern - r + 1) * 16 - dy
-    b5 = {"b5_stop": (stern + 1) * 16 - 208 + B5_TOP, "b5_gone": (stern + 1) * 16 + 8}
+    b5 = {"b5_stop": top("BRIDGE") - 208 + B5_FRONT, "b5_final": top("REACTOR") - 208 + B5_FINAL,
+          "b5_gone": (stern + 1) * 16 + 8}
     xs, ylo, yhi = [], [], []
     for k in range(11):
-        if k in B5_SLOTS:
-            name, dy, dx = B5_SLOTS[k]
-            xs.append(8 * (HULL_COL + parts[name][0]) + dx)
-            y = top(name, dy)
-        else:
-            xs.append(0)
-            y = 0
+        name, dy, dx = B5_SLOTS[k]
+        xs.append(8 * (HULL_COL + B5_PARTS[name][0]) + dx)
+        y = top(name, dy)
         ylo.append(y & 255)
         yhi.append(y >> 8)
     lines = ["; Generated by tools/gen_assets.py. Do not edit.",
-             "; GLACIER CRAWLER's parts: x, and the world height of each one's top (lo, hi)."]
+             "; GLACIER CRAWLER's parts: x, and the world height of each one's top (lo, hi).",
+             "; Its stops (scroll positions) and where it has gone."]
     lines.append("b5_x .byte " + ",".join(str(v) for v in xs))
     lines.append("b5_ylo .byte " + ",".join(str(v) for v in ylo))
     lines.append("b5_yhi .byte " + ",".join(str(v) for v in yhi))
@@ -1311,14 +1375,21 @@ def stage5():
         lines.append(f"{name.upper()} = {v}")
     (GEN / "boss5tab.asm").write_text("\n".join(lines) + "\n")
 
+    # the air waves, with the falling shelves (towers, palette 1) among them
+    gr = ground_cols(units)
+    w = wave_cols(meta["waves"])
+    rowsw = [tuple(w[f][i] for f in WAVE_FIELDS) for i in range(len(w["watl"]))]
+    for at, n, dx in B5_FALLS:
+        rowsw.append((at & 255, at >> 8, ENEMY_TYPES["ET_TOWER"], 1, 16, dx, n, 40, 200))
+    rowsw.sort(key=lambda t: (t[1] << 8) | t[0])
+    w = {f: [t[i] for t in rowsw] for i, f in enumerate(WAVE_FIELDS)}
     # the warning when its front is about 9 rows above the screen
     bossat = (bow * 16 - 208 - 144) >> 8
-    gr = ground_cols(units)
     return {"n": 5, "map": m, "t_slots": t_slots, "t_pals": t_pals,
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
             "charset": "charset5", "pals": [nearest(c) for p in STAGE5_PALETTES for c in p],
             "bg": nearest(STAGE5_BG), "song": "SONG_STAGE5", "bosssong": "SONG_BOSS5", "bossat": bossat,
-            "waves": spread_waves(wave_cols(meta["waves"]), gr), "ground": gr,
+            "waves": spread_waves(w, gr), "ground": gr,
             "pal_codes": [[nearest(c) for c in p] for p in STAGE5_PALETTES]}
 
 

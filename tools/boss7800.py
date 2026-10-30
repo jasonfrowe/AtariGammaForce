@@ -500,5 +500,38 @@ def berg():
     return [c.a]
 
 
+def bridge5():
+    """The command bridge: 16 px by 32 lines, an armored cabin with a lit
+    window band, a mast and a lamp. The key part: once it falls, the
+    crawler drives on."""
+    c = Canvas(16, 32)
+    cab = poly([(4, 30), (4, 10), (10, 4), (22, 4), (28, 10), (28, 30)])
+    c.fill(cab, 2)
+    c.outline(1)
+    c.fill(lambda x, y: cab(x, y) and x > 23, 1)                       # the shaded side
+    c.fill(lambda x, y: 8 <= x < 24 and 13 <= y < 17, 1)
+    c.fill(lambda x, y: 9 <= x < 23 and 14 <= y < 16 and int(x) % 4 < 3, 3)  # the windows
+    c.fill(lambda x, y: 8 <= x < 24 and 21 <= y < 27 and (abs(x - 8) < 1.5 or abs(y - 21) < 1), 1)
+    c.fill(lambda x, y: abs(x - 16) < 1.2 and 0 <= y < 6, 1)            # the mast
+    c.fill(circle(16, 1.5, 1.6), 3)
+    return [c.a]
+
+
+def slab():
+    """A slab of shelf ice breaking away and falling: 32 px by 16 lines,
+    snow on top, a jagged edge, the dark break under it."""
+    c = Canvas(32, 16)
+    rng = np.random.default_rng(8)
+    top = [(2, 3)] + [(x, 1 + rng.uniform(0, 3)) for x in range(8, 60, 8)] + [(62, 3), (62, 10)] + \
+          [(x, 10 + rng.uniform(-2, 2)) for x in range(56, 2, -7)] + [(2, 10)]
+    slabp = poly(top)
+    c.fill(lambda x, y: any(slabp(x, y - d) for d in (2, 4)) and not slabp(x, y), 1)  # the break
+    c.fill(slabp, 3)
+    c.fill(lambda x, y: slabp(x, y) and not slabp(x + 3, y + 2), 2)
+    c.fill(lambda x, y: slabp(x, y) and abs((x + 3 * y) % 19 - 9) < 1, 2)  # cracks
+    return [c.a]
+
+
 def parts5():
-    return {"b5reactor": reactor5(), "b5drill": drill5(), "b5gun": gun3(), "berg": berg()}
+    return {"b5reactor": reactor5(), "b5drill": drill5()[:1], "b5gun": gun3(), "berg": berg(),
+            "b5bridge": bridge5(), "slab": slab()}

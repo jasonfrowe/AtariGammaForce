@@ -554,7 +554,7 @@ en_update_live
      cmp #ET_TURRET
      beq en_update_ground
      cmp #ET_TOWER
-     beq en_update_ground
+     beq en_update_tower
      cmp #ET_GUNBOAT
      bne en_update_notboat
      ; gunboats sail up against the scroll: a line every 4 frames
@@ -601,6 +601,16 @@ en_update_nottrain
      bcc en_update_ground
 en_update_tankoff
      jmp en_update_kill
+en_update_tower
+     ; a falling tower (stage 5's shelves, ewamp its speed): it slips down
+     ; the map, a line each time etimer carries
+     lda ewamp,x
+     beq en_update_ground
+     clc
+     adc etimer,x
+     sta etimer,x
+     bcc en_update_ground
+     inc eparam,x
 en_update_ground
      ; ground units ride the map: their line follows the scroll exactly
      inc ngnd
@@ -1470,12 +1480,15 @@ think_tank
      lsr
      lsr
      sta eframe,x            ; 8 directions
+     lda plvuln
+     beq th_tank_rts
+     lda estate,x
+     bne th_tank_vet
      lda etimer,x
      and #127
      cmp #64
      bne th_tank_rts
-     lda plvuln
-     beq th_tank_rts
+th_tank_shell
      lda #BK_PINK
      sta fkind
      lda #44
@@ -1483,6 +1496,25 @@ think_tank
      jmp bul_fire
 th_tank_rts
      rts
+     ; a veteran (stage 5's): every second, a pink shell and an aimed blue
+     ; fan of three by turns
+th_tank_vet
+     lda etimer,x
+     and #63
+     cmp #32
+     bne th_tank_rts
+     lda etimer,x
+     and #64
+     beq th_tank_shell
+     lda #BK_BLUE
+     sta fkind
+     lda #40
+     sta fspd
+     lda #3
+     sta fcount
+     lda #14
+     sta fstep
+     jmp bul_fan
 
 ; Gunboat: sails up against the scroll (en_update); an aimed blue fan of
 ; three, then later a pink ring of eight, every two seconds or so.

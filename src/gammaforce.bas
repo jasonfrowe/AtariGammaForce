@@ -776,6 +776,12 @@ spawn_slot
   if temp1 = ET_SAUCER then ewamp[k] = spparam[j]
   rem wasps weave faster (MegaGammaForce: base + sin(4t) * w)
   if temp1 = ET_WASP then ewamp[k] = spparam[j] : ewstep[k] = 4
+  rem stage 5's falling shelves: towers that fall (objects.asm en_update),
+  rem param the speed (256ths of a line a frame faster than the scroll); a
+  rem tower's line is the scroll plus eparam, so it starts above the screen
+  if temp1 <> ET_TOWER then return
+  eimg[k] = IMG_SLAB : ewamp[k] = spparam[j] : eparam[k] = 16 - spos_lo
+  exh[k] = spx[j] & 127
   return
 
   rem Enemy behavior is in asm/objects.asm (en_think).
@@ -946,10 +952,12 @@ ground_slot
   evx[k] = 0 : evy[k] = 0 : eframe[k] = 0
   rem a train car's param: its picture (0 the engine, 1 a gun car)
   if temp2 = ET_TRAIN then eframe[k] = gparam[temp1] : return
-  rem a tank's param: its speed, and bit 7 for driving left
+  rem a tank's param: its speed, bit 6 for a veteran (stage 5's: objects.asm
+  rem think_tank, noted in estate), and bit 7 for driving left
   if temp2 <> ET_TANK then return
-  temp3 = gparam[temp1] & 127
+  temp3 = gparam[temp1] & 63
   evx[k] = temp3
+  estate[k] = gparam[temp1] & 64
   temp4 = gparam[temp1] & 128
   if temp4 then evx[k] = 0 - temp3
   return
@@ -1137,6 +1145,9 @@ part_hit
   temp7 = exh[i] : temp8 = eyh[i]
   if temp2 = ET_PTURRET then gosub spawn_fx : etype[i] = 0 : goto part_score
   if temp2 = ET_PPOD then temp7 = temp7 + 4 : temp8 = temp8 + 8 : gosub spawn_fx : etype[i] = 0 : goto part_score
+  rem stage 5's guns, drill and bridge blow apart, leaving their wells bare
+  rem (its hatches leave craters, as LEVIATHAN's bays)
+  if stage = 5 && eimg[i] <> IMG_B3BAY then goto part_blast
   rem explosions down the part, and it stays as a wreck
   temp7 = temp7 + 4 : temp8 = temp8 + 4 : gosub spawn_fx
   temp8 = eyh[i] + 20 : gosub spawn_fx
@@ -1147,6 +1158,12 @@ part_hit
   rem and a wing takes its turrets with it
   if i = 1 then etype[7] = 0 : etype[8] = 0
   if i = 3 then etype[9] = 0 : etype[10] = 0
+  goto part_score
+part_blast
+  temp8 = temp8 + 4 : gosub spawn_fx
+  temp7 = temp7 + 6 : temp8 = temp8 + 12 : gosub spawn_fx
+  temp7 = temp7 - 8 : temp8 = temp8 + 6 : gosub spawn_fx
+  etype[i] = 0
 part_score
   bparts = bparts + 1
   sadd2 = 0 : sadd1 = $20 : sadd0 = 0
