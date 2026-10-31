@@ -226,8 +226,9 @@ SCREEN_TEXTS = {
     "sel5": "<   STAGE 5   >",
     "sel6": "<   STAGE 6   >",
     # the title's difficulty (TXT_MODE0 + easy): up and down choose
-    "mode0": "^   NORMAL   _",
-    "mode1": "^ TEDDY BEAR _",
+    "mode0": "^   EXPERT   _",
+    "mode1": "^   NORMAL   _",
+    "mode2": "^ TEDDY BEAR _",
 }
 # Playfield texts that are lines of RAM (20 characters, written by the
 # game): the results screen's figures. Templates below fill them.

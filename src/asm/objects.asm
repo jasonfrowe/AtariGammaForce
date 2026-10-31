@@ -109,8 +109,8 @@ weave
 ; ---------------------------------------------------------------------------
 ; Enemy bullets.
 
-; Teddy Bear mode (easy): single shots go every other time, and bullets
-; take only the first NB_EASY slots. (Fans and rings thin themselves in
+; Normal and Teddy Bear (easy 1, 2; Expert is 0): single shots go every
+; other time, and bullets take only the first NB_EASY slots. (Fans and rings thin themselves in
 ; bul_fan, which comes in at bul_fire_go.)
 NB_EASY = 10
 bul_fire
@@ -161,7 +161,7 @@ bul_fire_slot
      sta bvyh,x
      rts
 
-; fcount bullets, fstep apart, centred on fang. In Teddy Bear mode, half
+; fcount bullets, fstep apart, centred on fang. In Normal and Teddy Bear, half
 ; as many over the same spread (5 -> 3, a ring of 8 -> 4); an odd fan
 ; stays odd, so its middle bullet (often the aimed one) stays (3 -> 1).
 bul_fan

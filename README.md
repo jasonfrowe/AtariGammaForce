@@ -67,9 +67,11 @@ and its level), the sword gauge and the lives. Extra lives come at 50,000
 points and 100,000, then every 100,000.
 
 On the title, left and right choose the starting stage, and up and down
-the mode: NORMAL, or TEDDY BEAR, with about half the enemy bullets (fans
-and rings fire half as many over the same spread, single shots every
-other time, and at most 10 at once instead of 16).
+the mode: EXPERT (all the enemy's fire), NORMAL (about half the enemy
+bullets: fans and rings fire half as many over the same spread, single
+shots every other time, and at most 10 at once instead of 16), or TEDDY
+BEAR (NORMAL's bullets, five ships instead of three, and armor: each ship
+takes one hit before it is lost, and shows bluer while it has it).
 
 ## Building
 

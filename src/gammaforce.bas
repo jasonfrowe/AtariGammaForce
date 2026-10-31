@@ -230,6 +230,8 @@
   rem Teddy Bear mode (chosen on the title): fewer enemy bullets
   rem (objects.asm bul_fire, bul_fan); bfalt alternates single shots
   dim easy = $2397
+  rem Teddy Bear's armor: 1 while the ship can take a hit (player_hit)
+  dim armor = $239D
   dim bfalt = $2398
   rem the next extra life's score, as the score's top two BCD bytes:
   rem millions; hundred and ten thousands
@@ -275,6 +277,8 @@
   dim spparam = $2527
 
   characterset charset
+  rem the difficulty starts at Normal
+  easy = 1
   rem Switch stage 1's bank (bank 2) in at $8000 (engine.asm pf_stage;
   rem 7800basic only allows loadrombank in the last bank).
   asm
@@ -336,8 +340,10 @@ end
   tpal = 3
   tzone = 10 : temp1 = TXT_NAME1 + selstage - 1 : gosub text
   rem the difficulty: up and down choose
-  tpal = 5
-  if easy then tpal = 4
+  rem (Expert in yellow, Normal in blue, Teddy Bear in the logo's colors)
+  tpal = 6
+  if easy = 1 then tpal = 5
+  if easy = 2 then tpal = 4
   tzone = 11 : temp1 = TXT_MODE0 + easy : gosub text
   rem PRESS FIRE and the buttons, by turns
   tpal = 7 : temp1 = TXT_PUSH
@@ -359,8 +365,8 @@ end
   if selcd > 0 then selcd = selcd - 1 : goto title_fire
   if joy0left && selstage > 1 then selstage = selstage - 1 : selcd = 15
   if joy0right && selstage < NSTAGES then selstage = selstage + 1 : selcd = 15
-  if joy0up && easy then easy = 0 : selcd = 15
-  if joy0down && easy = 0 then easy = 1 : selcd = 15
+  if joy0up && easy > 0 then easy = easy - 1 : selcd = 15
+  if joy0down && easy < 2 then easy = easy + 1 : selcd = 15
 title_fire
   rem Start on a fresh press of either button (released first)
   temp3 = 0
@@ -413,7 +419,8 @@ end
   rem ======================================================================
 newgame
   for i = 0 to 3 : score_bcd[i] = 0 : next
-  lives = 3 : gauge = 0 : hyper = 0 : nextx0 = 0 : nextx = $05
+  lives = 3 : if easy = 2 then lives = 5
+  gauge = 0 : hyper = 0 : nextx0 = 0 : nextx = $05
   chlevel = 0 : chcount = 0 : chcolor = 255 : chmax = 0
   vdmg = 3 : wn = 0 : overt = 0 : bstate = 0 : bmsg = 0 : gn = 0 : gcolor = 0
   swcd = 0 : pfahead = 0
@@ -645,6 +652,8 @@ end
 respawn
   plx = 74 : ply = 200 : pdead = 0 : inv = 120 : firecd = 0
   hyper = 0 : swon = 0
+  rem Teddy Bear: armor again with each ship
+  armor = 0 : if easy = 2 then armor = 1
   return
 
 player
@@ -703,7 +712,19 @@ player_noabsorb
   sta phit
   endif
 end
-  if phit then phit = 0 : gosub player_die
+  if phit then phit = 0 : gosub player_hit
+  return
+
+  rem Hit: in Teddy Bear the armor takes it (a burst, and the ship blinks,
+  rem invulnerable, for a second and a half); else the ship is lost
+player_hit
+  if armor = 0 then goto player_die
+  armor = 0 : inv = 90
+  temp7 = plx + 2 : temp8 = ply + 4 : gosub spawn_fx
+  asm
+  lda #SFX_HIT
+  jsr sfx_play
+end
   return
 
 player_dead
@@ -972,6 +993,8 @@ end
   goto draw_beam
 draw_ship
   pimg = IMG_SHIP : pframe = bank : px = plx : py = ply : ppal = 3
+  rem armored (Teddy Bear): bluer (palette 5)
+  if armor then ppal = 5
   rem the Hyper Sword is ready: the ship glows gold (palette 6) by turns
   temp6 = tick & 8
   if gauge >= GAUGE_MAX && temp6 then ppal = 6

@@ -60,9 +60,10 @@
   const TXT_SEL6 = 19
   const TXT_MODE0 = 20
   const TXT_MODE1 = 21
-  const TXT_RESA = 22
-  const TXT_RESB = 23
-  const TXT_RESC = 24
+  const TXT_MODE2 = 22
+  const TXT_RESA = 23
+  const TXT_RESB = 24
+  const TXT_RESC = 25
   const IMG_SHIP = 0
   const IMG_VULCAN = 1
   const IMG_DART = 2

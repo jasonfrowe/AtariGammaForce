@@ -27,8 +27,9 @@ txt_sel3 .byte 74,20,20,20,58,60,22,34,30,20,6,20,20,20,76 ; '<   STAGE 3   >'
 txt_sel4 .byte 74,20,20,20,58,60,22,34,30,20,8,20,20,20,76 ; '<   STAGE 4   >'
 txt_sel5 .byte 74,20,20,20,58,60,22,34,30,20,10,20,20,20,76 ; '<   STAGE 5   >'
 txt_sel6 .byte 74,20,20,20,58,60,22,34,30,20,12,20,20,20,76 ; '<   STAGE 6   >'
-txt_mode0 .byte 80,20,20,20,48,50,56,46,22,44,20,20,20,82 ; '^   NORMAL   _'
-txt_mode1 .byte 80,20,60,30,28,28,70,20,24,30,22,56,20,82 ; '^ TEDDY BEAR _'
+txt_mode0 .byte 80,20,20,20,30,68,52,30,56,60,20,20,20,82 ; '^   EXPERT   _'
+txt_mode1 .byte 80,20,20,20,48,50,56,46,22,44,20,20,20,82 ; '^   NORMAL   _'
+txt_mode2 .byte 80,20,60,30,28,28,70,20,24,30,22,56,20,82 ; '^ TEDDY BEAR _'
 txt_resa = $23A0 ; a RAM line
 txt_resb = $23B4 ; a RAM line
 txt_resc = $23C8 ; a RAM line
@@ -38,13 +39,13 @@ restmpl .byte 28,30,58,60,56,62,26,60,38,50,48,20,0,0,0,78,20,20,20,20
   .byte 24,50,48,62,58,20,20,20,20,20,20,0,0,0,0,0,20,20,20,20
 txtlo .byte <txt_atari,<txt_push,<txt_b1,<txt_credit,<txt_over,<txt_clear,<txt_escaped,<txt_perfect
   .byte <txt_name1,<txt_name2,<txt_name3,<txt_name4,<txt_name5,<txt_name6,<txt_sel1,<txt_sel2
-  .byte <txt_sel3,<txt_sel4,<txt_sel5,<txt_sel6,<txt_mode0,<txt_mode1,<txt_resa,<txt_resb
-  .byte <txt_resc
+  .byte <txt_sel3,<txt_sel4,<txt_sel5,<txt_sel6,<txt_mode0,<txt_mode1,<txt_mode2,<txt_resa
+  .byte <txt_resb,<txt_resc
 txthi .byte >txt_atari,>txt_push,>txt_b1,>txt_credit,>txt_over,>txt_clear,>txt_escaped,>txt_perfect
   .byte >txt_name1,>txt_name2,>txt_name3,>txt_name4,>txt_name5,>txt_name6,>txt_sel1,>txt_sel2
-  .byte >txt_sel3,>txt_sel4,>txt_sel5,>txt_sel6,>txt_mode0,>txt_mode1,>txt_resa,>txt_resb
-  .byte >txt_resc
-txtlen .byte 5,10,19,15,9,11,12,19,12,11,9,14,13,6,15,15,15,15,15,15,14,14,16,16,16
+  .byte >txt_sel3,>txt_sel4,>txt_sel5,>txt_sel6,>txt_mode0,>txt_mode1,>txt_mode2,>txt_resa
+  .byte >txt_resb,>txt_resc
+txtlen .byte 5,10,19,15,9,11,12,19,12,11,9,14,13,6,15,15,15,15,15,15,14,14,14,16,16,16
 
 ; P0C1..P7C3, in register order
 palettedata
