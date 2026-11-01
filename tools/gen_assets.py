@@ -1253,6 +1253,14 @@ B5_GUST = (176, 198, 224)            # the ice in the blizzard's gusts: paler, t
 # falling B5_FALL/128 of a line a frame faster than the scroll
 B5_FALLS = [(640, 3, 88), (1180, 4, 40), (1720, 4, 88), (2240, 5, 56), (2700, 6, 88)]
 B5_FALL = 145
+# Stage 5's air waves moved toward the middle or mirrored (whole, as they
+# are): (at, type, x, dx) in MegaGammaForce's units (192 px across)
+WAVE_X5 = [(480, "ET_DART", 170, -24),     # the second darts: the right, as the first are the left
+           (620, "ET_WASP", 96, 0),        # centred
+           (820, "ET_DRONE", 50, 46),      # centred
+           (1100, "ET_WASP", 54, 14),      # a pair, both pulled in
+           (1140, "ET_WASP", 138, -14),
+           (1620, "ET_DRONE", 60, 36)]     # centred
 
 
 def crawler_map(ids):
@@ -1296,15 +1304,41 @@ def stage5():
     base = len(i_tiles)
     t_slots, t_pals = i_tiles + h_tiles, i_pals + h_pals
     chunks = np.frombuffer((MGF / "stage5_chunks.bin").read_bytes(), dtype=np.uint8).reshape(-1, cols).copy()
-    # One bunker in three is kept (each with a turret), the others made
+    # One bunker in six is kept (each with a turret), the others made
     # bare ice: they cost the bank's room and MARIA's time
     ids = meta["tile_ids"]
     kept = []
     for i, (k, r, c) in enumerate(sorted(meta["bunkers"])):
-        if i % 3 == 1:
+        if i % 6 == 1:
             kept.append((k, r, c))
-        else:
-            chunks[k * cr + r:k * cr + r + 2, c:c + 2] = ids["snow0"]
+        chunks[k * cr + r:k * cr + r + 2, c:c + 2] = ids["snow0"]
+    # The kept bunkers go to the screen's edges, left and right by turns
+    # (MegaGammaForce's fell mostly left of the middle, and the ship could
+    # hug the right side past the turrets): each to clear ice at the edge
+    # in its rows or near them (columns 18-19 or 0-1, else one in)
+    snow = {ids[f"snow{k}"] for k in range(4)}
+    moved = []
+    for j, (k, r, c) in enumerate(kept):
+        cols = (18, 17, 16) if j % 2 == 0 else (0, 1, 2)
+        spot = None
+        for dr in (0, -1, 1, -2, 2, -3, 3):
+            rr = r + dr
+            if not 1 <= rr <= cr - 3:
+                continue
+            for cc in cols:
+                a = chunks[k * cr + rr:k * cr + rr + 2, cc:cc + 2]
+                if all(int(t) in snow for t in a.ravel()):
+                    spot = (rr, cc)
+                    break
+            if spot:
+                break
+        if spot is None:
+            continue
+        rr, cc = spot
+        chunks[k * cr + rr, cc], chunks[k * cr + rr, cc + 1] = ids["bunker2"], ids["bunker3"]
+        chunks[k * cr + rr + 1, cc], chunks[k * cr + rr + 1, cc + 1] = ids["bunker0"], ids["bunker1"]
+        moved.append((k, rr, cc))
+    kept = moved
     # and half the cracks in the snow (each makes its row one more to store)
     cracks = list(zip(*np.nonzero(chunks == ids["snow3"])))
     for j, (r, c) in enumerate(cracks):
@@ -1314,7 +1348,7 @@ def stage5():
     # Icebergs: obstacles in three lanes by turns, every 10-14 rows, clear
     # of the roads (the tanks drive along them)
     roads = sorted(n * cr + r for n, k in enumerate(STAGE5_ORDER) for kk, r in meta["roads"] if kk == k)
-    lanes = [8, 64, 120]
+    lanes = [16, 64, 112]               # (in from the edges: the bunkers are there)
     rng = np.random.default_rng(21)
     bergs = []
     r, lane = 14, 1
@@ -1371,14 +1405,14 @@ def stage5():
     bunkers = sorted((n * cr + r, c) for n, k in enumerate(STAGE5_ORDER) for kk, r, c in kept if kk == k)
     for r, x in bergs:
         units.append(((r + 2) * 16 - 8, x + 4, "ET_TOWER", 1, 0))
-    # Turrets on every other bunker that no berg stands on (one under a berg
+    # Turrets on every bunker that no berg stands on (one under a berg
     # can't fire: its shells stop in the berg) ...
     def under_berg(r, x0, x1):
         return any(br - 1 <= r <= br + 3 and x0 < bx + 32 and bx < x1 for br, bx in bergs)
     tur = []
     open_bunkers = [(r, c) for r, c in bunkers
                     if 300 < (r + 1) * 16 < WAVES_END_5 and not under_berg(r, c * 8, c * 8 + 16)]
-    for r, c in open_bunkers[::2]:
+    for r, c in open_bunkers:
         tur.append(((r + 1) * 16, (c + 1) * 8))
     # ... and the dug-in ones behind the bergs
     tur += dug
@@ -1416,6 +1450,13 @@ def stage5():
     # (MegaGammaForce's last wave, a gunship at 2780, is left out: here it
     # came in as the crawler did)
     waves = [wv for wv in meta["waves"] if not (wv[1] == "ET_GUNSHIP" and wv[0] >= 2780)]
+    # toward the middle: MegaGammaForce's stage 5 has several waves left
+    # of it with no partner on the right (its units, 192 px across)
+    waves = [list(wv) for wv in waves]
+    for wv in waves:
+        for at, typ, x, dx in WAVE_X5:
+            if wv[0] == at and wv[1] == typ:
+                wv[3], wv[4] = x, dx
     w = wave_cols(waves)
     rowsw = [tuple(w[f][i] for f in WAVE_FIELDS) for i in range(len(w["watl"]))]
     for at, n, dx in B5_FALLS:
