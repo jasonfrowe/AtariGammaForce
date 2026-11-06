@@ -11,8 +11,8 @@
   rem  rising, it loses 3 a step (about 2.4 lines a frame up the screen).
   rem  estate: 1 waiting (ewang its count: etimer is en_think's), 2 rising.
   rem  Waiting, it hisses, rising in pitch to the launch (on the TIA's
-  rem  explosions channel, below them all; its data is here, in stage 7's
-  rem  bank). In the fight, one every 4.2 seconds.
+  rem  player channel, over the Vulcan and the sword, under the rest; its
+  rem  data is here, in stage 7's bank: pf_stage silences it). In the fight, one every 4.2 seconds.
   rem ======================================================================
 
   rem the next launch's count
@@ -43,23 +43,23 @@ lunar_spawn
   etype[k] = ET_TOWER : eimg[k] = IMG_B7CAN : ehp[k] = 255 : ecol[k] = 4
   exh[k] = temp1 : eparam[k] = 228 - spos_lo : estate[k] = 1 : ewang[k] = 48
   evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0 : eframe[k] = 0 : ehit[k] = 0 : eflash[k] = 0
-  rem its hiss, unless an explosion is playing (sfx.asm's channel 1, by
-  rem hand: the sound's data is in this bank)
+  rem its hiss, unless something more important is playing (sfx.asm's
+  rem channel 0 at priority 2, by hand: the sound's data is in this bank)
   asm
-  lda sfx_ptrhi+1
+  lda sfx_ptrhi
   beq lu_hiss
-  lda sfx_pri+1
-  cmp #2
+  lda sfx_pri
+  cmp #3
   bcs lu_quiet
 lu_hiss
   lda #0
-  sta sfx_ptrhi+1
-  lda #1
-  sta sfx_pri+1
+  sta sfx_ptrhi
+  lda #2
+  sta sfx_pri
   lda #<lu_sfx
-  sta sfx_ptrlo+1
+  sta sfx_ptrlo
   lda #>lu_sfx
-  sta sfx_ptrhi+1
+  sta sfx_ptrhi
 lu_quiet
 end
 lunar_move
@@ -98,11 +98,11 @@ lunar_next
   rem noise, rising)
   asm
 lu_sfx
-  .byte 8,26,2,8,26,2,8,25,2,8,25,2,8,24,2,8,24,3,8,23,3,8,23,3
-  .byte 8,22,3,8,22,3,8,21,3,8,21,3,8,20,3,8,20,3,8,19,4,8,19,4
-  .byte 8,18,4,8,18,4,8,17,4,8,17,4,8,16,4,8,16,4,8,15,4,8,15,5
-  .byte 8,14,5,8,14,5,8,13,5,8,13,5,8,12,5,8,12,5,8,11,5,8,11,5
-  .byte 8,10,6,8,10,6,8,9,6,8,9,6,8,8,6,8,8,6,8,7,6,8,7,6
-  .byte 8,6,6,8,6,7,8,5,7,8,5,7,8,4,7,8,4,7,8,3,4,8,3,2
+  .byte 8,26,3,8,26,3,8,25,3,8,25,3,8,24,4,8,24,4,8,23,4,8,23,4
+  .byte 8,22,4,8,22,4,8,21,4,8,21,4,8,20,5,8,20,5,8,19,5,8,19,5
+  .byte 8,18,5,8,18,5,8,17,5,8,17,6,8,16,6,8,16,6,8,15,6,8,15,6
+  .byte 8,14,6,8,14,6,8,13,6,8,13,7,8,12,7,8,12,7,8,11,7,8,11,7
+  .byte 8,10,7,8,10,7,8,9,8,8,9,8,8,8,8,8,8,8,8,7,8,8,7,8
+  .byte 8,6,8,8,6,8,8,5,9,8,5,9,8,4,9,8,4,9,8,3,5,8,3,2
   .byte $FF
 end

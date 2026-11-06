@@ -603,13 +603,21 @@ pf_newstage
 
 ; pf_stage: switch in stage A's bank (1 = bank 2, 2 = bank 3, ...), point
 ; CHARBASE at its character block and load its palettes. Then pf_reset.
-; The music stops first: a song plays from its stage's bank, and with
-; another bank in its addresses hold other bytes, which can keep the NMI
-; past vblank (the main loop, waiting for vblank, then waits for ever).
+; The music and the sound effects stop first: a song plays from its
+; stage's bank, and with another bank in its addresses hold other bytes,
+; which can keep the NMI past vblank (the main loop, waiting for vblank,
+; then waits for ever), or play noise.
 ; The caller starts the new stage's song.
 pf_stage
      pha
      jsr mus_stop
+     ; and the sound effects: a stage's own sound plays from its bank
+     ; (stage 7's canisters), and the new bank holds other bytes there
+     lda #0
+     sta sfx_ptrhi
+     sta sfx_ptrhi+1
+     sta AUDV0
+     sta AUDV1
      lda #$FF                ; no rows sway
      sta pfswayrow
      pla
