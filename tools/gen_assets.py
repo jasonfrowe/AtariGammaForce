@@ -2096,7 +2096,7 @@ def stage8():
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop, "solid": solid,
             "charset": "charset8", "pals": [nearest(c) for p in STAGE8_PALETTES for c in p],
             "bg": nearest(STAGE8_BG), "song": "SONG_STAGE8", "bosssong": "SONG_BOSS8", "vec": boss_vec(8, "deep"),
-            "bossat": bossat, "waves": spread_waves(w, gr), "ground": gr,
+            "bossat": bossat, "waves": spread_waves(w, gr, by=b8["b8_stop"] - BOSS_LEAD), "ground": gr,
             "pal_codes": [[nearest(c) for c in p] for p in STAGE8_PALETTES]}
 
 
@@ -2359,14 +2359,17 @@ UNIT_WEIGHT = {"ET_TRAIN": 3, "ET_GUNSHIP": 3, "ET_GUNBOAT": 3, "ET_SAUCER": 2}
 
 # A boss whose hull comes with the map can't wait: the shared code warns
 # of it once the last wave has started, and the warning and the entry take
-# about this much scroll, so the last wave must start this far before the
-# scroll's stop (or the hull overshoots, down onto the ship).
-BOSS_LEAD = 200
+# scroll (start the last too late and the hull overshoots, down onto the
+# ship); and a wave still on the screen as the hull comes in crowds it.
+# Waves that would start less than this before the scroll's stop are left
+# out.
+BOSS_LEAD = 300
 
 
 def spread_waves(w, gr, cap=11, life=260, step=20, most=300, weights=None, by=None):
     """Air waves moved later (never earlier, in order, at most `most`
-    pixels, and none past scroll position `by`) where they would pile up: a rough load of the units on the
+    pixels) where they would pile up (and those past scroll position `by`
+    left out): a rough load of the units on the
     screen (each about `life` pixels of scroll, ground units included,
     each 1 or, with weights=UNIT_WEIGHT, by kind) is kept to `cap` if
     moving a wave can do it. (Stage 4 measured best unweighted, cap 11.)"""
@@ -2394,14 +2397,10 @@ def spread_waves(w, gr, cap=11, life=260, step=20, most=300, weights=None, by=No
         prev = best
         if t == ENEMY_TYPES["ET_WASP"]:
             last_wasp = best
-    if by is not None:
-        # (the late ones brought back, still a step apart)
-        for i in range(len(placed) - 1, -1, -1):
-            placed[i] = (min(placed[i][0], by), placed[i][1])
-            by = placed[i][0] - step
-    out = dict(w)
-    out["watl"] = [a & 255 for a, _ in placed]
-    out["wath"] = [a >> 8 for a, _ in placed]
+    keep = [i for i, (a, _) in enumerate(placed) if by is None or a <= by]
+    out = {k: [v[i] for i in keep] for k, v in w.items()}
+    out["watl"] = [placed[i][0] & 255 for i in keep]
+    out["wath"] = [placed[i][0] >> 8 for i in keep]
     return out
 
 
