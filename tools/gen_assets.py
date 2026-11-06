@@ -343,10 +343,12 @@ SPRITES = [
     ("b8pod", "boss8", 0, 0, None, None, 0),
     ("b8clawl", "boss8", 0, 0, None, None, 0),
     ("b8clawr", "boss8", 0, 0, None, None, 0),
-    # Stage 9's: GAMMA PRIME's core, beam emitter and orbiting prisms (in
-    # its bank; its ring cannons are GAMMA CORE's, its turrets the shared)
-    ("b9core", "boss9", 0, 0, None, None, 1),
-    ("b9emit", "boss9", 0, 0, None, None, 0),
+    # Stage 9's: GAMMA PRIME's core, the nodes atop it and its orbiting
+    # prisms (in its bank; its cannon is GAMMA CORE's, its turrets the
+    # shared)
+    ("b9coret", "boss9", 0, 0, None, None, 6),
+    ("b9coreb", "boss9", 0, 0, None, None, 6),
+    ("b9node", "boss9", 0, 0, None, None, 4),
     ("b9prism", "boss9", 0, 0, None, None, 5),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
@@ -385,7 +387,7 @@ STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "b
 STAGE6_STRIPS = {"sat0", "sat1", "b6core0", "b6core1", "b6pod0", "b6pod1"}
 STAGE7_STRIPS = {"b7breech0", "b7breech1", "b7cap0", "b7cap1", "b7muzzle0", "b7muzzle1", "b7can0", "b7can1"}
 STAGE8_STRIPS = {"b8eye0", "b8eye1", "b8pod0", "b8pod1", "b8clawl0", "b8clawl1", "b8clawr0", "b8clawr1"}
-STAGE9_STRIPS = {"b9core0", "b9core1", "b9emit0", "b9emit1", "b9prism"}
+STAGE9_STRIPS = {"b9coret0", "b9coret1", "b9coreb0", "b9coreb1", "b9node", "b9prism"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -2104,14 +2106,10 @@ def stage8():
 # granulation, sunspots and faculae; and flares, solar loops and tongues
 # of plasma in two groups (A in P0, B in P1, the same tiles: alias), lit
 # in turn (stage9.bas): dark, a flicker of warning, then the eruption,
-# which is fatal to fly through (by each map row's masks: stage_bank).
-# Each group alone always leaves a way through. Then GAMMA PRIME, the
-# Gamma Core's true form, a sunburst fortress of gold, its hull map rows
-# (as HIVE MOTHERSHIP's), still; under it the battlefield's own flares, a
-# column under the core (group A, in P2) and the flanks (group B, P1), so
-# the ship can't camp under the core. P0 holds the hull's gold then, P2
-# and P1 the battlefield's flares (from FL_END on: the surface and the
-# stage's flares are behind, and the rows from there are bare).
+# which is fatal to fly through. Each group alone always leaves a way
+# through. Then GAMMA PRIME (boss9.bas), sprites as SPIRE WARDEN is, over
+# the map's last chunk of flares, which loops: they keep coming through
+# the fight.
 STAGE9_BG = (204, 92, 10)
 STAGE9_PALETTES = [
     [(96, 22, 0), (110, 28, 0), (124, 34, 0)],          # P0 flares A, dark (stage9.bas lights them)
@@ -2123,30 +2121,10 @@ FLARE9_COLORS = [[(96, 22, 0), (110, 28, 0), (124, 34, 0)],
                  [(200, 60, 0), (230, 100, 10), (250, 140, 30)],
                  [(230, 50, 10), (255, 190, 60), (255, 250, 210)],
                  [(200, 60, 0), (220, 100, 20), (240, 150, 60)]]
-# the fight's P0: GAMMA PRIME's gold
-GAMMA9_COLORS = [[(90, 60, 20), (196, 150, 60), (255, 240, 190)]]
-# the battlefield's flares, rows up from the bottom of the six under the
-# hull: (shape: FLARES9's, group, column, row)
-ARENA9 = [(2, "A", 9, 0), (1, "A", 9, 4), (1, "B", 3, 1), (1, "B", 15, 1)]
-ARENA9_ROWS = 7
-STAGE9_BODY = 176                    # rows before the gap
+STAGE9_BODY = 176                    # rows before the loop
 STAGE9_CHUNK = 20                    # a chunk of flares' rows
-STAGE9_GAP = 14                      # bare surface before GAMMA PRIME
-FLARE9_CLEAR = 22                    # bare rows before it (the palettes turn: FL_END)
-HULL9_COL = 6                        # the hull's left column (8 wide, centred)
-B9_TOP = 16                          # the fight: the hull's top at line 16 (its prisms' orbit on the screen)
-B9_W, B9_H = 8, 5
-# GAMMA PRIME's parts, repacked from MegaGammaForce's 10 x 9 to 8 x 5 (its
-# hull's tiles were most of the fight's DMA; and a smaller boss leaves the
-# battlefield room): tile column and row of each one's top left, size in
-# tiles
-B9_PARTS = {"CORE": (3, 1, 2, 2), "CANNON_L": (0, 1, 2, 2), "CANNON_R": (6, 1, 2, 2), "EMITTER": (3, 3, 2, 2),
-            "TUR0": (1, 0, 1, 1), "TUR1": (6, 0, 1, 1), "TUR2": (1, 3, 1, 1), "TUR3": (6, 3, 1, 1)}
-# slots: name, lines down (a prism: the core's, 8 down: the orbit's centre
-# less half a prism). 5 is the core (the shared code's reactor slot)
-B9_SLOTS = [("CANNON_L", 0), ("CANNON_R", 0), ("EMITTER", 0), ("CORE", 8), ("CORE", 8), ("CORE", 0),
-            ("TUR0", 0), ("TUR1", 0), ("TUR2", 0), ("TUR3", 0), ("CORE", 8), ("CORE", 8)]
-# (slots 10-11 unused: two prisms, not MegaGammaForce's four, for speed)
+STAGE9_BOSSAT = 11                   # GAMMA PRIME comes at scroll 11 * 256 (the loop's start)
+STAGE9_LEAD = 180                    # no wave starts less than this before it
 
 
 def _runs9(row, pals):
@@ -2165,20 +2143,16 @@ def stage9():
     import tiles7800 as t7
     meta = json.loads((MGF / "stage9.json").read_text())
     s_tiles, s_pals, patches, flecks, flares, lethal = t7.corona_tiles()
-    h_tiles, h_pals, hull = t7.gamma_tiles(B9_W, B9_H, B9_PARTS)
-    base = len(s_tiles)
-    t_slots, t_pals = s_tiles + h_tiles, s_pals + h_pals
-    # group B: the flares' tiles again, in P1; and the battlefield's group
-    # A, in P2
+    t_slots, t_pals = s_tiles, s_pals
+    # group B: the flares' tiles again, in P1
     flare_tiles = sorted({int(t) for g in flares for t in g.ravel() if t})
-    alias = [(t, t7.FLARE9_B) for t in flare_tiles] + [(t, t7.SUN9) for t in flare_tiles]
+    alias = [(t, t7.FLARE9_B) for t in flare_tiles]
     to_b = {t: len(t_slots) + k for k, t in enumerate(flare_tiles)}
-    to_a2 = {t: len(t_slots) + len(flare_tiles) + k for k, t in enumerate(flare_tiles)}
-    print(f"stage 9: {len(s_tiles)} + {len(h_tiles)} tiles, {len(lethal)} lethal")
+    print(f"stage 9: {len(s_tiles)} tiles, {len(lethal)} lethal")
     assert len(t_slots) <= 64, f"stage 9: {len(t_slots)} tiles (64 fit beside its sprites)"
     vpals = [None] + t_pals[1:] + [p for _, p in alias]
     loop = 16
-    rows = STAGE9_BODY + STAGE9_GAP + B9_H + loop
+    rows = STAGE9_BODY + loop
     assert rows <= MAX_ROWS, rows
     m = np.zeros((rows, 20), dtype=np.uint8)
     rng = np.random.default_rng(99)
@@ -2251,20 +2225,20 @@ def stage9():
                 return False
         return True
 
-    def chunk(seed):
+    def chunk(seed, n=STAGE9_CHUNK):
         c_rng = np.random.default_rng(seed)
-        ground, _ = surface(STAGE9_CHUNK, seed + 50)
+        ground, _ = surface(n, seed + 50)
         keep_m, keep_u = m.copy(), used.copy()
-        m[:STAGE9_CHUNK], used[:STAGE9_CHUNK] = ground, False
-        gu = {"A": np.zeros((STAGE9_CHUNK, 20), dtype=bool), "B": np.zeros((STAGE9_CHUNK, 20), dtype=bool)}
+        m[:n], used[:n] = ground, False
+        gu = {"A": np.zeros((n, 20), dtype=bool), "B": np.zeros((n, 20), dtype=bool)}
         r = 0
-        while r < STAGE9_CHUNK:
+        while r < n:
             grp = "AB"[int(c_rng.integers(0, 2))]
             g = flares[int(c_rng.integers(0, len(flares)))]
             if grp == "B":
                 g = np.vectorize(lambda t: to_b[int(t)] if t else 0)(g)
             h, w = g.shape
-            if r + h <= STAGE9_CHUNK:
+            if r + h <= n:
                 for _ in range(10):
                     c = int(c_rng.integers(0, 20 - w + 1))
                     if not fits(g, r, c, pad=0, cap=5):
@@ -2276,17 +2250,17 @@ def stage9():
                     put(g, r, c)
                     break
             r += int(c_rng.integers(1, 3))
-        out = m[:STAGE9_CHUNK].copy()
+        out = m[:n].copy()
         m[:], used[:] = keep_m, keep_u
         return out
 
     plain, _ = surface(16, 90)
     lull, _ = surface(4, 91)
     chunks = [chunk(92 + k) for k in range(4)]
-    end = STAGE9_BODY + STAGE9_GAP - FLARE9_CLEAR
+    end = STAGE9_BODY
     m[0:16] = plain
     m[16:20] = lull
-    # seven chunks, and lulls between to fill the rows to the end
+    # seven chunks, and lulls between to fill the rows to the loop
     r = 20
     order = [0, 1, 2, 3, 1, 0, 2]
     lulls = (end - r - STAGE9_CHUNK * len(order)) // 4
@@ -2294,68 +2268,33 @@ def stage9():
     for i, k in enumerate(order):
         m[r:r + STAGE9_CHUNK] = chunks[k]
         r += STAGE9_CHUNK
-        if i < len(order) - 1 and i % 2 == 1 and lulls:
+        if i < len(order) - 1 and lulls:
             m[r:r + 4] = lull
             r += 4
             lulls -= 1
-    # then bare surface: from where the stage's last tile has gone (FL_END),
-    # the palettes are the fight's
-    last_tile = r - 1
-    m[r:] = 0
-
-    # GAMMA PRIME: its tiles over clear rows
-    bow = STAGE9_BODY + STAGE9_GAP                  # its lowest row
-    stern = bow + B9_H - 1
-    m[bow:stern + 1, :] = 0
-    for hr in range(B9_H):                          # hull row hr (from the top) is map row stern - hr
-        for hc in range(B9_W):
-            if hull[hr, hc]:
-                m[stern - hr, HULL9_COL + hc] = base + hull[hr, hc] - 1
-    # the battlefield's flares, in the rows under it
-    for k, grp, c, r_ in ARENA9:
-        g = flares[k]
-        remap = to_a2 if grp == "A" else to_b
-        put(g, bow - ARENA9_ROWS + r_, c, remap=remap)
+    m[r:end] = 0
+    # the loop, under GAMMA PRIME: a chunk of its own (none of its flares
+    # across its ends, so it repeats seamlessly)
+    m[end:] = chunk(99, loop)
     for y in range(rows):
         assert _runs9(m[y], vpals) <= MAX_RUNS, (y, _runs9(m[y], vpals))
 
-    # GAMMA PRIME's numbers for its boss code: each part's x (with no
-    # sway) and the world height of its top; where the scroll stops, where
-    # it has gone; its rows (they sway: engine.asm); the flares' colors and
-    # where they end (stage9.bas)
-    xs, ylo, yhi = [], [], []
-    for name, dy in B9_SLOTS:
-        c, r_, w_, h_ = B9_PARTS[name]
-        xs.append(8 * (HULL9_COL + c))
-        y = (stern - r_ + 1) * 16 - dy
-        ylo.append(y & 255)
-        yhi.append(y >> 8)
-    top9 = (stern + 1) * 16
-    fl_end = (last_tile + 1) * 16
-    assert fl_end + 240 <= (bow - ARENA9_ROWS) * 16, "the stage's tiles still in view as the battlefield comes"
-    b9 = {"b9_stop": top9 - 208 + B9_TOP, "b9_gone": top9 + 8, "fl_end": fl_end,
-          "fl_c0": 2 * NFONT + 2 * lethal.start, "fl_c1": 2 * NFONT + 2 * lethal.stop}
+    # for stage9.bas: the characters of the tiles that kill (from, to), the
+    # flares' colors
     lines = ["; Generated by tools/gen_assets.py. Do not edit.",
-             "; GAMMA PRIME's parts (slots 0-11): x, and the world height of each one's",
-             "; top (lo, hi). Its stop (a scroll position), where it has gone; where the",
-             "; stage's flares end (a scroll position: past it, only the battlefield's",
-             "; are in view), the characters of the tiles that kill (from, to); the",
-             "; flares' colors (dark, warning, erupting, fading), the fight's P0 (gold)."]
-    lines.append("b9_x .byte " + ",".join(str(v) for v in xs))
-    lines.append("b9_ylo .byte " + ",".join(str(v) for v in ylo))
-    lines.append("b9_yhi .byte " + ",".join(str(v) for v in yhi))
-    for name, v in b9.items():
-        lines.append(f"{name.upper()} = {v}")
+             "; The characters of the flares' tiles that kill (from, to); the flares'",
+             "; colors (dark, warning, erupting, fading)."]
+    lines.append(f"FL_C0 = {2 * NFONT + 2 * lethal.start}")
+    lines.append(f"FL_C1 = {2 * NFONT + 2 * lethal.stop}")
     lines.append("fl_cols .byte " + ",".join(f"${nearest(c):02X}" for p in FLARE9_COLORS for c in p))
-    lines.append("b9_cols .byte " + ",".join(f"${nearest(c):02X}" for p in GAMMA9_COLORS for c in p))
     (GEN / "boss9tab.asm").write_text("\n".join(lines) + "\n")
 
     gr = ground_cols([])
     w = wave_cols(meta["waves"])
-    bossat = (bow * 16 - 208 - 144) >> 8
+    bossat = STAGE9_BOSSAT
     # (the last stage throws everything at once: the waves may crowd more
-    # than elsewhere, so the last is over before the warning must come)
-    waves = spread_waves(w, gr, cap=14, most=40, by=b9["b9_stop"] - BOSS_LEAD)
+    # than elsewhere; none is left as GAMMA PRIME comes)
+    waves = spread_waves(w, gr, cap=14, most=40, by=bossat * 256 - STAGE9_LEAD)
     view = [FLARE9_COLORS[2], FLARE9_COLORS[0], STAGE9_PALETTES[2]]
     return {"n": 9, "map": m, "t_slots": t_slots, "t_pals": t_pals, "alias": alias,
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,

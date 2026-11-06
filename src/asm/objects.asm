@@ -952,11 +952,15 @@ en_hits_shot
      cmp #9
      bcc en_hits_shotnext
 en_hits_take
+     lda etype,x
+     cmp #ET_PNODE           ; (stage 9's nodes: the shot stops, harmless)
+     beq en_hits_stop
      lda ehit,x
      clc
      adc vdmg
      sta ehit,x
      sta anyhit
+en_hits_stop
      lda #0
      sta shy,y
 en_hits_shotnext

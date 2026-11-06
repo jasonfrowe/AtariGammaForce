@@ -88,6 +88,9 @@
   const ET_PWRECK = 16
   rem stage 2's boss: a pod orbiting the core
   const ET_PPOD = 17
+  rem stage 9's: a node, which Vulcan shots stop on but can't hurt (only
+  rem the sword, the Hyper Sword's beam)
+  const ET_PNODE = 18
 
   rem ---- bullet kinds: odd = pink (the sword absorbs them) ----
   const BK_PINK = 1
@@ -1126,9 +1129,7 @@ boss_warning
     ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
     evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0
   next
-  rem the stage's boss: its parts from its tables (stage 2's are in its bank;
-  rem only stage 9's has a part in slot 11)
-  bwt[11] = 0
+  rem the stage's boss: its parts from its tables (stage 2's are in its bank)
   if stage = 1 then gosub boss1_build
   if stage = 2 then gosub boss2_build
   if stage = 3 then gosub boss3_build
@@ -1317,9 +1318,9 @@ part_core
   next
 part_core_2
   rem stage 2's core is shut while any of its pods orbits, stage 6's
-  rem while any of its satellites does, stage 9's any of its prisms
-  if stage <> 6 && stage <> 9 then goto part_core_6
-  for k = 0 to 11
+  rem while any of its satellites does
+  if stage <> 6 then goto part_core_6
+  for k = 0 to 3
     if etype[k] = ET_PPOD then return
   next
 part_core_6

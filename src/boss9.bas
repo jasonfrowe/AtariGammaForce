@@ -1,293 +1,269 @@
   rem ======================================================================
-  rem  GAMMA PRIME, the stage 9 boss, the last (MegaGammaForce's boss9.c):
-  rem  the Gamma Core's true form, a sunburst fortress of gold feeding on the
-  rem  Sun. Its hull is part of the map (as HIVE MOTHERSHIP's: map rows after
-  rem  the flares), and the scroll brings it in and stops with it at the top
-  rem  of the screen. It holds still: the battlefield's flares under it
-  rem  (stage9.bas) keep the ship from camping under the core. Two prisms
-  rem  orbit it (as HALO STATION's satellites) firing pink threes at the
-  rem  ship, two ring cannons fire pink rings, four turrets aimed blue; the
-  rem  beam emitter below the core glows, then pours three fans of needles
-  rem  straight down; the core fires blue rings. The core is shut (gold)
-  rem  while any prism orbits, then burns red.
-  rem  With the emitter gone the core sprays at the ship; hurt, it fires
-  rem  blue threes too; late in the fight, pink rings.
-  rem  Slots: 0-1 the cannons, 2 the emitter, 3-4 the prisms (two, not
-  rem  MegaGammaForce's four: for speed), 5 the core, 6-9 the turrets.
-  rem  Beaten (or gone), it sinks away below: the scroll carries it off.
+  rem  GAMMA PRIME, the stage 9 boss, the last: the Gamma Core's true form,
+  rem  built on SPIRE WARDEN (stage 2's boss) in gold. Sprites over the
+  rem  flares, which keep scrolling by (the map's last chunk loops). It
+  rem  sways, bobs and every so often dives at the ship (as SPIRE WARDEN).
+  rem  Three prisms orbit the core firing pink threes; two shoulder turrets
+  rem  fire aimed blue; the cannon below sweeps twin needles across.
+  rem  Two nodes stand atop it, out of the Vulcan's reach (shots stop on
+  rem  them, harmless: ET_PNODE): only the Hyper Sword's beam breaks one.
+  rem  Its phases (b9phase):
+  rem    0  the core is shut (gold: shots stop on it, and it keeps its
+  rem       health, b9hp); both nodes live
+  rem    1  a node broken: the core opens (red), the other node sealed
+  rem    2  the core at half: it shuts again, the prisms grow back, and
+  rem       the other node can be broken
+  rem    3  both broken: the core opens for good, and pours out its light
+  rem       (a spray of pink and blue at the ship)
+  rem  The core's rings, pink and blue, come whenever it is open.
+  rem  Slots: 0 the cannon, 1-2 the turrets, 3-4 the nodes, 5-6 the core
+  rem  (its top and bottom halves, sharing bcorehp), 8-10 the prisms (last:
+  rem  as SPIRE WARDEN's pods, so the parts drawn before them keep their
+  rem  places).
   rem  It lives in stage 9's bank; the shared boss code calls it.
   rem ======================================================================
 
-  rem its clocks: the turrets (0-83), the prisms (0-79), the cannons
-  rem (0-129), the beam (0-149), the core's ring (0-169)
-  dim b9tur = $22E0
-  dim b9pr = $22E1
-  dim b9can = $22E2
-  dim b9beam = $22E3
-  dim b9ring = $22E4
+  rem its phase (0-3); the core's health while it is shut
+  dim b9phase = $22E5
+  dim b9hp = $22E6
 
 boss9_build
   for k = 0 to 11
     etype[k] = boss9_type[k] : eimg[k] = boss9_img[k] : ehp[k] = boss9_hp[k]
+    bdx[k] = boss9_dx[k] : bdy[k] = boss9_dy[k]
     bwt[k] = boss9_wt[k] : eparam[k] = 0 : ecol[k] = boss9_col[k]
   next
   rem (the shared code readies slots 0-10)
   eflash[11] = 0 : ehit[11] = 0 : eframe[11] = 0 : evx[11] = 0 : evy[11] = 0 : ewamp[11] = 0
-  rem (bx, by: where it burns, round its middle)
-  bcorehp = 250 : bx = 80 : by = 56 : borbit = 0
-  b9tur = 0 : b9pr = 0 : b9can = 0 : b9beam = 0 : b9ring = 0
+  bcorehp = 250 : b9hp = 250 : borbit = 0 : bsweep = 0 : bsdir = 1 : bring = 0 : b9phase = 0
   return
 
-  rem Each part's line from the scroll: spos + 240 - its top's world
-  rem height (16 bits), its x the table's; off the screen,
-  rem it waits off to the right. Then the prisms, round the core (their
-  rem table's place), half a turn apart, turning a step a frame in the
-  rem fight.
-boss9_place
+  rem In from the top (the shared code's: down to line 89)
+boss9_enter
+  goto boss_enter_1
+
+boss9_fight
+  btl = btl + 1
+  if btl = 0 then bth = bth + 1
+  rem sway: x = 80 + 12 sin(t/2), y = 89 + 7 sin(t/4) (SPIRE WARDEN's)
+  wang = btl / 2 + 192 : wamp = 12
   asm
-  ldx #11
+  jsr weave
+end
+  bx = 80 + woff
+  wang = btl / 4 + 192 : wamp = 7
+  asm
+  jsr weave
+end
+  by = 89 + woff
+  rem every third spell of 256 steps it swoops down at the ship and back
+  rem up: 0-72 lines lower
+  temp1 = bth
+b9_mod3
+  if temp1 >= 3 then temp1 = temp1 - 3 : goto b9_mod3
+  if temp1 <> 2 then goto b9_nodive
+  temp6 = by
+  wang = btl : wamp = 36
+  asm
+  jsr weave
+end
+  by = temp6 + 36 - woff
+b9_nodive
+  rem the prisms turn: a step a frame, and one more for each gone
+  borbit = borbit + 1
+  for k = 8 to 10
+    if etype[k] <> ET_PPOD then borbit = borbit + 1
+  next
+  gosub boss9_place
+  rem about 2.5 minutes, and it escapes
+  if bth >= 35 then bescape = 1 : gosub boss_tally : bstate = 4 : btl = 200 : return
+  if plvuln = 0 then return
+  gosub boss9_attack
+  return
+
+  rem Each part from the centre (bx, by): bdx, bdy, the prisms' from their
+  rem orbit (40 pixels across, 44 lines up and down, a third of a turn
+  rem apart); a part above the screen's top is parked at 0, wholly above
+  rem it (as the shared code's boss_place). Then its phases, its frames.
+boss9_place
+  for k = 8 to 10
+    temp7 = borbit + boss9_pang[k]
+    wang = temp7 : wamp = 40
+    asm
+    jsr weave
+end
+    bdx[k] = woff - 8
+    wang = temp7 - 64 : wamp = 44
+    asm
+    jsr weave
+end
+    bdy[k] = woff - 8
+  next
+  asm
+  ldx #10
 b9p_loop
   lda etype,x
-  cmp #ET_PART
-  bcc b9p_next            ; (not a part)
+  beq b9p_next
+  lda bx
   clc
-  lda spos_lo
-  adc #240
-  sta temp1
-  lda spos_hi
-  adc #0
-  sta temp2
-  sec
-  lda temp1
-  sbc b9_ylo,x
-  sta temp1
-  lda temp2
-  sbc b9_yhi,x
-  bne b9p_off
-  lda temp1
-  cmp #250
-  bcs b9p_off
-  sta eyh,x
-  lda b9_x,x
+  adc bdx,x
   sta exh,x
-  jmp b9p_next
-b9p_off
+  lda bdy,x
+  bpl b9p_down
+  clc
+  adc by
+  bcs b9p_y
   lda #0
+  beq b9p_y
+b9p_down
+  clc
+  adc by
+b9p_y
   sta eyh,x
-  lda #200
-  sta exh,x
 b9p_next
   dex
   bpl b9p_loop
-  lda bstate
-  cmp #3
-  bne b9p_still           ; (it turns only in the fight)
-  inc borbit
-b9p_still
-  ; the orbit: 50 lines up and down, 64 pixels across
-  ldx #4
-b9p_prism
-  lda etype,x
-  cmp #ET_PPOD
-  bne b9p_prnext
-  lda eyh,x
-  beq b9p_prnext          ; (the centre is off the screen: so is it)
-  stx temp6
-  lda b9_pang,x           ; its angle
-  clc
-  adc borbit
-  sta temp7
-  sta wang                ; x: cos * across
-  lda #64
-  sta wamp
-  jsr weave
-  ldx temp6
-  lda exh,x
-  clc
-  adc woff
-  sta exh,x
-  lda temp7               ; line: sin * up and down
-  sec
-  sbc #64
-  sta wang
-  lda #50
-  sta wamp
-  jsr weave
-  ldx temp6
-  lda woff
-  bmi b9p_up
-  clc
-  adc eyh,x
-  bcs b9p_proff
-  cmp #250
-  bcs b9p_proff
-  sta eyh,x
-  jmp b9p_prnext
-b9p_up
-  clc
-  adc eyh,x
-  bcc b9p_proff           ; (above the top: off)
-  beq b9p_proff
-  sta eyh,x
-  jmp b9p_prnext
-b9p_proff
-  lda #0
-  sta eyh,x
-  lda #200
-  sta exh,x
-b9p_prnext
-  dex
-  cpx #3
-  bcs b9p_prism
 end
-  rem the core is shut while any prism orbits (gammaforce.bas part_core):
-  rem gold; then it burns red
-  ecol[5] = 4
-  if etype[3] = ET_PPOD || etype[4] = ET_PPOD then ecol[5] = 0
-  rem the core pulses; the prisms turn; each cannon glows in the 20
-  rem frames before its ring, the emitter as its needles charge (its last
-  rem 40 frames)
-  eframe[5] = (tick / 8) & 1
-  temp1 = tick / 8
-  eframe[3] = temp1 & 1 : eframe[4] = (temp1 + 1) & 1
-  temp2 = 0
-  if b9can >= 10 && b9can < 30 then temp2 = 1
-  eframe[0] = temp2
-  temp2 = 0
-  if b9can >= 75 && b9can < 95 then temp2 = 1
-  eframe[1] = temp2
-  temp2 = 0
-  temp3 = tick & 4
-  if b9beam >= 110 && temp3 then temp2 = 1
-  eframe[2] = temp2
+  rem its phases: a node broken opens the core; the core at half shuts it
+  rem and the prisms grow back; the other node broken opens it for good
+  temp1 = 0
+  if etype[3] = ET_PNODE then temp1 = 1
+  if etype[4] = ET_PNODE then temp1 = temp1 + 1
+  if b9phase = 0 && temp1 < 2 then b9phase = 1
+  if b9phase = 1 && bcorehp < 125 then b9phase = 2 : gosub b9_regrow
+  if b9phase = 2 && temp1 = 0 then b9phase = 3
+  rem open (red), its hits count; shut (gold), it keeps its health
+  temp2 = b9phase & 1
+  ecol[5] = 6
+  if temp2 then ecol[5] = 4 : b9hp = bcorehp
+  if temp2 = 0 then bcorehp = b9hp
+  ecol[6] = ecol[5]
+  rem (the shared code flashes the top half: the bottom with it)
+  eflash[6] = eflash[5]
+  rem the nodes: live (red, open) or sealed (gold, shut: while the core
+  rem is open in phase 1, the other can't be broken)
+  for k = 3 to 4
+    if etype[k] <> ET_PNODE then goto b9_node_next
+    eframe[k] = 1 : ecol[k] = 4
+    if b9phase <> 1 then goto b9_node_next
+    eframe[k] = 0 : ecol[k] = 6 : ehp[k] = 90
+b9_node_next
+  next
+  rem the prisms turn; the open core pulses; the cannon glows before
+  rem each sweep
+  temp1 = (tick / 8) & 1
+  eframe[8] = temp1 : eframe[10] = temp1 : eframe[9] = 1 - temp1
+  eframe[5] = 0
+  if temp2 then eframe[5] = temp1
+  eframe[6] = eframe[5]
+  eframe[0] = 0
+  if etype[0] <> ET_PCANNON then goto b9_noglow
+  if btl >= 40 && btl < 64 then eframe[0] = (tick / 4) & 1
+b9_noglow
   rem the turrets turn to the ship, one a step
-  temp1 = tick & 3
-  k = temp1 + 6
+  k = (btl & 1) + 1
   if etype[k] <> ET_PTURRET then return
-  if eyh[k] = 0 then return
   fx = exh[k] + 4 : fy = eyh[k] + 8
   gosub aim
   eframe[k] = (fang - 48) / 32 & 7
   return
 
-  rem In at the stage's speed, slowing, until the hull is in view
-boss9_enter
-  gosub boss9_place
+  rem The prisms grow back (the core at half)
+b9_regrow
+  for k = 8 to 10
+    etype[k] = ET_PPOD : eimg[k] = IMG_B9PRISM : ehp[k] = boss9_hp[k] : ecol[k] = 5
+    eflash[k] = 0 : ehit[k] = 0
+  next
   asm
-  lda spos_lo
-  cmp #<(B9_STOP-48)
-  lda spos_hi
-  sbc #>(B9_STOP-48)
-  bcc b9e_wait
-  lda #48                 ; the last 3 rows: slower
-  sta pfspeed
-  lda spos_lo
-  cmp #<B9_STOP
-  lda spos_hi
-  sbc #>B9_STOP
-  bcc b9e_wait
-  lda #3
-  sta bstate
-  lda #0
-  sta pfspeed
-b9e_wait
+  lda #SFX_READY
+  jsr sfx_play
 end
   return
 
-boss9_fight
-  btl = btl + 1
-  if btl = 0 then bth = bth + 1
-  gosub boss9_place
-  rem its clocks
-  b9tur = b9tur + 1
-  if b9tur >= 84 then b9tur = 0
-  b9pr = b9pr + 1
-  if b9pr >= 80 then b9pr = 0
-  b9can = b9can + 1
-  if b9can >= 130 then b9can = 0
-  b9beam = b9beam + 1
-  if b9beam >= 150 then b9beam = 0
-  b9ring = b9ring + 1
-  if b9ring >= 170 then b9ring = 0
-  rem 2 minutes, and it drifts away
-  if bth >= 28 then bescape = 1 : gosub boss_tally : bstate = 4 : btl = 0 : pfspeed = 250 : return
-  if plvuln = 0 then return
-  gosub boss9_attack
-  return
-
 boss9_attack
-  rem turrets: aimed blue, each every 84 frames, by turns
-  for k = 6 to 9
-    if etype[k] <> ET_PTURRET then goto b9_tur_next
-    if eyh[k] = 0 then goto b9_tur_next
-    if b9tur <> boss9_ph[k] then goto b9_tur_next
-    fx = exh[k] + 4 : fy = eyh[k] + 8
+  rem prisms: aimed pink threes, one after another (faster once it is hurt)
+  temp4 = 127
+  if bcorehp < 125 then temp4 = 63
+  for k = 8 to 10
+    if etype[k] <> ET_PPOD then goto b9_pr_next
+    if eyh[k] < 8 then goto b9_pr_next
+    temp1 = (btl + k * 42) & temp4
+    if temp1 then goto b9_pr_next
+    fx = exh[k] + 6 : fy = eyh[k] + 6
     gosub aim
-    fkind = BK_BLUE : fspd = 44
+    fkind = BK_PINK : fspd = 52 : fcount = 3 : fstep = 12 : gosub b9_fan
+b9_pr_next
+  next
+  rem shoulder turrets: aimed blue shots, by turns
+  for k = 1 to 2
+    if etype[k] <> ET_PTURRET then goto b9_tur_next
+    temp1 = (btl + k * 32) & 63
+    if temp1 then goto b9_tur_next
+    fx = exh[k] + 4 : fy = eyh[k] + 12
+    gosub aim
+    fkind = BK_BLUE : fspd = 54
     asm
     jsr bul_fire
 end
 b9_tur_next
   next
-  rem the prisms: an aimed pink three, each every 80 frames, by turns (two
-  rem prisms, not MegaGammaForce's four, firing as often as its four)
-  for k = 3 to 4
-    if etype[k] <> ET_PPOD then goto b9_pr_next
-    if eyh[k] < 8 then goto b9_pr_next
-    if b9pr <> boss9_ph[k] then goto b9_pr_next
-    fx = exh[k] + 6 : fy = eyh[k] + 6
-    gosub aim
-    fkind = BK_PINK : fspd = 40 : fcount = 3 : fstep = 12 : gosub b9_fan
-b9_pr_next
-  next
-  rem the cannons: a pink ring of 8, each every 130 frames, by turns
-  for k = 0 to 1
-    if etype[k] <> ET_PCANNON then goto b9_can_next
-    if eyh[k] = 0 then goto b9_can_next
-    if b9can <> boss9_ph[k] then goto b9_can_next
-    fx = exh[k] + 6 : fy = eyh[k] + 26
-    fang = bspin : fkind = BK_PINK : fspd = 30 : fcount = 8 : fstep = 32 : gosub b9_fan
-    bspin = bspin + 11
-b9_can_next
-  next
-  rem the emitter: three fans of needles straight down, 8 frames apart,
-  rem every 150 frames
-  if etype[2] <> ET_PCANNON then goto b9_core
-  if eyh[2] = 0 then goto b9_core
-  fx = exh[2] + 6 : fy = eyh[2] + 28 : fang = 64 : fkind = BK_NEEDLE : fspd = 70 : fstep = 8
-  if b9beam = 0 || b9beam = 16 then fcount = 5 : gosub b9_fan
-  if b9beam = 8 then fcount = 4 : gosub b9_fan
+  rem cannon: every 256 steps a stream of twin needles sweeps across the
+  rem screen, one way then the other
+  if etype[0] <> ET_PCANNON then goto b9_core
+  if btl = 64 then bsweep = 48 : bsdir = 0 - bsdir
+  if bsweep = 0 then goto b9_core
+  bsweep = bsweep - 1
+  temp1 = bsweep & 3
+  if temp1 then goto b9_core
+  temp1 = 24 - bsweep
+  fang = 64 + temp1
+  if bsdir > 1 then fang = 64 - temp1
+  fkind = BK_NEEDLE : fspd = 64
+  fx = exh[0] + 3 : fy = eyh[0] + 30
+  asm
+  jsr bul_fire
+end
+  fx = exh[0] + 10
+  asm
+  jsr bul_fire
+end
 b9_core
-  rem the core: a blue ring every 170 frames; late in the fight, a pink
-  rem one every 64
-  if eyh[5] = 0 then return
-  fx = exh[5] + 6 : fy = eyh[5] + 14
-  if b9ring = 85 then fang = bspin : fkind = BK_BLUE : fspd = 25 : fcount = 10 : fstep = 26 : gosub b9_fan : bspin = bspin + 9
-  temp1 = btl & 63
-  if temp1 = 32 && bth >= 14 then fang = bspin + 13 : fkind = BK_PINK : fspd = 34 : fcount = 10 : fstep = 26 : gosub b9_fan
-  rem hurt, an aimed blue three every 32 frames
-  if bcorehp >= 125 then goto b9_spray
-  temp1 = btl & 31
-  if temp1 <> 12 then goto b9_spray
-  gosub aim
-  fkind = BK_BLUE : fspd = 34 : fcount = 3 : fstep = 14 : gosub b9_fan
+  rem the core, open: turning rings of 8, pink and blue (twice as often
+  rem once it is hurt); for good, a spray at the ship besides
+  temp1 = b9phase & 1
+  if temp1 = 0 then return
+  temp4 = 63
+  if bcorehp < 125 then temp4 = 31
+  temp1 = btl & temp4
+  if temp1 = 0 then bring = 8 : bspin = bspin + 7
+  if bring = 0 then goto b9_spray
+  fx = bx - 2 : fy = by + 4 : fspd = 38
+  for k = 0 to 1
+    bring = bring - 1
+    fang = bring * 32 + bspin : fkind = BK_PINK
+    temp1 = bring & 1
+    if temp1 then fkind = BK_BLUE
+    asm
+    jsr bul_fire
+end
+  next
 b9_spray
-  rem with the emitter gone, it pours its light out at the ship: a
-  rem two-armed spray (as HIVE MOTHERSHIP's: aimed, the arms swinging
-  rem through 30 degrees), every 10 frames
-  if etype[2] = ET_PCANNON then return
+  rem a two-armed spray, a pink arm and a blue, aimed, the arms swinging
+  rem through 30 degrees, every 8 frames
+  if b9phase <> 3 then return
   temp1 = btl & 7
   if temp1 then return
+  fx = bx - 2 : fy = by + 4
   gosub aim
   wang = bspin : wamp = 11
   asm
   jsr weave
 end
-  fang = aimang + woff : fspd = 30 : fkind = BK_PINK
+  fang = aimang + woff : fspd = 34 : fkind = BK_PINK
   asm
   jsr bul_fire
 end
-  fang = aimang - woff
+  fang = aimang - woff : fkind = BK_BLUE
   asm
   jsr bul_fire
 end
@@ -308,45 +284,39 @@ b9_fan
 end
   return
 
-  rem It burns on until it has gone below the screen
+  rem It burns where it is (the shared code's explosions)
 boss9_sinking
-  if btl < 230 then return
-  asm
-  lda spos_lo
-  cmp #<B9_GONE
-  lda spos_hi
-  sbc #>B9_GONE
-  bcs b9s_gone
-  lda #230
-  sta btl
-b9s_gone
-end
   return
 
-  rem each part's moment in its clock, so they fire by turns: the cannons
-  rem (0-1), the prisms (3-4), the turrets (6-9)
-  data boss9_ph
-  30, 95, 0, 0, 40, 0, 0, 21, 42, 63, 0, 0
-end
-  rem the prisms' places round the orbit (half a turn apart)
-  data b9_pang
-  0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0
+  rem the prisms' places round the orbit (a third of a turn apart)
+  data boss9_pang
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 85, 170, 0
 end
 
-  rem ---- parts: type, image, hit points, share of the boss (%), palette
-  rem (the core's 30 is counted apart; positions in gen/boss9tab.asm)
+  rem ---- parts: type, image, hit points, offset from the centre, share
+  rem of the boss (%: the core's 30 is counted apart), palette (6 the
+  rem gold: P0-P2 are the stage's) ----
   data boss9_type
-  ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PPOD, ET_PPOD, ET_PCORE, ET_PTURRET, ET_PTURRET, ET_PTURRET, ET_PTURRET, 0, 0
+  ET_PCANNON, ET_PTURRET, ET_PTURRET, ET_PNODE, ET_PNODE, ET_PCORE, ET_PCORE, 0, ET_PPOD, ET_PPOD, ET_PPOD, 0
 end
   data boss9_img
-  IMG_BCANNON, IMG_BCANNON, IMG_B9EMIT, IMG_B9PRISM, IMG_B9PRISM, IMG_B9CORE, IMG_TURRET, IMG_TURRET, IMG_TURRET, IMG_TURRET, 0, 0
+  IMG_BCANNON, IMG_BTURRET, IMG_BTURRET, IMG_B9NODE, IMG_B9NODE, IMG_B9CORET, IMG_B9COREB, 0, IMG_B9PRISM, IMG_B9PRISM, IMG_B9PRISM, 0
 end
   data boss9_hp
-  210, 210, 210, 76, 76, 255, 76, 76, 76, 76, 0, 0
+  240, 120, 120, 90, 90, 255, 255, 0, 150, 150, 150, 0
+end
+  rem top-left x and y of each part relative to (bx, by), two's complement
+  rem (the prisms' are set as they orbit): the core round the centre, the
+  rem cannon under it, the turrets at its sides, the nodes above them
+  data boss9_dx
+  248, 230, 18, 226, 22, 240, 240, 0, 0, 0, 0, 0
+end
+  data boss9_dy
+  28, 248, 248, 216, 216, 224, 0, 0, 0, 0, 0, 0
 end
   data boss9_wt
-  10, 10, 14, 10, 10, 0, 4, 4, 4, 4, 0, 0
+  20, 7, 7, 12, 12, 0, 0, 0, 4, 4, 4, 0
 end
   data boss9_col
-  0, 0, 0, 5, 5, 0, 4, 4, 4, 4, 0, 0
+  6, 6, 6, 4, 4, 6, 6, 0, 5, 5, 5, 0
 end

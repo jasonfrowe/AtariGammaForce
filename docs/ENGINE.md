@@ -174,7 +174,7 @@ hole at $B000.
 | 7 | stage 6: header, map, HALO STATION's tables and the fade, the fade's code (`src/stage6.bas`), HALO STATION's code (`src/boss6.bas`), the stage song's voices 1 and 2, graphics ($A000), the boss tune and the stage song's voice 0 ($B000) |
 | 8 | stage 7: header, map, MASS DRIVER's tables, graphics ($A000), the stage song and the boss tune's voice 0; the rest of the boss tune and MASS DRIVER's code (`src/boss7.bas`, $B000) |
 | 9 | stage 8: header, map (each row's solid columns after its objects), HIVE MOTHERSHIP's tables, the asteroids' code (`src/stage8.bas`), graphics ($A000), the stage song; the boss tune and HIVE MOTHERSHIP's code (`src/boss8.bas`, $B000) |
-| 10 | stage 9: header, map, GAMMA PRIME's tables, the ending's texts, the flares' code (`src/stage9.bas`), graphics ($A000), the boss tune (MegaGammaForce's Final) and the stage song's voice 0; the rest of the stage song and GAMMA PRIME's code (`src/boss9.bas`, $B000) |
+| 10 | stage 9: header, map, the flares' tables, the ending's texts, the flares' code (`src/stage9.bas`), graphics ($A000), the boss tune (MegaGammaForce's Final) and the stage song's voice 0; the rest of the stage song and GAMMA PRIME's code (`src/boss9.bas`, $B000) |
 | 11-16 | free |
 | 17 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
 
@@ -252,10 +252,17 @@ the bases', and there are none near the boss). `pf_stage` turns the sway
 off (`pfswayrow` $FF).
 
 Stage 8's HIVE MOTHERSHIP is map rows and sways the same way (its own
-copy of the patch, `b8_sway`, which stops at `pfswayend`). Stage 9's
-GAMMA PRIME is map rows too but holds still: flares on the battlefield
-under it keep the ship moving instead (see Flares). GAMMA PRIME has twelve parts, so the shared
-boss code counts slots 0-11 (slot 11's weight is cleared for the others).
+copy of the patch, `b8_sway`, which stops at `pfswayend`).
+
+Stage 9's GAMMA PRIME is sprites, built on SPIRE WARDEN (a hull's tiles
+were most of a fight's MARIA load): a sunburst core in two halves, a
+cannon, two turrets, three orbiting prisms, and two nodes atop it of a
+type (`ET_PNODE`) that Vulcan shots stop on without harm
+(`objects.asm en_hits_take`), so only the Hyper Sword's beam breaks one.
+Shut, the core keeps its health (`boss9.bas` restores `bcorehp` each
+step); a node broken opens it, half its health shuts it again (the prisms
+grow back), the other node opens it for good. The shared boss code counts
+slots 0-11.
 
 ## Solid tiles
 
@@ -283,12 +290,9 @@ the ship's middle, and 3 pixels either side, among its map row's
 background objects (their x, width and palette say which run it is in;
 the run's characters, which tile), and the tiles that kill are numbered
 together, so a range of characters says (no masks: the bank had no room).
-Past the stage's last tile (`FL_END`; the rows from there to the boss
-are bare), palette 0 holds GAMMA PRIME's gold, and the same clock lights
-the battlefield's flares in the rows under it: a column under the core
-(group A, in palette 2: a third alias) and the flanks (group B, palette
-1), so the ship can't camp under the core. Like the asteroids, the
-stage's flares are a few chunks of rows used in turn.
+The map's last 16 rows, which loop through GAMMA PRIME's fight, are a
+chunk of flares of their own, so they keep coming. Like the asteroids,
+the stage's flares are a few chunks of rows used in turn.
 
 Stage 6 also fades: as the ship climbs, the ocean (the background color)
 and its clouds (palette 1) darken to black by the scroll position

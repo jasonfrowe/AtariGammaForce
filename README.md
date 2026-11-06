@@ -25,8 +25,9 @@ rail cannon that sways as it fires slugs down the screen) and stage 8
 (DEEP FIELD: drifts of solid asteroids that stop shots and wreck the
 ship, and HIVE MOTHERSHIP, a swaying alien hive with a great eye) and
 stage 9 (CORONA: low over the Sun, through solar flares that erupt in
-turn and burn the ship, to GAMMA PRIME, a golden sunburst fortress with
-orbiting prisms over a battlefield of flares, and the ending) scroll
+turn and burn the ship, to GAMMA PRIME, a golden sunburst with orbiting
+prisms whose core opens only when the Hyper Sword breaks a node atop it,
+and the ending) scroll
 pixel-exact to
 MegaGammaForce's music converted to POKEY, with its enemy waves, ground
 units and bullet patterns; the Vulcan, the Radiant Sword (absorbing pink

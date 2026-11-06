@@ -9,10 +9,8 @@
   rem  fatal to fly through (tested at the ship's middle and 3 pixels
   rem  either side, as MegaGammaForce's); shots, bullets and the enemies
   rem  pass through.
-  rem  Past the stage's flares (FL_END), P0 holds GAMMA PRIME's gold, and
-  rem  the same clock lights the battlefield's flares under it: group A (a
-  rem  column under the core) in P2, B (the flanks) in P1. Once GAMMA PRIME
-  rem  is beaten or gone they no longer burn.
+  rem  They go on through GAMMA PRIME's fight (the map's last chunk loops
+  rem  under it); once it is beaten or gone they no longer burn.
   rem ======================================================================
 
   rem the flares' clock (0-255)
@@ -20,38 +18,17 @@
 
 corona
   asm
-  ; the stage's: group A in P0 (its bits as an object's: $00); in the
-  ; fight, the hull's gold in P0 and group A in P2 ($40)
-  lda #0
-  sta temp8                ; (A's palette, from P0C1)
-  sta temp9                ; (its bits)
-  lda spos_lo
-  cmp #<FL_END
-  lda spos_hi
-  sbc #>FL_END
-  bcc cr_flares
-  ldx #2
-cr_gold
-  lda b9_cols,x
-  sta P0C1,x
-  dex
-  bpl cr_gold
-  lda #8
-  sta temp8
-  lda #$40
-  sta temp9
-cr_flares
   lda tick
   and #1
   bne cr_slow
   inc flt
 cr_slow
-  ; group A's colors, then B's (P1), half a cycle on
+  ; group A's colors (P0), then B's (P1), half a cycle on
   lda flt
   jsr cr_phase
   sta obj                  ; (A's phase)
   tax
-  ldy temp8
+  ldy #0
   jsr cr_colors
   lda flt
   eor #128
@@ -66,7 +43,7 @@ cr_slow
   lda bstate
   cmp #4
   bcs cr_done              ; (GAMMA PRIME beaten or gone)
-  lda temp9
+  lda #0
   ldx obj
   cpx #2
   beq cr_ship
@@ -124,8 +101,7 @@ cr_late
 cr_ph_done
   rts
 
-  ; phase X's three colors into the palette at P0C1 + Y (P0: 0, P1: 4,
-  ; P2: 8)
+  ; phase X's three colors into the palette at P0C1 + Y (P0: 0, P1: 4)
 cr_colors
   lda cr_x3,x
   tax

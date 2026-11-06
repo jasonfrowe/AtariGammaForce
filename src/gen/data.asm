@@ -63,60 +63,60 @@ palettedata
 imglo
   .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship0,<turret,<wasp,<tank,<tower0,<b2coret0,<b2coreb0
   .byte <b2pod0,<b2cannon0,<gunboat0,<b3bridget0,<b3bridgeb0,<b3reactor0,<b3gun,<b3bay0,<train0,<b4headt0,<b4headb,<b4seg0,<b4tail0,<berg0,<b5reactor0,<b5drill0
-  .byte <b5gun,<b5bridge0,<slab,<flake,<sat0,<b6core0,<b6pod0,<b7breech0,<b7cap0,<b7muzzle0,<b7can0,<b8eye0,<b8pod0,<b8clawl0,<b8clawr0,<b9core0
-  .byte <b9emit0,<b9prism,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0,<bwingrb0,<bcannon0,<bturret,<logo_gamma0,<logo_force0,<hudcell0,<hudcell1,<hudgem
-  .byte <hudgem0,<hudship
+  .byte <b5gun,<b5bridge0,<slab,<flake,<sat0,<b6core0,<b6pod0,<b7breech0,<b7cap0,<b7muzzle0,<b7can0,<b8eye0,<b8pod0,<b8clawl0,<b8clawr0,<b9coret0
+  .byte <b9coreb0,<b9node,<b9prism,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0,<bwingrb0,<bcannon0,<bturret,<logo_gamma0,<logo_force0,<hudcell0,<hudcell1
+  .byte <hudgem,<hudgem0,<hudship
 imghi
   .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>wasp,>tank,>tower0,>b2coret0,>b2coreb0
   .byte >b2pod0,>b2cannon0,>gunboat0,>b3bridget0,>b3bridgeb0,>b3reactor0,>b3gun,>b3bay0,>train0,>b4headt0,>b4headb,>b4seg0,>b4tail0,>berg0,>b5reactor0,>b5drill0
-  .byte >b5gun,>b5bridge0,>slab,>flake,>sat0,>b6core0,>b6pod0,>b7breech0,>b7cap0,>b7muzzle0,>b7can0,>b8eye0,>b8pod0,>b8clawl0,>b8clawr0,>b9core0
-  .byte >b9emit0,>b9prism,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret,>logo_gamma0,>logo_force0,>hudcell0,>hudcell1,>hudgem
-  .byte >hudgem0,>hudship
+  .byte >b5gun,>b5bridge0,>slab,>flake,>sat0,>b6core0,>b6pod0,>b7breech0,>b7cap0,>b7muzzle0,>b7can0,>b8eye0,>b8pod0,>b8clawl0,>b8clawr0,>b9coret0
+  .byte >b9coreb0,>b9node,>b9prism,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret,>logo_gamma0,>logo_force0,>hudcell0,>hudcell1
+  .byte >hudgem,>hudgem0,>hudship
 imglo2
   .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<wasp,<tank,<tower1,<b2coret1,<b2coreb1
   .byte <b2pod1,<b2cannon1,<gunboat1,<b3bridget1,<b3bridgeb1,<b3reactor1,<b3gun,<b3bay1,<train1,<b4headt1,<b4headb,<b4seg1,<b4tail1,<berg1,<b5reactor1,<b5drill1
-  .byte <b5gun,<b5bridge1,<slab,<flake,<sat1,<b6core1,<b6pod1,<b7breech1,<b7cap1,<b7muzzle1,<b7can1,<b8eye1,<b8pod1,<b8clawl1,<b8clawr1,<b9core1
-  .byte <b9emit1,<b9prism,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret,<logo_gamma1,<logo_force1,<hudcell0,<hudcell1,<hudgem
-  .byte <hudgem0,<hudship
+  .byte <b5gun,<b5bridge1,<slab,<flake,<sat1,<b6core1,<b6pod1,<b7breech1,<b7cap1,<b7muzzle1,<b7can1,<b8eye1,<b8pod1,<b8clawl1,<b8clawr1,<b9coret1
+  .byte <b9coreb1,<b9node,<b9prism,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret,<logo_gamma1,<logo_force1,<hudcell0,<hudcell1
+  .byte <hudgem,<hudgem0,<hudship
 imghi2
   .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>wasp,>tank,>tower1,>b2coret1,>b2coreb1
   .byte >b2pod1,>b2cannon1,>gunboat1,>b3bridget1,>b3bridgeb1,>b3reactor1,>b3gun,>b3bay1,>train1,>b4headt1,>b4headb,>b4seg1,>b4tail1,>berg1,>b5reactor1,>b5drill1
-  .byte >b5gun,>b5bridge1,>slab,>flake,>sat1,>b6core1,>b6pod1,>b7breech1,>b7cap1,>b7muzzle1,>b7can1,>b8eye1,>b8pod1,>b8clawl1,>b8clawr1,>b9core1
-  .byte >b9emit1,>b9prism,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret,>logo_gamma1,>logo_force1,>hudcell0,>hudcell1,>hudgem
-  .byte >hudgem0,>hudship
+  .byte >b5gun,>b5bridge1,>slab,>flake,>sat1,>b6core1,>b6pod1,>b7breech1,>b7cap1,>b7muzzle1,>b7can1,>b8eye1,>b8pod1,>b8clawl1,>b8clawr1,>b9coret1
+  .byte >b9coreb1,>b9node,>b9prism,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret,>logo_gamma1,>logo_force1,>hudcell0,>hudcell1
+  .byte >hudgem,>hudgem0,>hudship
 imgw
   .byte 4,1,2,2,2,1,1,1,2,4,2,2,2,4,8,8
   .byte 4,4,4,8,8,4,3,2,4,6,6,4,4,8,4,4
-  .byte 3,4,8,2,16,4,4,4,4,4,2,4,4,4,4,4
-  .byte 4,4,6,8,8,4,4,4,4,4,2,23,23,2,2,2
-  .byte 2,2
+  .byte 3,4,8,2,16,4,4,4,4,4,2,4,4,4,4,8
+  .byte 8,2,4,6,8,8,4,4,4,4,4,2,23,23,2,2
+  .byte 2,2,2
 imgstrips
   .byte 2,1,1,1,1,1,1,1,1,2,1,1,1,2,2,2
   .byte 2,2,2,2,2,2,1,2,2,2,1,2,2,2,2,2
   .byte 1,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2
-  .byte 2,1,2,2,2,2,2,2,2,2,1,2,2,1,1,1
-  .byte 1,1
+  .byte 2,1,1,2,2,2,2,2,2,2,2,1,2,2,1,1
+  .byte 1,1,1
 imgframes
   .byte 3,1,2,4,2,2,1,2,6,2,8,2,8,1,2,2
   .byte 2,2,2,1,1,2,8,3,2,2,2,2,1,1,2,1
   .byte 8,1,1,1,1,2,2,2,2,2,1,2,2,2,2,2
-  .byte 2,2,4,1,1,1,1,1,1,2,8,1,1,1,1,1
-  .byte 1,1
+  .byte 2,2,2,4,1,1,1,1,1,1,2,8,1,1,1,1
+  .byte 1,1,1
 ; lines used in the image's last strip (the plotter skips the part
 ; of a strip that would only be empty lines)
 imgh
   .byte 7,8,15,10,12,7,7,7,9,11,10,13,14,16,16,16
   .byte 16,16,16,16,16,16,16,16,15,16,16,16,16,16,16,16
   .byte 16,16,15,8,14,16,16,16,16,16,13,16,16,16,16,16
-  .byte 16,16,14,16,16,16,16,16,16,16,16,16,16,16,16,16
-  .byte 16,16
+  .byte 16,16,16,14,16,16,16,16,16,16,16,16,16,16,16,16
+  .byte 16,16,16
 ; -width & 31, the width bits of a 4-byte header
 imgnegw
   .byte 28,31,30,30,30,31,31,31,30,28,30,30,30,28,24,24
   .byte 28,28,28,24,24,28,29,30,28,26,26,28,28,24,28,28
-  .byte 29,28,24,30,16,28,28,28,28,28,30,28,28,28,28,28
-  .byte 28,28,26,24,24,28,28,28,28,28,30,9,9,30,30,30
-  .byte 30,30
+  .byte 29,28,24,30,16,28,28,28,28,28,30,28,28,28,28,24
+  .byte 24,30,28,26,24,24,28,28,28,28,28,30,9,9,30,30
+  .byte 30,30,30
 
 
 ; Trig: angles are 256 per turn, 0 = right, 64 = down.

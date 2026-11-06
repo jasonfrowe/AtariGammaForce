@@ -768,43 +768,46 @@ def parts8():
 
 
 def core9():
-    """The Gamma Core's true form (P1 in the fight: gold, gamma green,
-    pale): a star of gamma light in a gold collar with eight fins; frames:
-    the light pulsing."""
+    """The Gamma Core's true form: a sunburst, 32 pixels by 64 lines (top
+    and bottom halves: the plotter draws two strips at most), eight rays
+    round a collar, its light inside; frames: the light pulsing. Gold
+    shut (P6), red open (P4)."""
     frames = []
     for hot in (False, True):
-        c = Canvas(16, 32)
+        c = Canvas(32, 64)
         for k in range(8):
             a = math.radians(k * 45 + 22.5)
-            c.fill(poly([(16 + math.cos(a) * 15.5, 16 + math.sin(a) * 15.5),
-                         (16 + math.cos(a + 0.33) * 9, 16 + math.sin(a + 0.33) * 9),
-                         (16 + math.cos(a - 0.33) * 9, 16 + math.sin(a - 0.33) * 9)]), 1)
-        c.fill(circle(16, 16, 11.5), 1)                      # the collar
-        c.fill(circle(16, 16, 9 if hot else 8), 2)           # the light
-        c.fill(circle(16, 16, 5 if hot else 3.5), 3)
+            c.fill(poly([(32 + math.cos(a) * 31, 32 + math.sin(a) * 31),
+                         (32 + math.cos(a + 0.32) * 20, 32 + math.sin(a + 0.32) * 20),
+                         (32 + math.cos(a - 0.32) * 20, 32 + math.sin(a - 0.32) * 20)]), 2)
+        c.fill(circle(32, 32, 22), 2)                        # the collar
+        c.outline(1)
+        c.fill(lambda x, y: 19 < math.hypot(x - 32, y - 32) < 21, 1)
+        c.fill(circle(32, 32, 16 if hot else 14), 1)         # the light's well
+        c.fill(circle(32, 32, 13 if hot else 10), 3)
+        c.fill(circle(32, 32, 6 if hot else 4), 2)
         for k in range(4):                                    # its rays
             a = math.radians(k * 45 + (22.5 if hot else 0))
-            c.fill(lambda x, y, a=a: abs((x - 16) * math.sin(a) - (y - 16) * math.cos(a)) < 1.1
-                   and math.hypot(x - 16, y - 16) < 9.5, 3)
+            c.fill(lambda x, y, a=a: abs((x - 32) * math.sin(a) - (y - 32) * math.cos(a)) < 1.2
+                   and 7 < math.hypot(x - 32, y - 32) < 14, 2)
         frames.append(c.a)
     return frames
 
 
-def emitter9():
-    """The beam emitter below the core (P0): a lens in a gold barrel,
-    pointing down; frames: dark, and glowing as the needles charge."""
+def node9():
+    """A node atop GAMMA PRIME, 8 pixels by 16 lines: a crystal in a dark
+    shell; frames: shut (sealed: the shell closed over it), and open
+    (glowing: the Hyper Sword can break it)."""
     frames = []
-    for hot in (False, True):
-        c = Canvas(16, 32)
-        c.fill(rect(4, 1, 28, 22), 2)                        # the barrel
-        c.fill(poly([(4, 22), (28, 22), (23, 31), (9, 31)]), 2)
+    for live in (False, True):
+        c = Canvas(8, 16)
+        c.fill(poly([(8, 0.5), (15, 6), (12, 15.5), (4, 15.5), (1, 6)]), 2)
         c.outline(1)
-        for y in (6, 12):                                     # its bands
-            c.fill(lambda x, yy, y=y: abs(yy - y) < 1 and 5 < x < 27, 1)
-        c.fill(ellipse(16, 25, 7, 5), 1)                      # the lens
-        c.fill(ellipse(16, 25, 5 if hot else 3, 3.5 if hot else 2), 3)
-        if hot:
-            c.fill(ellipse(16, 25, 2, 1.5), 2)
+        if live:
+            c.fill(ellipse(8, 8, 4, 5.5), 3)
+            c.fill(ellipse(8, 8, 1.6, 2.5), 2)
+        else:
+            c.fill(lambda x, y: abs(x - 8) < 1.2 and 2 < y < 14, 1)
         frames.append(c.a)
     return frames
 
@@ -826,4 +829,6 @@ def prism9():
 
 
 def parts9():
-    return {"b9core": core9(), "b9emit": emitter9(), "b9prism": prism9()}
+    core = core9()
+    return {"b9coret": [f[:32].copy() for f in core], "b9coreb": [f[32:].copy() for f in core],
+            "b9node": node9(), "b9prism": prism9()}

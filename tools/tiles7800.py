@@ -1481,10 +1481,8 @@ def hive_tiles(w, h, parts):
 # are P2. The flares (MegaGammaForce's sky) are tiles too, in two groups:
 # A in P0, B in P1, drawn once and used by both (gen_assets: a tile number
 # for each group, the same characters). stage9.bas lights each group's
-# palette in turn. In the fight P0 holds GAMMA PRIME's gold, and P2 and
-# P1 the battlefield's two groups of flares (the surface is behind).
+# palette in turn, through GAMMA PRIME's fight too (it is sprites).
 FLARE9_A, FLARE9_B, SUN9 = 0, 1, 2
-GOLD9 = 0
 
 
 def _noise9(w, h, cell, seed):
@@ -1654,89 +1652,3 @@ def corona_tiles():
     flares = [np.vectorize(lambda t: number[int(t)] if t else 0)(g) for g in flares]
     lethal = range(first, first + sum((t > 0).mean() >= 0.25 for t in cut))
     return tiles, pals, patches, flecks, flares, lethal
-
-
-def gamma_shape(w, h):
-    """GAMMA PRIME's hull corners, (h + 1) x (w + 1): a disc and eight
-    rays (MegaGammaForce's gamma.py, smaller)."""
-    g = np.zeros((h + 1, w + 1), dtype=np.uint8)
-    for y in range(h + 1):
-        for x in range(w + 1):
-            dx, dy = x - w / 2, (y - h / 2) * 1.05
-            r = math.hypot(dx, dy) / (h / 2)          # (in half heights)
-            a = math.degrees(math.atan2(dy, dx)) % 45
-            ray = min(a, 45 - a)
-            if r < 0.89 or (r < 1.8 and ray < 30 - r * 12.6):
-                g[y, x] = 1
-    return g
-
-
-def _gold9(variant):
-    """Gold plating (2), lit from the upper left: long plates, a seam (1,
-    its lit lip 3) along the tile's top; variant 1 riveted, 2 a vent, 3 a
-    seam down its left too."""
-    t = np.full((H, W), 2, dtype=np.uint8)
-    t[0, :] = 1
-    t[1, :] = 3
-    t[H - 1, :] = 1
-    if variant == 1:
-        for y, x in ((5, 1), (5, 6), (12, 1), (12, 6)):
-            t[y, x] = 1
-    elif variant == 2:
-        t[6:13:2, 2:6] = 1
-        t[7:14:2, 2:6] = 3
-    elif variant == 3:
-        t[:, 0] = 1
-        t[1:, 1] = 3
-    return t
-
-
-def _spine9():
-    """The spine: gold at its edges, a channel down the middle in bands
-    of light and shadow."""
-    t = np.full((H, W), 2, dtype=np.uint8)
-    for y in range(H):
-        t[y, 2:6] = 3 if (y // 4) % 2 == 0 else 1
-    return t
-
-
-def gamma_tiles(w, h, parts):
-    """GAMMA PRIME's hull: its map (h x w tile numbers into the returned
-    tiles, 0 clear) in gold plate (P0), its rim in marching squares, the
-    spine's channel above the core and below the emitter, the parts'
-    sockets plain (their sprites cover them). Returns (tiles, palettes,
-    map) - tile numbers from 1."""
-    tiles, pals, ids = [None], [GOLD9], {}
-
-    def add(t, pal=GOLD9):
-        key = (t.tobytes(), pal)
-        if key not in ids:
-            ids[key] = len(tiles)
-            tiles.append(t)
-            pals.append(pal)
-        return ids[key]
-
-    g = gamma_shape(w, h)
-    m = np.zeros((h, w), dtype=np.uint8)
-    rng = np.random.default_rng(9)
-    for r in range(h):
-        for c in range(w):
-            cfg = (int(g[r, c]), int(g[r, c + 1]), int(g[r + 1, c + 1]), int(g[r + 1, c]))
-            if cfg == (1, 1, 1, 1):
-                m[r, c] = add(_gold9(int(rng.choice(4, p=[0.4, 0.25, 0.2, 0.15]))))
-            elif any(cfg):
-                m[r, c] = add(_blend(cfg, 2, 3, 1, cut=0.5))
-    spine = add(_spine9())
-    cx, cy = parts["CORE"][:2]
-    ey = parts["EMITTER"][1] + parts["EMITTER"][3]
-    for r in list(range(0, cy)) + list(range(ey, h)):
-        for c in (cx, cx + 1):
-            if all(g[r + a, c + b] for a in (0, 1) for b in (0, 1)):
-                m[r, c] = spine
-    sock = _gold9(0)
-    sock[1:H - 1, 1:W - 1] = 1
-    for name, (c, r, pw, ph) in parts.items():
-        for y in range(ph):
-            for x in range(pw):
-                m[r + y, c + x] = add(sock)
-    return tiles[1:], pals[1:], m
