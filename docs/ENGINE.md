@@ -275,7 +275,7 @@ Stage 9's solar flares are map tiles in two groups that share their
 characters: a map number from the tile count on is an alias, a tile's
 characters in another palette (`stage_bank`'s `alias`), so group A is
 drawn in palette 0 and group B in palette 1. `src/stage9.bas` writes the
-two palettes each step from a 256-frame clock (dark, a flicker of
+two palettes each step from a 512-frame clock (dark, a flicker of
 warning, the eruption, a fade; B half a cycle behind A, so they take
 turns). An erupting flare kills the ship: the test finds the tile under
 the ship's middle, and 3 pixels either side, among its map row's

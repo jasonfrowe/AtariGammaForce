@@ -10,6 +10,9 @@
   rem  eparam (objects.asm en_update): waiting, eparam keeps it on its line;
   rem  rising, it loses 3 a step (about 2.4 lines a frame up the screen).
   rem  estate: 1 waiting (ewang its count: etimer is en_think's), 2 rising.
+  rem  Waiting, it hisses, rising in pitch to the launch (on the TIA's
+  rem  explosions channel, below them all; its data is here, in stage 7's
+  rem  bank). In the fight, one every 4.2 seconds.
   rem ======================================================================
 
   rem the next launch's count
@@ -21,7 +24,9 @@ lunar
   if bstate >= 4 then goto lunar_move
   if spos_hi < 2 then goto lunar_move
   b7launch = b7launch + 1
-  if b7launch < 150 then goto lunar_move
+  temp1 = 150
+  if bstate then temp1 = 250
+  if b7launch < temp1 then goto lunar_move
   b7launch = 0
   rem in the fight only slots 10 and 11: a destroyed part's slot is empty
   rem but still MASS DRIVER's
@@ -38,6 +43,25 @@ lunar_spawn
   etype[k] = ET_TOWER : eimg[k] = IMG_B7CAN : ehp[k] = 255 : ecol[k] = 4
   exh[k] = temp1 : eparam[k] = 228 - spos_lo : estate[k] = 1 : ewang[k] = 48
   evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0 : eframe[k] = 0 : ehit[k] = 0 : eflash[k] = 0
+  rem its hiss, unless an explosion is playing (sfx.asm's channel 1, by
+  rem hand: the sound's data is in this bank)
+  asm
+  lda sfx_ptrhi+1
+  beq lu_hiss
+  lda sfx_pri+1
+  cmp #2
+  bcs lu_quiet
+lu_hiss
+  lda #0
+  sta sfx_ptrhi+1
+  lda #1
+  sta sfx_pri+1
+  lda #<lu_sfx
+  sta sfx_ptrlo+1
+  lda #>lu_sfx
+  sta sfx_ptrhi+1
+lu_quiet
+end
 lunar_move
   for i = 0 to NEW1
     if etype[i] <> ET_TOWER then goto lunar_next
@@ -69,3 +93,16 @@ lunar_rise
 lunar_next
   next
   return
+
+  rem the canister's hiss (sfx.asm's format: AUDC, AUDF, AUDV a frame;
+  rem noise, rising)
+  asm
+lu_sfx
+  .byte 8,26,2,8,26,2,8,25,2,8,25,2,8,24,2,8,24,3,8,23,3,8,23,3
+  .byte 8,22,3,8,22,3,8,21,3,8,21,3,8,20,3,8,20,3,8,19,4,8,19,4
+  .byte 8,18,4,8,18,4,8,17,4,8,17,4,8,16,4,8,16,4,8,15,4,8,15,5
+  .byte 8,14,5,8,14,5,8,13,5,8,13,5,8,12,5,8,12,5,8,11,5,8,11,5
+  .byte 8,10,6,8,10,6,8,9,6,8,9,6,8,8,6,8,8,6,8,7,6,8,7,6
+  .byte 8,6,6,8,6,7,8,5,7,8,5,7,8,4,7,8,4,7,8,3,4,8,3,2
+  .byte $FF
+end

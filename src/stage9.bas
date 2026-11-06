@@ -3,8 +3,9 @@
   rem  the bank's hook vector). They are map tiles in two groups: A in P0, B
   rem  in P1 (the same tiles, gen_assets stage9). Each group lies dark, then
   rem  flickers faster and faster in warning, then erupts, then fades: a
-  rem  cycle of 256 frames, B half a cycle behind A, so they take turns
-  rem  (MegaGammaForce's bg.c). Erupting, a flare is fatal to fly through
+  rem  cycle of 512 frames (the clock turns every other frame: at
+  rem  MegaGammaForce's 256 they changed too often), B half a cycle behind
+  rem  A, so they take turns (MegaGammaForce's bg.c). Erupting, a flare is fatal to fly through
   rem  (tested at the ship's middle and 3 pixels either side, as
   rem  MegaGammaForce's); shots, bullets and the enemies pass through.
   rem  Past the flares (FL_END), P0 and P1 hold GAMMA PRIME's gold and its
@@ -43,7 +44,11 @@ cr_spine
   sty P1C3
   rts
 cr_flares
+  lda tick
+  and #1
+  bne cr_slow
   inc flt
+cr_slow
   ; group A's colors (P0), then B's (P1), half a cycle on
   lda flt
   jsr cr_phase

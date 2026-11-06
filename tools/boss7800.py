@@ -737,8 +737,9 @@ def pod8():
 
 
 def claw8():
-    """A mandible, reaching down and curving in to its tip; frames: open,
-    and closing. One picture serves both: the right one is the left
+    """A mandible, reaching down and curving in to its tip, dark with a
+    glowing green rim (the hull is chitin: a chitin claw vanished on it);
+    frames: open, and closing. One picture serves both: the right one is the left
     flipped."""
     frames = []
     for k in range(2):
@@ -751,12 +752,12 @@ def claw8():
             w = 5.5 * (1 - t) + 1.2
             pts_o.append((x - w, y))
             pts_i.append((x + w, y))
-        c.fill(poly(pts_o + pts_i[::-1]), 2)
-        c.outline(1)
+        c.fill(poly(pts_o + pts_i[::-1]), 1)                # dark chitin
         c.fill(ellipse(9, 7, 6, 6), 2)                        # its root
-        c.fill(circle(9, 7, 2.5), 3)
+        c.fill(circle(9, 7, 2.5), 1)
         for y in (13, 19):                                    # segment joints
-            c.fill(lambda x, yy, y=y: abs(yy - y) < 0.8 and x < 22, 1)
+            c.fill(lambda x, yy, y=y, c=c: abs(yy - y) < 0.8 and x < 22 and c.a[int(yy), int(x / 2)], 2)
+        c.outline(3)                                          # a glowing rim: clear on the hull and in space
         frames.append(c.a)
     return frames
 

@@ -1905,7 +1905,7 @@ def stage7():
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
             "charset": "charset7", "pals": [nearest(c) for p in STAGE7_PALETTES for c in p],
             "bg": nearest(STAGE7_BG), "song": "SONG_STAGE7", "bosssong": "SONG_BOSS7", "vec": boss_vec(7, "lunar"), "bossat": bossat,
-            "waves": spread_waves(w, gr), "ground": gr,
+            "waves": spread_waves(w, gr, by=b7["b7_stop"] - BOSS_LEAD), "ground": gr,
             "pal_codes": [[nearest(c) for c in p] for p in STAGE7_PALETTES]}
 
 
@@ -2134,7 +2134,6 @@ B9_W, B9_H = 10, 7
 # column and row of each one's top left, size in tiles
 B9_PARTS = {"CORE": (4, 2, 2, 2), "CANNON_L": (1, 2, 2, 2), "CANNON_R": (7, 2, 2, 2), "EMITTER": (4, 4, 2, 2),
             "TUR0": (2, 0, 1, 1), "TUR1": (7, 0, 1, 1), "TUR2": (2, 5, 1, 1), "TUR3": (7, 5, 1, 1)}
-B9_STOP_WAVES = 2760                 # the last wave by then (its warning comes in time)
 B9_SWAY = 13                         # its sway, pixels either side (MegaGammaForce's 16 of 192)
 # slots: name, lines down (a prism: the core's, 8 down: the orbit's centre
 # less half a prism). 5 is the core (the shared code's reactor slot)
@@ -2345,9 +2344,7 @@ def stage9():
     bossat = (bow * 16 - 208 - 144) >> 8
     # (the last stage throws everything at once: the waves may crowd more
     # than elsewhere, so the last is over before the warning must come)
-    waves = spread_waves(w, gr, cap=14, most=40)
-    last_at = (waves["wath"][-1] << 8) | waves["watl"][-1]
-    assert last_at <= B9_STOP_WAVES, f"stage 9's last wave at {last_at}"
+    waves = spread_waves(w, gr, cap=14, most=40, by=b9["b9_stop"] - BOSS_LEAD)
     view = [FLARE9_COLORS[2], FLARE9_COLORS[0], STAGE9_PALETTES[2]]
     return {"n": 9, "map": m, "t_slots": t_slots, "t_pals": t_pals, "alias": alias,
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
@@ -2360,9 +2357,16 @@ def stage9():
 UNIT_WEIGHT = {"ET_TRAIN": 3, "ET_GUNSHIP": 3, "ET_GUNBOAT": 3, "ET_SAUCER": 2}
 
 
-def spread_waves(w, gr, cap=11, life=260, step=20, most=300, weights=None):
+# A boss whose hull comes with the map can't wait: the shared code warns
+# of it once the last wave has started, and the warning and the entry take
+# about this much scroll, so the last wave must start this far before the
+# scroll's stop (or the hull overshoots, down onto the ship).
+BOSS_LEAD = 200
+
+
+def spread_waves(w, gr, cap=11, life=260, step=20, most=300, weights=None, by=None):
     """Air waves moved later (never earlier, in order, at most `most`
-    pixels) where they would pile up: a rough load of the units on the
+    pixels, and none past scroll position `by`) where they would pile up: a rough load of the units on the
     screen (each about `life` pixels of scroll, ground units included,
     each 1 or, with weights=UNIT_WEIGHT, by kind) is kept to `cap` if
     moving a wave can do it. (Stage 4 measured best unweighted, cap 11.)"""
@@ -2390,6 +2394,11 @@ def spread_waves(w, gr, cap=11, life=260, step=20, most=300, weights=None):
         prev = best
         if t == ENEMY_TYPES["ET_WASP"]:
             last_wasp = best
+    if by is not None:
+        # (the late ones brought back, still a step apart)
+        for i in range(len(placed) - 1, -1, -1):
+            placed[i] = (min(placed[i][0], by), placed[i][1])
+            by = placed[i][0] - step
     out = dict(w)
     out["watl"] = [a & 255 for a, _ in placed]
     out["wath"] = [a >> 8 for a, _ in placed]
