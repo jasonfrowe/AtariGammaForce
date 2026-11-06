@@ -21,7 +21,7 @@ SCRIPT="$OUT/script.txt"
   echo "$FRAMES exit"
 } > "$SCRIPT"
 for s in ${STAGES:-1 2 3 4 5 6 7 8 9}; do
-  DEFS="CHEAT"; [ "$s" != 1 ] && DEFS="CHEAT STAGE${s}TEST"
+  DEFS="CHEAT NOCUT"; [ "$s" != 1 ] && DEFS="CHEAT NOCUT STAGE${s}TEST"
   GF_DEFINES="$DEFS" "$ROOT/tools/build.sh" > /dev/null || exit 1
   cp "$ROOT/build/gammaforce-test.a78" "$OUT/stage$s.a78"
 done

@@ -72,6 +72,17 @@ pfnodraw    = $22C2 ; nonzero: pf_plot draws nothing (a catch-up step)
 pfdraws     = $22C3 ; counts frames drawn (for things that alternate as shown)
 pfvbl       = $22C4 ; counts overscan NMIs (one a frame, just before vblank)
 pfvbl0      = $22C5 ; pfvbl when this frame began
+cutvec      = $22DE ; [2] a cutscene's stripe NMI handler (hi 0: none; gammaforce.bas)
+cutvec2     = $22CE ; [2] its end-of-screen one
+; a cutscene's own (tools/gen_cutscenes.py; the stage's clocks' bytes: a
+; cutscene plays between stages)
+cs_idx      = $22E0 ; which of its bank's scenes
+cs_state    = $22E1 ; 0 typing, 1 a page done, 2 the last page done
+cs_row      = $22E2
+cs_col      = $22E3
+cs_prev     = $22E4 ; the buttons last frame
+cs_bg       = $22E5 ; the picture's background color
+cs_por      = $22E6 ; the page's portrait
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
 txtold      = $2560 ; [16] where each buffer's text was as last terminated ($FF: none)
 txtnow      = $2570 ; [15] where each zone's text is this frame ($FF: none)

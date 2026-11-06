@@ -52,43 +52,43 @@ mus_drumhi .byte >mus_drum_kick,>mus_drum_snare,>mus_drum_hat
 mus_song_v0lo
   .byte <mus_stage1_v0,<mus_boss_v0,<mus_title_v0,<mus_stage2_v0,<mus_boss2_v0,<mus_stage3_v0,<mus_boss3_v0,<mus_stage4_v0
   .byte <mus_boss4_v0,<mus_stage5_v0,<mus_boss5_v0,<mus_stage6_v0,<mus_boss6_v0,<mus_stage7_v0,<mus_boss7_v0,<mus_stage8_v0
-  .byte <mus_boss8_v0,<mus_stage9_v0,<mus_boss9_v0
+  .byte <mus_boss8_v0,<mus_stage9_v0,<mus_boss9_v0,<mus_prologue_v0,<mus_briefing_v0,<mus_actbreak_v0,<mus_epilogue_v0
 mus_song_v0hi
   .byte >mus_stage1_v0,>mus_boss_v0,>mus_title_v0,>mus_stage2_v0,>mus_boss2_v0,>mus_stage3_v0,>mus_boss3_v0,>mus_stage4_v0
   .byte >mus_boss4_v0,>mus_stage5_v0,>mus_boss5_v0,>mus_stage6_v0,>mus_boss6_v0,>mus_stage7_v0,>mus_boss7_v0,>mus_stage8_v0
-  .byte >mus_boss8_v0,>mus_stage9_v0,>mus_boss9_v0
+  .byte >mus_boss8_v0,>mus_stage9_v0,>mus_boss9_v0,>mus_prologue_v0,>mus_briefing_v0,>mus_actbreak_v0,>mus_epilogue_v0
 mus_song_v1lo
   .byte <mus_stage1_v1,<mus_boss_v1,<mus_title_v1,<mus_stage2_v1,<mus_boss2_v1,<mus_stage3_v1,<mus_boss3_v1,<mus_stage4_v1
   .byte <mus_boss4_v1,<mus_stage5_v1,<mus_boss5_v1,<mus_stage6_v1,<mus_boss6_v1,<mus_stage7_v1,<mus_boss7_v1,<mus_stage8_v1
-  .byte <mus_boss8_v1,<mus_stage9_v1,<mus_boss9_v1
+  .byte <mus_boss8_v1,<mus_stage9_v1,<mus_boss9_v1,<mus_prologue_v1,<mus_briefing_v1,<mus_actbreak_v1,<mus_epilogue_v1
 mus_song_v1hi
   .byte >mus_stage1_v1,>mus_boss_v1,>mus_title_v1,>mus_stage2_v1,>mus_boss2_v1,>mus_stage3_v1,>mus_boss3_v1,>mus_stage4_v1
   .byte >mus_boss4_v1,>mus_stage5_v1,>mus_boss5_v1,>mus_stage6_v1,>mus_boss6_v1,>mus_stage7_v1,>mus_boss7_v1,>mus_stage8_v1
-  .byte >mus_boss8_v1,>mus_stage9_v1,>mus_boss9_v1
+  .byte >mus_boss8_v1,>mus_stage9_v1,>mus_boss9_v1,>mus_prologue_v1,>mus_briefing_v1,>mus_actbreak_v1,>mus_epilogue_v1
 mus_song_v2lo
   .byte <mus_stage1_v2,<mus_boss_v2,<mus_title_v2,<mus_stage2_v2,<mus_boss2_v2,<mus_stage3_v2,<mus_boss3_v2,<mus_stage4_v2
   .byte <mus_boss4_v2,<mus_stage5_v2,<mus_boss5_v2,<mus_stage6_v2,<mus_boss6_v2,<mus_stage7_v2,<mus_boss7_v2,<mus_stage8_v2
-  .byte <mus_boss8_v2,<mus_stage9_v2,<mus_boss9_v2
+  .byte <mus_boss8_v2,<mus_stage9_v2,<mus_boss9_v2,<mus_prologue_v2,<mus_briefing_v2,<mus_actbreak_v2,<mus_epilogue_v2
 mus_song_v2hi
   .byte >mus_stage1_v2,>mus_boss_v2,>mus_title_v2,>mus_stage2_v2,>mus_boss2_v2,>mus_stage3_v2,>mus_boss3_v2,>mus_stage4_v2
   .byte >mus_boss4_v2,>mus_stage5_v2,>mus_boss5_v2,>mus_stage6_v2,>mus_boss6_v2,>mus_stage7_v2,>mus_boss7_v2,>mus_stage8_v2
-  .byte >mus_boss8_v2,>mus_stage9_v2,>mus_boss9_v2
+  .byte >mus_boss8_v2,>mus_stage9_v2,>mus_boss9_v2,>mus_prologue_v2,>mus_briefing_v2,>mus_actbreak_v2,>mus_epilogue_v2
 mus_song_ello
   .byte <mus_stage1_envlo,<mus_boss_envlo,<mus_title_envlo,<mus_stage2_envlo,<mus_boss2_envlo,<mus_stage3_envlo,<mus_boss3_envlo,<mus_stage4_envlo
   .byte <mus_boss4_envlo,<mus_stage5_envlo,<mus_boss5_envlo,<mus_stage6_envlo,<mus_boss6_envlo,<mus_stage7_envlo,<mus_boss7_envlo,<mus_stage8_envlo
-  .byte <mus_boss8_envlo,<mus_stage9_envlo,<mus_boss9_envlo
+  .byte <mus_boss8_envlo,<mus_stage9_envlo,<mus_boss9_envlo,<mus_prologue_envlo,<mus_briefing_envlo,<mus_actbreak_envlo,<mus_epilogue_envlo
 mus_song_elhi
   .byte >mus_stage1_envlo,>mus_boss_envlo,>mus_title_envlo,>mus_stage2_envlo,>mus_boss2_envlo,>mus_stage3_envlo,>mus_boss3_envlo,>mus_stage4_envlo
   .byte >mus_boss4_envlo,>mus_stage5_envlo,>mus_boss5_envlo,>mus_stage6_envlo,>mus_boss6_envlo,>mus_stage7_envlo,>mus_boss7_envlo,>mus_stage8_envlo
-  .byte >mus_boss8_envlo,>mus_stage9_envlo,>mus_boss9_envlo
+  .byte >mus_boss8_envlo,>mus_stage9_envlo,>mus_boss9_envlo,>mus_prologue_envlo,>mus_briefing_envlo,>mus_actbreak_envlo,>mus_epilogue_envlo
 mus_song_ehlo
   .byte <mus_stage1_envhi,<mus_boss_envhi,<mus_title_envhi,<mus_stage2_envhi,<mus_boss2_envhi,<mus_stage3_envhi,<mus_boss3_envhi,<mus_stage4_envhi
   .byte <mus_boss4_envhi,<mus_stage5_envhi,<mus_boss5_envhi,<mus_stage6_envhi,<mus_boss6_envhi,<mus_stage7_envhi,<mus_boss7_envhi,<mus_stage8_envhi
-  .byte <mus_boss8_envhi,<mus_stage9_envhi,<mus_boss9_envhi
+  .byte <mus_boss8_envhi,<mus_stage9_envhi,<mus_boss9_envhi,<mus_prologue_envhi,<mus_briefing_envhi,<mus_actbreak_envhi,<mus_epilogue_envhi
 mus_song_ehhi
   .byte >mus_stage1_envhi,>mus_boss_envhi,>mus_title_envhi,>mus_stage2_envhi,>mus_boss2_envhi,>mus_stage3_envhi,>mus_boss3_envhi,>mus_stage4_envhi
   .byte >mus_boss4_envhi,>mus_stage5_envhi,>mus_boss5_envhi,>mus_stage6_envhi,>mus_boss6_envhi,>mus_stage7_envhi,>mus_boss7_envhi,>mus_stage8_envhi
-  .byte >mus_boss8_envhi,>mus_stage9_envhi,>mus_boss9_envhi
+  .byte >mus_boss8_envhi,>mus_stage9_envhi,>mus_boss9_envhi,>mus_prologue_envhi,>mus_briefing_envhi,>mus_actbreak_envhi,>mus_epilogue_envhi
 SONG_STAGE1 = 0
 SONG_BOSS = 1
 SONG_TITLE = 2
@@ -108,3 +108,7 @@ SONG_STAGE8 = 15
 SONG_BOSS8 = 16
 SONG_STAGE9 = 17
 SONG_BOSS9 = 18
+SONG_PROLOGUE = 19
+SONG_BRIEFING = 20
+SONG_ACTBREAK = 21
+SONG_EPILOGUE = 22

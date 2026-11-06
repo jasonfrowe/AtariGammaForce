@@ -57,6 +57,8 @@
   rem const STAGE7TEST = 1
   rem const STAGE8TEST = 1
   rem const STAGE9TEST = 1
+  rem No cutscenes (the test scripts: they press fire as the game starts).
+  rem const NOCUT = 1
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
@@ -350,6 +352,10 @@ title_go
   lda #9
   sta stage
   endif
+end
+  rem the stage's cutscene (the prologue, or a briefing)
+  temp1 = stage : gosub cutscene
+  asm
   lda #160
   sta pfspeed
   lda stage
@@ -435,7 +441,8 @@ main_step
   rem (overt 1: back to the title, from a game over or the ending)
   if overt > 1 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
   if bstate = 5 then gosub results_text
-  if bstate = 6 then gosub finale_v
+  rem after the last stage: the epilogue, then the title
+  if bstate = 6 then temp1 = 10 : gosub cutscene : goto title
   asm
   ifconst IDLELOG
   jsr il_take
@@ -1309,11 +1316,43 @@ boss_vsinking
   asm
   jmp (STGV_SINKING)
 end
-  rem (the ending's texts: stage 9's, boss9.bas)
-finale_v
+  rem ======================================================================
+  rem  Cutscenes (tools/gen_cutscenes.py: banks 11-16, a cutscene's code,
+  rem  data and pictures in its bank). Scene temp1 (1-9: before that stage,
+  rem  10: after the last) plays to its end; then the screen is the
+  rem  caller's to rebuild (DMA off; the next bank switch, pf_stage, puts
+  rem  the stage's palettes back). The 7800basic NMIs a cutscene's display
+  rem  list places, the first at its hazard stripe, reach its handlers
+  rem  through cutvec and cutvec2 (engine.asm): 320A text below the stripe.
+  rem ======================================================================
+cutscene
   asm
-  jmp (STGV_SPARE)
+  ifnconst NOCUT
+  jsr mus_stop
+  ldx temp1
+  lda cut_banks-1,x
+  sta $8000
+  lda temp1
+  jsr $8800               ; (each cutscene bank's entry)
+  endif
 end
+  return
+topscreenroutine
+  asm
+  lda cutvec+1
+  beq tsr_none
+  jmp (cutvec)
+tsr_none
+end
+  return
+bottomscreenroutine
+  asm
+  lda cutvec2+1
+  beq bsr_none
+  jmp (cutvec2)
+bsr_none
+end
+  return
 
   rem Explosions all over it, then gone
 boss_dying
@@ -1418,12 +1457,13 @@ boss_clear_wait
   if bready = 0 then return
   rem after the last stage, the ending; then the title. A boss that got
   rem away: the stage again (no ending)
-  if bstate = 6 then overt = 1 : return
   if bescape then stage = stage - 1
   if stage = NSTAGES then bstate = 6 : btl = 0 : bth = 0 : bready = 0 : return
   rem on to the next stage
   bstate = 0 : wn = 0 : gn = 0 : chmax = 0
   stage = stage + 1 : smsg = 180
+  rem its cutscene (a briefing, or an act's break)
+  temp1 = stage : gosub cutscene
   asm
   lda #160
   sta pfspeed
@@ -1576,6 +1616,7 @@ end
   inline engine.asm
   inline objects.asm
   inline data.asm
+  inline cuttab.asm
   inline music.asm
   inline musiccommon.asm
   inline sfx.asm
@@ -1706,13 +1747,78 @@ end
   rem the stage header must come first: it is read at $8000
   inline stage9.asm
   inline boss9tab.asm
-  inline texts9.asm
   incbasic stage9.bas
   incbasic gen/gfx9.bas
   inline musicdata9b.asm
   dmahole 0
   inline musicdata9.asm
   incbasic boss9.bas
+
+  rem ======================================================================
+  rem  Bank 11: a cutscene bank (tools/gen_cutscenes.py: its font at $8000,
+  rem  its entry at $8800, its song, its player and script; its pictures
+  rem  at $A000)
+  rem ======================================================================
+  bank 11
+  inline cut11.asm
+  inline musiccut11.asm
+  inline cut11b.asm
+  incbasic gen/cutgfx11.bas
+
+  rem ======================================================================
+  rem  Bank 12: a cutscene bank (tools/gen_cutscenes.py: its font at $8000,
+  rem  its entry at $8800, its song, its player and script; its pictures
+  rem  at $A000)
+  rem ======================================================================
+  bank 12
+  inline cut12.asm
+  inline musiccut12.asm
+  inline cut12b.asm
+  incbasic gen/cutgfx12.bas
+
+  rem ======================================================================
+  rem  Bank 13: a cutscene bank (tools/gen_cutscenes.py: its font at $8000,
+  rem  its entry at $8800, its song, its player and script; its pictures
+  rem  at $A000)
+  rem ======================================================================
+  bank 13
+  inline cut13.asm
+  inline musiccut13.asm
+  inline cut13b.asm
+  incbasic gen/cutgfx13.bas
+
+  rem ======================================================================
+  rem  Bank 14: a cutscene bank (tools/gen_cutscenes.py: its font at $8000,
+  rem  its entry at $8800, its song, its player and script; its pictures
+  rem  at $A000)
+  rem ======================================================================
+  bank 14
+  inline cut14.asm
+  inline musiccut14.asm
+  inline cut14b.asm
+  incbasic gen/cutgfx14.bas
+
+  rem ======================================================================
+  rem  Bank 15: a cutscene bank (tools/gen_cutscenes.py: its font at $8000,
+  rem  its entry at $8800, its song, its player and script; its pictures
+  rem  at $A000)
+  rem ======================================================================
+  bank 15
+  inline cut15.asm
+  inline musiccut15.asm
+  inline cut15b.asm
+  incbasic gen/cutgfx15.bas
+
+  rem ======================================================================
+  rem  Bank 16: a cutscene bank (tools/gen_cutscenes.py: its font at $8000,
+  rem  its entry at $8800, its song, its player and script; its pictures
+  rem  at $A000)
+  rem ======================================================================
+  bank 16
+  inline cut16.asm
+  inline musiccut16.asm
+  inline cut16b.asm
+  incbasic gen/cutgfx16.bas
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

@@ -132,7 +132,7 @@ s9_rowshift
     err
   endif
 ; the stage's code: boss build, enter, fight, place, attack, sinking; hook
-  .word .boss9_build,.boss9_enter,.boss9_fight,.boss9_place,.boss9_attack,.boss9_sinking,.corona,.finale
+  .word .boss9_build,.boss9_enter,.boss9_fight,.boss9_place,.boss9_attack,.boss9_sinking,.corona,0
 
 ; Row u's characters: those of its runs of drawn tiles, one after the
 ; other (2 bytes a tile: doublewide). Background tiles aren't drawn.

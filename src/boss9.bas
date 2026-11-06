@@ -285,14 +285,6 @@ end
   bspin = bspin + 16
   return
 
-  rem The ending, after GAMMA PRIME (MegaGammaForce's): its texts, by the
-  rem bank's spare vector, then the results' PRESS FIRE
-finale
-  tpal = 6 : tzone = 4 : temp1 = TXT_END1 : gosub text
-  tpal = 3 : tzone = 6 : temp1 = TXT_END2 : gosub text
-  tzone = 7 : temp1 = TXT_END3 : gosub text
-  goto results_push
-
 b9_fan
   asm
   jsr bul_fan

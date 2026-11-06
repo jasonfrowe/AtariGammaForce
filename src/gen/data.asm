@@ -39,12 +39,12 @@ restmpl .byte 28,30,58,60,56,62,26,60,38,50,48,20,0,0,0,78,20,20,20,20
 txtlo .byte <txt_atari,<txt_push,<txt_b1,<txt_credit,<txt_over,<txt_clear,<txt_escaped,<txt_perfect
   .byte <txt_name1,<txt_name2,<txt_name3,<txt_name4,<txt_name5,<txt_name6,<txt_name7,<txt_name8
   .byte <txt_name9,<txt_sel1,<txt_mode0,<txt_mode1,<txt_mode2,<txt_resa,<txt_resb,<txt_resc
-  .byte <txt_sel,<txt_end1,<txt_end2,<txt_end3
+  .byte <txt_sel
 txthi .byte >txt_atari,>txt_push,>txt_b1,>txt_credit,>txt_over,>txt_clear,>txt_escaped,>txt_perfect
   .byte >txt_name1,>txt_name2,>txt_name3,>txt_name4,>txt_name5,>txt_name6,>txt_name7,>txt_name8
   .byte >txt_name9,>txt_sel1,>txt_mode0,>txt_mode1,>txt_mode2,>txt_resa,>txt_resb,>txt_resc
-  .byte >txt_sel,>txt_end1,>txt_end2,>txt_end3
-txtlen .byte 5,10,19,15,9,11,12,19,12,11,9,14,13,6,18,10,6,15,14,14,14,16,16,16,15,9,18,19
+  .byte >txt_sel
+txtlen .byte 5,10,19,15,9,11,12,19,12,11,9,14,13,6,18,10,6,15,14,14,14,16,16,16,15
 
 ; P0C1..P7C3, in register order
 palettedata

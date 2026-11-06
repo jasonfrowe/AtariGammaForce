@@ -72,9 +72,6 @@
   const TXT_RESB = 22
   const TXT_RESC = 23
   const TXT_SEL = 24
-  const TXT_END1 = 25
-  const TXT_END2 = 26
-  const TXT_END3 = 27
   const IMG_SHIP = 0
   const IMG_VULCAN = 1
   const IMG_DART = 2

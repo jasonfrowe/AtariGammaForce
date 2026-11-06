@@ -10,12 +10,14 @@
 # voices 0 and 1 and the boss's voice 0 in its bank's main area; its
 # voice 2 and the rest of the boss's (with MASS DRIVER's code) in the hole.
 # Stage 8's (the cut too): the stage song in its bank's main area, the
-# boss's in the hole with HIVE MOTHERSHIP's code. Stage 9's (the cut, and
+# boss's in the hole with HIVE MOTHERSHIP's code. The cutscenes' songs
+# (assets/music: the story's) each in their cutscene bank. Stage 9's (the cut, and
 # MegaGammaForce's Final for GAMMA PRIME): the boss's song and the stage
 # song's voice 0 in the main area, the rest of the stage's in the hole
 # with GAMMA PRIME's code.
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 M="$ROOT/assets/mgf/music"
+S="$ROOT/assets/music"          # the story's (tools/generate_music.py)
 G="$ROOT/src/gen"
 "$ROOT/.venv/bin/python" "$ROOT/tools/vgm2pokey.py" \
     "$M/Stage1.vgm" "$M/Boss.vgm" "$M/Title.vgm" "$M/Stage2.vgm" "$M/Boss.vgm:boss2" \
@@ -24,6 +26,7 @@ G="$ROOT/src/gen"
     "$M/Stage7_cut.vgm:stage7" "$M/Boss7.vgm:boss7" \
     "$M/Stage8_cut.vgm:stage8" "$M/Boss8.vgm:boss8" \
     "$M/Stage9_cut.vgm:stage9" "$M/Final.vgm:boss9" \
+    "$S/Prologue.vgm:prologue" "$S/Briefing.vgm:briefing" "$S/ActBreak.vgm:actbreak" "$S/Epilogue.vgm:epilogue" \
     -o "$G/musicdata.asm" --fixed "$G/musiccommon.asm" \
     --to "$G/musicdata2.asm=stage2" --to "$G/musicdata2b.asm=boss2" \
     --to "$G/musicdata3.asm=stage3" --to "$G/musicdata3b.asm=boss3" \
@@ -33,4 +36,13 @@ G="$ROOT/src/gen"
     --to "$G/musicdata6.asm=boss6,stage6.v0" --to "$G/musicdata6b.asm=stage6" \
     --to "$G/musicdata7.asm=boss7,stage7.v2" --to "$G/musicdata7b.asm=stage7,boss7.v0" \
     --to "$G/musicdata8.asm=boss8" --to "$G/musicdata8b.asm=stage8" \
-    --to "$G/musicdata9.asm=stage9" --to "$G/musicdata9b.asm=boss9,stage9.v0"
+    --to "$G/musicdata9.asm=stage9" --to "$G/musicdata9b.asm=boss9,stage9.v0" \
+    --to "$G/musiccut11.asm=prologue" --to "$G/musiccut12.asm=briefing" \
+    --to "$G/musiccut13.asm=actbreak" --to "$G/musiccut16.asm=epilogue"
+# The act breaks' banks (13-15) each hold the same song at the same
+# address (after the cutscene font and entry, gen_cutscenes.py), so one
+# song table entry serves all three: banks 14 and 15 get bank 13's copy,
+# its labels renamed.
+for b in 14 15; do
+    sed "s/mus_actbreak_/mus_actbreak${b}_/g" "$G/musiccut13.asm" > "$G/musiccut$b.asm"
+done

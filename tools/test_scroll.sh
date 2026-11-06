@@ -9,9 +9,9 @@ OUT="$ROOT/build/test_scroll"
 FRAMES=${1:-$(python3 -c "print(','.join(str(f) for f in list(range(700,748))+list(range(5900,5924))))")}
 mkdir -p "$ROOT/build"
 STAGE=${STAGE:-1}
-DEFS="CHEAT"
-[ "$STAGE" = 2 ] && DEFS="CHEAT STAGE2TEST"
-[ "$STAGE" = 3 ] && DEFS="CHEAT STAGE3TEST"
+DEFS="CHEAT NOCUT"
+[ "$STAGE" = 2 ] && DEFS="CHEAT NOCUT STAGE2TEST"
+[ "$STAGE" = 3 ] && DEFS="CHEAT NOCUT STAGE3TEST"
 [ "$STAGE" = 4 ] && DEFS="CHEAT STAGE4TEST"
 GF_DEFINES="$DEFS" "$ROOT/tools/build.sh" > /dev/null || exit 1
 python3 - "$FRAMES" > "$ROOT/build/test_scroll.txt" <<'PY'

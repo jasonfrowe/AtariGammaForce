@@ -175,8 +175,32 @@ hole at $B000.
 | 8 | stage 7: header, map, MASS DRIVER's tables, graphics ($A000), the stage song and the boss tune's voice 0; the rest of the boss tune and MASS DRIVER's code (`src/boss7.bas`, $B000) |
 | 9 | stage 8: header, map (each row's solid columns after its objects), HIVE MOTHERSHIP's tables, the asteroids' code (`src/stage8.bas`), graphics ($A000), the stage song; the boss tune and HIVE MOTHERSHIP's code (`src/boss8.bas`, $B000) |
 | 10 | stage 9: header, map, the flares' tables, the ending's texts, the flares' code (`src/stage9.bas`), graphics ($A000), the boss tune (MegaGammaForce's Final) and the stage song's voice 0; the rest of the stage song and GAMMA PRIME's code (`src/boss9.bas`, $B000) |
-| 11-16 | free |
+| 11-16 | the cutscenes (`tools/gen_cutscenes.py`): 11 the prologue, 12 the five briefings, 13-15 the act breaks, 16 the epilogue. Each: the 40-column font ($8000), the entry ($8800), its song, its player, script and display lists; its pictures ($A000) |
 | 17 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
+
+## Cutscenes
+
+A cutscene takes the screen over between stages: in vblank it points
+MARIA's DPPH/DPPL at its own display list list, in its bank's ROM, and
+puts 7800basic's DLLMEM back as it ends (DMA off: the caller rebuilds the
+screen, as a new stage does). The list keeps 7800basic's frame: its 9-line
+top border, 224 visible lines, its non-visible entries with their NMIs.
+7800basic counts three NMIs a frame; the cutscene's list puts the first
+(the top-of-screen one) under the hazard stripe, and 7800basic calls
+`topscreenroutine` there, which jumps through `cutvec` to the cutscene's
+handler: from the next line, 320A (CTRL $43: 1-byte characters), CHARBASE
+at its font, a black background, palette 7 white. The end-of-screen NMI
+(`bottomscreenroutine`, `cutvec2`) puts the game's mode and font back for
+the next frame's top; the picture's background comes back off the screen
+(`bgwant`). The picture is 160A, six zones of direct objects, a run of
+cells sharing a palette each (tools/cutscene7800.py); the text, 36 columns
+in RAM ($1900, the engine's idle ring buffers), two 18-character indirect
+objects a row in 8-line zones, its font one byte a glyph line (8 pages,
+glyph line 7 - p in page p). A briefing's portrait zones' lists are in RAM
+($1C00): its portrait, and its header lines in the game's font. The fixed
+bank holds only the hooks, `cutscene` (a bank switch and `jsr $8800`) and
+the song table's entries: the three act breaks hold the same song at the
+same address, so one entry serves them.
 
 ## Wrecks under the ship
 

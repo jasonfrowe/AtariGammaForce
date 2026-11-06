@@ -26,8 +26,8 @@ rail cannon that sways as it fires slugs down the screen) and stage 8
 ship, and HIVE MOTHERSHIP, a swaying alien hive with a great eye) and
 stage 9 (CORONA: low over the Sun, through solar flares that erupt in
 turn and burn the ship, to GAMMA PRIME, a golden sunburst with orbiting
-prisms whose core opens only when the Hyper Sword breaks a node atop it,
-and the ending) scroll
+prisms whose core opens only when the Hyper Sword breaks a node atop it)
+scroll
 pixel-exact to
 MegaGammaForce's music converted to POKEY, with its enemy waves, ground
 units and bullet patterns; the Vulcan, the Radiant Sword (absorbing pink
@@ -95,7 +95,7 @@ or with CMake: `cmake --preset default && cmake --build --preset default`.
 
 Test builds: `GF_DEFINES="CHEAT BOSSTEST STAGE2TEST" tools/build.sh` makes
 `build/gammaforce-test.a78` with any of: an invulnerable ship, a start at
-the boss, a start at a later stage (`STAGE2TEST` to `STAGE9TEST`; and
+the boss, a start at a later stage (`STAGE2TEST` to `STAGE9TEST`), no cutscenes (`NOCUT`; and
 `FPS30`, `PROFILE`).
 
 Run it in [A7800](https://github.com/7800-devtools/a7800):
@@ -123,6 +123,10 @@ a7800 a7800 -cart build/gammaforce.a78
 | `tools/idlelog.py` | Per displayed frame: time in catch-up steps, the draw step and the wait for vblank (an `IDLELOG` build) |
 | `tests/` | Play scripts (`tools/fps_test.sh` runs `stage1_fps.txt` for the frame rate) |
 | `docs/reference/` | Local copy of the 7800basic guide |
+| `storyboard/` | The story: narrative bible, storyboards, character sheets, the in-game script (`script.txt`), the cutscene pictures (`panels/`, with the rules for drawing them) |
+| `tools/gen_cutscenes.py` | The cutscenes (banks 11-16) from the script and the pictures |
+| `tools/cutscene7800.py` | Checks a cutscene picture against the 7800's rules and converts it |
+| `tools/generate_music.py`, `tools/musicgen/` | MegaGammaForce's OPL2 music generator (the story's tunes, `assets/music/`) |
 
 The art is drawn for the 7800, not converted: sprites are text in
 `assets/art7800.txt` (one character per pixel, `.123`), the stages' tiles
@@ -132,13 +136,22 @@ and the title logo by `tools/logo7800.py`. Stage 2's boss code is
 stage's bank).
 `tools/art_preview.py` shows the sprites in 7800 colors at the TV's 2:1
 pixel shape. The music is converted from MegaGammaForce's VGMs by
-`tools/gen_music.sh`.
+`tools/gen_music.sh` (and the story's tunes, made with
+`tools/generate_music.py` and remastered in Furnace, from `assets/music/`).
+
+The story: a cutscene plays before every stage and after the last, a
+picture or the speaker's portrait over 40-column teletype text (fire
+finishes a page, then turns it). `storyboard/script.txt` is the script;
+`tools/gen_cutscenes.py` makes the cutscene banks from it and the
+pictures in `storyboard/panels/`. Test builds for scripted play add
+`NOCUT` (no cutscenes).
 
 Regenerating the art needs Python with Pillow and numpy:
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python tools/gen_assets.py
+.venv/bin/python tools/gen_cutscenes.py
 ```
 
 ## License
