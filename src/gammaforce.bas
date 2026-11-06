@@ -1356,8 +1356,7 @@ end
   bstate = 4 : btl = 0
   rem stage 3's ship sinks, stage 5's crawler breaks through the ice: the
   rem scroll carries it away
-  if stage = 3 then pfspeed = 250
-  if stage >= 5 then pfspeed = 250
+  if stage = 3 || stage >= 5 then pfspeed = 250
   return
 boss_bonus
   asm
@@ -1485,13 +1484,14 @@ boss_clear_wait
   if joy0fire1 then temp3 = 1
   if temp3 = 0 then bready = 1 : return
   if bready = 0 then return
-  rem after the last stage, the ending; then the title
+  rem after the last stage, the ending; then the title. A boss that got
+  rem away: the stage again (no ending)
   if bstate = 6 then overt = 1 : return
+  if bescape then stage = stage - 1
   if stage = NSTAGES then bstate = 6 : btl = 0 : bth = 0 : bready = 0 : return
   rem on to the next stage
   bstate = 0 : wn = 0 : gn = 0 : chmax = 0
   stage = stage + 1 : smsg = 180
-  if stage > NSTAGES then stage = 1
   asm
   lda #160
   sta pfspeed
