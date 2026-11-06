@@ -164,7 +164,8 @@ hole at $B000.
 | 5 | stage 4: header, map, boss tune, DUNE WYRM's path, graphics ($A000), song and DUNE WYRM's code (`src/boss4.bas`, $B000) |
 | 6 | stage 5: header, map, the stage song's voices 0 and 2, boss tune (less its voice 1), graphics ($A000), the stage song's voice 1, the boss tune's voice 1, GLACIER CRAWLER's code and tables ($B000) |
 | 7 | stage 6: header, map, HALO STATION's tables and the fade, the fade's code (`src/stage6.bas`), HALO STATION's code (`src/boss6.bas`), the stage song's voices 1 and 2, graphics ($A000), the boss tune and the stage song's voice 0 ($B000) |
-| 9 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
+| 8-16 | free (stages 7 on) |
+| 17 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
 
 ## Wrecks under the ship
 

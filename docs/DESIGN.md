@@ -70,11 +70,12 @@ raw register writes, which would take ~40 KB per song.
 
 ## Cartridge
 
-144K SuperGame with POKEY at $450: bank 1 (fixed at $4000) holds the game
+272K SuperGame with POKEY at $450: bank 1 (fixed at $4000) holds the game
 code and engine, each stage gets a switchable bank at $8000 (map, waves,
-music, its boss's data), and the last bank holds the graphics and
-7800basic's runtime. Stage 1 uses bank 2; banks 3-8 are free for stages
-2-7 (stages 8-9 will need a bigger cart or tighter packing).
+music, its boss's data), and the last bank (17) holds the graphics and
+7800basic's runtime. Stages 1-6 use banks 2-7; banks 8-16 are free for
+the later stages. (It was 144K, 9 banks, through stage 6;
+tests/romtest checks a 272K cart's banks.)
 
 ## Status
 

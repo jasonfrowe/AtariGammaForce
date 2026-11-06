@@ -5,9 +5,10 @@
   rem  the object loops (asm/objects.asm) and the music (asm/music.asm).
   rem ======================================================================
 
-  rem 144K SuperGame: bank 1 fixed at $4000 (the game), banks 2-8 switched
-  rem in at $8000 (one per stage), the last bank fixed at $C000 (graphics).
-  set romsize 144k
+  rem 272K SuperGame: bank 1 fixed at $4000 (the game), banks 2-16 switched
+  rem in at $8000 (one per stage), the last bank (17) fixed at $C000
+  rem (graphics).
+  set romsize 272k
   set zoneheight 16
   set screenheight 224
   displaymode 160A
@@ -1682,5 +1683,5 @@ end
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)
   rem ======================================================================
-  bank 9
+  bank 17
   incbasic gen/gfx.bas
