@@ -9,6 +9,8 @@
 # stage song is the shortened cut (MegaGammaForce's Stage7_cut.fur): its
 # voices 0 and 1 and the boss's voice 0 in its bank's main area; its
 # voice 2 and the rest of the boss's (with MASS DRIVER's code) in the hole.
+# Stage 8's (the cut too): the stage song in its bank's main area, the
+# boss's in the hole with HIVE MOTHERSHIP's code.
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 M="$ROOT/assets/mgf/music"
 G="$ROOT/src/gen"
@@ -17,6 +19,7 @@ G="$ROOT/src/gen"
     "$M/Stage3.vgm" "$M/Boss3.vgm" "$M/Stage4.vgm" "$M/Boss4.vgm" "$M/Stage5_cut.vgm:stage5" "$M/Boss5_cut.vgm:boss5" \
     "$M/Stage6.vgm:stage6" "$M/Boss6.vgm:boss6" \
     "$M/Stage7_cut.vgm:stage7" "$M/Boss7.vgm:boss7" \
+    "$M/Stage8_cut.vgm:stage8" "$M/Boss8.vgm:boss8" \
     -o "$G/musicdata.asm" --fixed "$G/musiccommon.asm" \
     --to "$G/musicdata2.asm=stage2" --to "$G/musicdata2b.asm=boss2" \
     --to "$G/musicdata3.asm=stage3" --to "$G/musicdata3b.asm=boss3" \
@@ -24,4 +27,5 @@ G="$ROOT/src/gen"
     --to "$G/musicdata5.asm=stage5,boss5.v1" --to "$G/musicdata5b.asm=boss5" \
     --to "$G/musicdata5c.asm=stage5.v0,stage5.v2" \
     --to "$G/musicdata6.asm=boss6,stage6.v0" --to "$G/musicdata6b.asm=stage6" \
-    --to "$G/musicdata7.asm=boss7,stage7.v2" --to "$G/musicdata7b.asm=stage7,boss7.v0"
+    --to "$G/musicdata7.asm=boss7,stage7.v2" --to "$G/musicdata7b.asm=stage7,boss7.v0" \
+    --to "$G/musicdata8.asm=boss8" --to "$G/musicdata8b.asm=stage8"

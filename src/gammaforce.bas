@@ -48,13 +48,14 @@
   rem Testing: start at the boss, and/or never get hit.
   rem const BOSSTEST = 1
   rem const CHEAT = 1
-  rem Start at stage 2, 3, 4 or 5.
+  rem Start at a later stage.
   rem const STAGE2TEST = 1
   rem const STAGE3TEST = 1
   rem const STAGE4TEST = 1
   rem const STAGE5TEST = 1
   rem const STAGE6TEST = 1
   rem const STAGE7TEST = 1
+  rem const STAGE8TEST = 1
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
@@ -74,7 +75,7 @@
   rem stage 4's armored train cars, on the railway (eframe 0: the engine)
   const ET_TRAIN = 10
   rem the stages, round and round
-  const NSTAGES = 7
+  const NSTAGES = 8
   rem boss parts: types from ET_PART up are placed by the boss code
   const ET_PART = 11
   const ET_PCANNON = 11
@@ -401,6 +402,10 @@ title_fire
   endif
   ifconst STAGE7TEST
   lda #7
+  sta stage
+  endif
+  ifconst STAGE8TEST
+  lda #8
   sta stage
   endif
   lda #160
@@ -1721,6 +1726,22 @@ end
   dmahole 0
   inline musicdata7.asm
   incbasic boss7.bas
+
+  rem ======================================================================
+  rem  Bank 9: stage 8 (map, waves, HIVE MOTHERSHIP's tables, the
+  rem  asteroids' code, its graphics block at $A000, the stage's song; the
+  rem  boss's song and HIVE MOTHERSHIP's code at $B000)
+  rem ======================================================================
+  bank 9
+  rem the stage header must come first: it is read at $8000
+  inline stage8.asm
+  inline boss8tab.asm
+  incbasic stage8.bas
+  incbasic gen/gfx8.bas
+  inline musicdata8b.asm
+  dmahole 0
+  inline musicdata8.asm
+  incbasic boss8.bas
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

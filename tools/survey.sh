@@ -20,17 +20,17 @@ SCRIPT="$OUT/script.txt"
   done
   echo "$FRAMES exit"
 } > "$SCRIPT"
-for s in ${STAGES:-1 2 3 4 5 6 7}; do
+for s in ${STAGES:-1 2 3 4 5 6 7 8}; do
   DEFS="CHEAT"; [ "$s" != 1 ] && DEFS="CHEAT STAGE${s}TEST"
   GF_DEFINES="$DEFS" "$ROOT/tools/build.sh" > /dev/null || exit 1
   cp "$ROOT/build/gammaforce-test.a78" "$OUT/stage$s.a78"
 done
-for s in ${STAGES:-1 2 3 4 5 6 7}; do
+for s in ${STAGES:-1 2 3 4 5 6 7 8}; do
   A7800_DMA_LOG="$OUT/stage$s.dma" ROM="$OUT/stage$s.a78" \
     "$ROOT/tools/play.sh" "$SCRIPT" "$OUT/stage$s" > /dev/null &
 done
 wait
-for s in ${STAGES:-1 2 3 4 5 6 7}; do
+for s in ${STAGES:-1 2 3 4 5 6 7 8}; do
   echo "== stage $s"
   "$ROOT/.venv/bin/python" "$ROOT/tools/survey.py" "$OUT/stage$s/play.txt" "$OUT/stage$s.dma"
 done

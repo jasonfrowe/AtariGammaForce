@@ -1243,3 +1243,233 @@ def driver_tiles(ids):
         elif name in ("hatch0", "hatch1"):
             out[i] = add(door if name == "hatch0" else door[::-1].copy(), HULL7)
     return tiles, pals, out, ids.get("clear")
+
+
+# ---------------------------------------------------------------------------
+# Stage 8, DEEP FIELD: open space past the Moon, through drifts of
+# asteroids. Space is the background color (black), so it costs nothing.
+# Palettes: P0 HIVE MOTHERSHIP's carapace (1 shadow, 2 chitin, 3 its glow:
+# vein green), P1 the asteroids (1 shadow, 2 rock, 3 sunlit), P2 the stars
+# (1 dim, 2 pale, 3 white; the gunships' gray too).
+
+HIVE8, ROCK8, STAR8 = 0, 1, 2
+BAYER4 = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16.0 - 0.5
+
+
+def star8(kind):
+    """A star: a dim one, a pale one, a white one, or a white one with
+    arms."""
+    t = np.zeros((H, W), dtype=np.uint8)
+    rng = np.random.default_rng(80 + kind)
+    x, y = int(rng.integers(1, W - 1)), int(rng.integers(2, H - 2))
+    if kind < 3:
+        t[y, x] = 1 + kind
+    else:
+        t[y, x] = 3
+        t[y - 1, x] = t[y + 1, x] = 1
+    return t
+
+
+def asteroid8(w, h, seed):
+    """An asteroid filling w x h tiles: a lumpy sphere lit from the upper
+    left, its shadow side fading into space, a few craters (bowls, their
+    far rims lit). Returns its image (h * 16 lines by w * 8 pixels)."""
+    rng = np.random.default_rng(800 + seed)
+    n, m = h * H, w * W
+    img = np.zeros((n, m), dtype=np.uint8)
+    cx, cy = w * W, h * H / 2                         # screen units
+    rx, ry = w * W - 1.5, h * H / 2 - 1.5
+    lump = [(k, rng.uniform(0.05, 0.11) * 3 / k, rng.uniform(0, 2 * math.pi)) for k in (2, 3, 5)]
+    pits = []
+    for _ in range(int(rng.integers(2, 2 + (w + h) // 2))):
+        pr = rng.uniform(3.0, 2.5 + min(w, h) * 2.5)
+        a, d = rng.uniform(0, 2 * math.pi), rng.uniform(0, 0.55)
+        pits.append((cx + math.cos(a) * d * rx, cy + math.sin(a) * d * ry, pr))
+    for py in range(n):
+        for px in range(m):
+            x, y = px * 2 + 1.0, py + 0.5
+            u, v = (x - cx) / rx, (y - cy) / ry
+            ang = math.atan2(v, u)
+            r = 0.88 * (1 + sum(amp * math.cos(k * ang + ph) for k, amp, ph in lump))
+            d = math.hypot(u, v) / r
+            if d >= 1:
+                continue
+            # the sphere's normal, lit from the upper left and in front
+            z = math.sqrt(max(0.0, 1 - d * d))
+            lit = (-u * 0.55 - v * 0.6 + z * 0.75) / r
+            for qx, qy, pr in pits:
+                dc = math.hypot(x - qx, y - qy) / pr
+                if dc < 1:
+                    # a bowl: its near (upper left) wall in shadow, its far
+                    # wall catching the light
+                    lit += ((x - qx) + (y - qy)) / pr * 0.55 - 0.15
+                elif dc < 1.3:
+                    lit += 0.12 * -((x - qx) + (y - qy)) / pr
+            lit += BAYER4[py % 4, px % 4] * 0.35
+            img[py, px] = 3 if lit > 0.72 else 2 if lit > 0.22 else 1
+    return img
+
+
+# the asteroids drawn (w, h in tiles); each drawn once and reused
+ROCKS8 = [(2, 2), (2, 2), (3, 2), (2, 3), (3, 3)]
+
+
+def deep_tiles():
+    """Stage 8's sky: tile 0 blank (space), the stars, the asteroids cut
+    into tiles. Returns (tiles, palettes, stars: their tile numbers,
+    rocks: for each asteroid its h x w grid of tile numbers (0 where
+    empty), debris: a lone rock's tile, solid: the tiles mostly rock
+    (shots, bullets and the ship stop at them))."""
+    tiles, pals = [np.zeros((H, W), dtype=np.uint8)], [STAR8]
+    stars = []
+    for k in range(4):
+        stars.append(len(tiles))
+        tiles.append(star8(k))
+        pals.append(STAR8)
+    rocks, solid = [], set()
+    for i, (w, h) in enumerate(ROCKS8):
+        img = asteroid8(w, h, i)
+        g = np.zeros((h, w), dtype=int)
+        for r in range(h):
+            for c in range(w):
+                t = img[r * H:(r + 1) * H, c * W:(c + 1) * W].copy()
+                if not t.any():
+                    continue
+                g[r, c] = len(tiles)
+                if (t > 0).mean() >= 0.5:
+                    solid.add(len(tiles))
+                tiles.append(t)
+                pals.append(ROCK8)
+        rocks.append(g)
+    # debris: a small rock, not solid (MegaGammaForce's 1 x 1s)
+    deb = np.zeros((H, W), dtype=np.uint8)
+    small = asteroid8(1, 1, 9)
+    deb[3:13, 1:7] = small[3:13, 1:7]
+    debris = len(tiles)
+    tiles.append(deb)
+    pals.append(ROCK8)
+    return tiles, pals, stars, rocks, debris, solid
+
+
+def _comb8():
+    """Honeycomb across a tile (16 x 16 screen units, seamless): for each
+    pixel, how far it is from its cell's wall (screen units), and which
+    way from its cell's middle it lies (dx + dy: + toward the lower right)."""
+    centres = [(x + (8 if (y // 8) % 2 else 0), y) for y in range(-16, 33, 8) for x in range(-32, 49, 16)]
+    wall, side, cell = np.zeros((H, W)), np.zeros((H, W)), np.zeros((H, W), dtype=int)
+    for py in range(H):
+        for px in range(W):
+            x, y = px * 2 + 1.0, py + 0.5
+            ds = sorted((math.hypot(x - cx, (y - cy) * 1.7), k) for k, (cx, cy) in enumerate(centres))
+            wall[py, px] = ds[1][0] - ds[0][0]
+            cx, cy = centres[ds[0][1]]
+            side[py, px] = (x - cx) + (y - cy)
+            cell[py, px] = ds[0][1]
+    return wall, side, cell
+
+
+COMB8 = None
+
+
+def _carapace8(variant):
+    """The hull's honeycomb: chitin cells with dark walls, each cell's
+    lower right shaded; variant 1 has a cell glowing green."""
+    global COMB8
+    if COMB8 is None:
+        COMB8 = _comb8()
+    wall, side, cell = COMB8
+    t = np.full((H, W), 2, dtype=np.uint8)
+    yy, xx = np.mgrid[0:H, 0:W]
+    t[(side > 2.5) & (wall < 3.5) & ((xx + yy) % 2 == 0)] = 1
+    t[wall < 1.6] = 1
+    if variant == 1:
+        k = cell[8, 4]
+        t[(cell == k) & (wall >= 1.6)] = 3
+    return t
+
+
+def hive_shape(w, h):
+    """HIVE MOTHERSHIP's hull corners, (h + 1) x (w + 1): an oval, and two
+    mandibles reaching down past it (MegaGammaForce's, in 7 rows)."""
+    g = np.zeros((h + 1, w + 1), dtype=np.uint8)
+    for y in range(h + 1):
+        for x in range(w + 1):
+            if ((x - 5) / 5.3) ** 2 + ((y - 2.7) / 3.1) ** 2 < 1:
+                g[y, x] = 1
+    for x0 in (2, 6):
+        g[4:7, x0:x0 + 3] = 1
+    g[7, 3], g[7, 7] = 1, 1
+    return g
+
+
+def hive_tiles(w, h, parts):
+    """HIVE MOTHERSHIP's hull: its map (h x w tile numbers into the
+    returned tiles, 0 clear) in honeycomb chitin (P0), its rim in marching
+    squares (one tile for each shape of corner), veins glowing out from
+    the eye, a maw below it; the parts' sockets plain (their sprites cover
+    them). Returns (tiles, palettes, map) - tile numbers from 1."""
+    tiles, pals, ids = [None], [HIVE8], {}
+
+    def add(t):
+        key = t.tobytes()
+        if key not in ids:
+            ids[key] = len(tiles)
+            tiles.append(t)
+            pals.append(HIVE8)
+        return ids[key]
+
+    g = hive_shape(w, h)
+    base = _carapace8(0)
+    m = np.zeros((h, w), dtype=np.uint8)
+    rng = np.random.default_rng(8)
+    for r in range(h):
+        for c in range(w):
+            cfg = (int(g[r, c]), int(g[r, c + 1]), int(g[r + 1, c + 1]), int(g[r + 1, c]))
+            if cfg == (1, 1, 1, 1):
+                m[r, c] = add(_carapace8(1 if rng.random() < 0.2 else 0))
+            elif any(cfg):
+                t = _blend(cfg, 2, 3, 1, cut=0.5)
+                t[(t == 2) & (base == 1)] = 1           # the honeycomb shows to the rim
+                m[r, c] = add(t)
+    # veins: up the eye's columns above it, and across its row to the turrets
+    def vein(horizontal):
+        t = base.copy()
+        for py in range(H):
+            for px in range(W):
+                a = (py + 0.5 - H / 2) if horizontal else (px * 2 + 1.0 - W)
+                along = px * 2 if horizontal else py
+                wob = math.sin(along / 16 * 2 * math.pi) * 1.5
+                d = abs(a - wob)
+                if d < 2.6:
+                    t[py, px] = 3 if d < 1.4 else 1
+        return t
+    ex, ey = parts["EYE"][:2]
+    for r in range(0, ey):
+        for c in (ex, ex + 1):
+            if m[r, c] and all(g[r + a, c + b] for a in (0, 1) for b in (0, 1)):
+                m[r, c] = add(vein(False))
+    for c in range(w):
+        r = ey + 1
+        if c in (ex, ex + 1):
+            continue
+        if m[r, c] and all(g[r + a, c + b] for a in (0, 1) for b in (0, 1)):
+            m[r, c] = add(vein(True))
+    # the maw below the eye: a dark throat ringed with bone teeth
+    maw = np.concatenate([base, base], axis=1)
+    for py in range(H):
+        for px in range(2 * W):
+            x, y = px * 2 + 1.0 - 2 * W, py + 0.5 - 6
+            d = math.hypot(x / 13, y / 8)
+            if d < 1:
+                maw[py, px] = 1
+            if 0.7 <= d < 1 and y > -2 and (px // 2) % 2 == 0:
+                maw[py, px] = 3
+    m[ey + 2, ex], m[ey + 2, ex + 1] = add(maw[:, :W].copy()), add(maw[:, W:].copy())
+    # the sockets: plain chitin, dark (the parts cover them)
+    sock = base.copy()
+    sock[1:H - 1, 1:W - 1] = 1
+    for name, (c, r, pw, ph) in parts.items():
+        for y in range(ph):
+            for x in range(pw):
+                m[r + y, c + x] = add(sock)
+    return tiles[1:], pals[1:], m

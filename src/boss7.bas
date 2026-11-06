@@ -29,6 +29,7 @@
   rem (engine.asm's)
   dim pfsway = $22C8
   dim pfswayrow = $22C9
+  dim pfswayend = $22CA
 
 boss7_build
   for k = 0 to 10
@@ -43,6 +44,8 @@ boss7_build
   asm
   lda #B7_ROW
   sta pfswayrow
+  lda #$FF
+  sta pfswayend
 end
   return
 

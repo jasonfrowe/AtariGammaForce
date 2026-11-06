@@ -693,3 +693,74 @@ def can7():
         c.fill(rect(4, y, 12, y + 2), 3)                    # bands
     c.fill(poly([(5, 24), (11, 24), (8, 32)]), 3)          # the flame
     return [c.a]
+
+
+# HIVE MOTHERSHIP, the stage 8 boss: 16 px by 32 lines each. The eye in
+# the red enemies' colors (P4: 1 dark, 2 red, 3 glow), the pods and the
+# mandibles in the carapace's (P0: 1 shadow, 2 chitin, 3 vein green).
+
+def ellipse(cx, cy, rx, ry):
+    return lambda x, y: ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 < 1
+
+
+def eye8():
+    """The great eye, the core: dark lids round a red eyeball, a slit
+    pupil; frames: watching, and glaring (the iris wide, burning) as its
+    ring comes."""
+    frames = []
+    for hot in (False, True):
+        c = Canvas(16, 32)
+        c.fill(ellipse(16, 16, 15.5, 14), 1)                 # the lids
+        c.fill(ellipse(16, 16, 12.5, 8.5), 2)                # the eyeball
+        c.fill(circle(16, 16, 7 if hot else 5.5), 3 if hot else 1)  # the iris
+        if hot:
+            c.fill(circle(16, 16, 4.5), 2)
+        c.fill(lambda x, y: abs(x - 16) < (1.5 if hot else 2.5) and abs(y - 16) < 6, 1)  # the slit
+        c.fill(circle(11, 12, 1.6), 3)                        # a glint
+        frames.append(c.a)
+    return frames
+
+
+def pod8():
+    """A spore pod: a ribbed sac, its glow pulsing inside."""
+    frames = []
+    for big in (False, True):
+        c = Canvas(16, 32)
+        c.fill(ellipse(16, 16, 14, 15), 2)
+        c.outline(1)
+        for x0 in (9, 16, 23):                                # the ribs
+            c.fill(lambda x, y, x0=x0: abs(x - x0) < 1.2 and abs(y - 16) < 13, 1)
+        c.fill(ellipse(16, 17, 6 if big else 4, 8 if big else 5), 3)
+        c.fill(circle(16, 17, 1.5), 1)
+        frames.append(c.a)
+    return frames
+
+
+def claw8():
+    """A mandible, reaching down and curving in to its tip; frames: open,
+    and closing. One picture serves both: the right one is the left
+    flipped."""
+    frames = []
+    for k in range(2):
+        c = Canvas(16, 32)
+        pts_o, pts_i = [], []
+        for i in range(9):
+            t = i / 8
+            x = 8 + 12 * t * t * (1 + 0.3 * k) - 2 * t
+            y = 2 + 28 * t
+            w = 5.5 * (1 - t) + 1.2
+            pts_o.append((x - w, y))
+            pts_i.append((x + w, y))
+        c.fill(poly(pts_o + pts_i[::-1]), 2)
+        c.outline(1)
+        c.fill(ellipse(9, 7, 6, 6), 2)                        # its root
+        c.fill(circle(9, 7, 2.5), 3)
+        for y in (13, 19):                                    # segment joints
+            c.fill(lambda x, yy, y=y: abs(yy - y) < 0.8 and x < 22, 1)
+        frames.append(c.a)
+    return frames
+
+
+def parts8():
+    left = claw8()
+    return {"b8eye": eye8(), "b8pod": pod8(), "b8clawl": left, "b8clawr": [f[:, ::-1].copy() for f in left]}

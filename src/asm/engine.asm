@@ -287,6 +287,8 @@ pf_rowshift
      ror                     ; nibble * 16 / 2 = nibble * 8, signed
      cpy pfswayrow           ; (Y: the row) a swaying row: plus the sway
      bcc pf_rowshift_still
+     cpy pfswayend
+     bcs pf_rowshift_still
      clc
      adc pfsway
 pf_rowshift_still
@@ -1131,6 +1133,7 @@ pfahead     = $22C6 ; catch-up steps run early, before the frame showed
 pfowe       = $22C7 ; catch-up steps still owed when the next frame begins
 pfsway      = $22C8 ; MASS DRIVER's sway (stage 7): pixels, signed, added to the
 pfswayrow   = $22C9 ;   x of map rows from pfswayrow on ($FF: none; pf_stage)
+pfswayend   = $22CA ;   up to (not including) pfswayend
 ringrow     = $22D0 ; [14] the map row each ring buffer holds
 pf_early
      lda pfvbl

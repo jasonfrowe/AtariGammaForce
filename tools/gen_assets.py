@@ -220,6 +220,7 @@ SCREEN_TEXTS = {
     "name5": "FROZEN STRAIT",
     "name6": "ASCENT",
     "name7": "SEA OF TRANQUILITY",
+    "name8": "DEEP FIELD",
     "sel1": "<   STAGE 1   >",
     "sel2": "<   STAGE 2   >",
     "sel3": "<   STAGE 3   >",
@@ -227,6 +228,7 @@ SCREEN_TEXTS = {
     "sel5": "<   STAGE 5   >",
     "sel6": "<   STAGE 6   >",
     "sel7": "<   STAGE 7   >",
+    "sel8": "<   STAGE 8   >",
     # the title's difficulty (TXT_MODE0 + easy): up and down choose
     "mode0": "^   EXPERT   _",
     "mode1": "^   NORMAL   _",
@@ -335,6 +337,12 @@ SPRITES = [
     ("b7muzzle", "boss7", 0, 0, None, None, 0),
     # and the bases' launched canisters (towers rising up the screen: stage7.bas)
     ("b7can", "boss7", 0, 0, None, None, 4),
+    # Stage 8's: HIVE MOTHERSHIP's eye (its core), spore pods and mandibles
+    # (in its bank)
+    ("b8eye", "boss8", 0, 0, None, None, 4),
+    ("b8pod", "boss8", 0, 0, None, None, 0),
+    ("b8clawl", "boss8", 0, 0, None, None, 0),
+    ("b8clawr", "boss8", 0, 0, None, None, 0),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -358,7 +366,7 @@ SPRITES = [
     ("hudgem0", "art", 0, 0, None, None, 3),
     ("hudship", "art", 0, 0, None, None, 3),
 ]
-BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5", "boss6", "boss7")} - \
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5", "boss6", "boss7", "boss8")} - \
     {"gunboat", "train", "berg", "slab", "flake", "sat", "b7can"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
@@ -371,6 +379,7 @@ STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "b
                  "b5bridge0", "b5bridge1", "slab", "flake"}
 STAGE6_STRIPS = {"sat0", "sat1", "b6core0", "b6core1", "b6pod0", "b6pod1"}
 STAGE7_STRIPS = {"b7breech0", "b7breech1", "b7cap0", "b7cap1", "b7muzzle0", "b7muzzle1", "b7can0", "b7can1"}
+STAGE8_STRIPS = {"b8eye0", "b8eye1", "b8pod0", "b8pod1", "b8clawl0", "b8clawl1", "b8clawr0", "b8clawr1"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -489,6 +498,9 @@ def build_sprites():
         elif fn == "boss7":
             import boss7800
             conv = boss7800.parts7()[name]
+        elif fn == "boss8":
+            import boss7800
+            conv = boss7800.parts8()[name]
         elif fn == "logo":
             import logo7800
             conv = [logo7800.words()[name]]
@@ -707,6 +719,14 @@ def stage_bank(st):
         for (start, k, pal), off in zip(runs, at):  # one object a line: dasm allows 32 operators a line
             obj_lines.append(f"  .byte <({p}r{u}+{off}),$60,>({p}r{u}+{off}),{(pal << 5) | ((-k) & 31)},"
                              f"{(start + col0) * TILE_W}")
+        if st.get("solid") is not None:
+            # then which columns are solid (bit c % 8 of byte c / 8, columns
+            # from col0): stage8.bas
+            bits = [0, 0, 0]
+            for c, t in enumerate(key):
+                if int(t) in st["solid"]:
+                    bits[c // 8] |= 1 << (c % 8)
+            obj_lines.append("  .byte " + ",".join(str(b) for b in bits))
     lines.append("")
     lines.append("; Row u's background objects: a length byte, then the 5-byte headers.")
     lines += obj_lines
@@ -1858,6 +1878,197 @@ def stage7():
             "pal_codes": [[nearest(c) for c in p] for p in STAGE7_PALETTES]}
 
 
+# Stage 8, DEEP FIELD: open space beyond the Moon (black: the background),
+# stars, and drifts of asteroids, which are solid: they stop shots and
+# enemy bullets, and the ship crashes on them (stage8.bas, by each map
+# row's solid columns: stage_bank). The bank has room for few different
+# rows, so the drifts are a few chunks of rows, each used more than once,
+# with lulls of stars between. Then HIVE MOTHERSHIP, an alien ship grown
+# not built, its hull map rows (as MASS DRIVER's), swaying in the fight.
+STAGE8_BG = (0, 0, 10)
+STAGE8_PALETTES = [
+    [(88, 0, 79), (149, 60, 141), (100, 220, 90)],      # P0 the hive: shadow, chitin, vein green
+    [(50, 42, 40), (118, 100, 86), (196, 178, 150)],    # P1 the asteroids: shadow, rock, sunlit
+    [(90, 90, 130), (170, 170, 210), (255, 255, 255)],  # P2 the stars: dim, pale, white (and gunships)
+]
+STAGE8_BODY = 176                    # rows before the gap
+STAGE8_INTRO = 12                    # stars only, at the start
+STAGE8_CHUNK = 18                    # an asteroid drift's rows
+STAGE8_GAP = 14                      # open space before the hive
+HULL8_COL = 5                        # the hull's left column (10 wide, centred)
+B8_TOP = 0                           # the fight: the hull's top at line 0
+B8_W, B8_H = 10, 7
+# HIVE MOTHERSHIP's parts, repacked from MegaGammaForce's 9 rows to 7:
+# tile column and row of each one's top left, size in tiles
+B8_PARTS = {"EYE": (4, 2, 2, 2), "POD_L": (1, 1, 2, 2), "POD_R": (7, 1, 2, 2),
+            "CLAW_L": (2, 4, 2, 2), "CLAW_R": (6, 4, 2, 2),
+            "TUR0": (3, 0, 1, 1), "TUR1": (6, 0, 1, 1), "TUR2": (1, 3, 1, 1), "TUR3": (8, 3, 1, 1)}
+B8_SWAY = 16                         # its sway, pixels either side (MegaGammaForce's 20 of 192)
+# slots: name, lines down. 5 is the core (the shared code's reactor slot);
+# 4 is the shut eye's armor (boss8.bas), 10 free (a saucer may take it)
+B8_SLOTS = [("POD_L", 0), ("POD_R", 0), ("CLAW_L", 0), ("CLAW_R", 0), None, ("EYE", 0),
+            ("TUR0", 0), ("TUR1", 0), ("TUR2", 0), ("TUR3", 0)]
+
+
+def _runs8(row, split=SPLIT_COL):
+    """Display objects a row of tile numbers takes: its runs of drawn tiles
+    (P1 rock and P2 stars apart, cut at the split column)."""
+    n, prev = 0, None
+    for c, t in enumerate(row):
+        kind = 0 if t == 0 else (1 if t >= 5 else 2)
+        if kind and (kind != prev or c == split):
+            n += 1
+        prev = kind
+    return n
+
+
+def deep_drift(rocks, debris, seed, rows=STAGE8_CHUNK, cols=20):
+    """A drift of asteroids (rows x cols, stage order: row 0 first seen):
+    rocks set down a tile apart, every row keeping four clear columns
+    together to fly through, and few enough runs in a row for its
+    display list."""
+    rng = np.random.default_rng(seed)
+    m = np.zeros((rows, cols), dtype=np.uint8)
+    used = np.zeros((rows, cols), dtype=bool)
+    weights = np.array([5, 5, 4, 4, 3.0])
+    weights /= weights.sum()
+
+    def ok(r0, h):
+        for r in range(r0, r0 + h):
+            run = best = 0
+            for c in range(cols):
+                run = 0 if used[r, c] else run + 1
+                best = max(best, run)
+            if best < 4 or _runs8(m[r]) > 5:
+                return False
+        return True
+
+    r = 1
+    while r < rows - 2:
+        for _ in range(2):                          # two tries a step: the field is wide
+            g = rocks[int(rng.choice(len(rocks), p=weights))]
+            h, w = g.shape
+            if r + h > rows - 1:
+                continue
+            for _ in range(8):
+                c = int(rng.integers(0, cols - w + 1))
+                if used[max(r - 1, 0):r + h + 1, max(c - 1, 0):c + w + 1].any():
+                    continue
+                keep = m.copy()
+                for y in range(h):
+                    for x in range(w):
+                        if g[y, x]:
+                            m[r + h - 1 - y, c + x] = g[y, x]   # stage order: its top row the highest
+                used[r:r + h, c:c + w] = True
+                if ok(r, h):
+                    break
+                m[:] = keep
+                used[r:r + h, c:c + w] = False
+        r += int(rng.integers(1, 3))
+    # debris, now and then, where it is clear
+    for y in range(rows):
+        for x in range(cols):
+            if not used[max(y - 1, 0):y + 2, max(x - 1, 0):x + 2].any() and rng.random() < 0.02:
+                m[y, x] = debris
+                used[y, x] = True
+                if _runs8(m[y]) > 6:
+                    m[y, x] = 0
+    return m
+
+
+def stage8():
+    import tiles7800 as t7
+    meta = json.loads((MGF / "stage8.json").read_text())
+    s_tiles, s_pals, stars, rocks, debris, solid = t7.deep_tiles()
+    h_tiles, h_pals, hull = t7.hive_tiles(B8_W, B8_H, B8_PARTS)
+    base = len(s_tiles)
+    t_slots, t_pals = s_tiles + h_tiles, s_pals + h_pals
+    print(f"stage 8: {len(s_tiles)} + {len(h_tiles)} tiles, {len(solid)} solid")
+    assert len(t_slots) <= 54, f"stage 8: {len(t_slots)} tiles (54 fit beside its sprites)"
+    loop = 16
+    rows = STAGE8_BODY + STAGE8_GAP + B8_H + loop
+    assert rows <= MAX_ROWS, rows
+    m = np.zeros((rows, 20), dtype=np.uint8)
+    # stars: rows from a few patterns (stored once each), one to three a row
+    rng = np.random.default_rng(88)
+    pats = []
+    for k in range(10):
+        p = np.zeros(20, dtype=np.uint8)
+        for c in rng.choice(20, size=int(rng.integers(1, 4)), replace=False):
+            p[c] = stars[int(rng.choice(4, p=[0.4, 0.3, 0.15, 0.15]))]
+        pats.append(p)
+    for r in range(rows):
+        m[r] = pats[int(rng.integers(0, len(pats)))]
+    # the drifts: four chunks, used in turn, with lulls of stars between
+    chunks = [deep_drift(rocks, debris, 80 + k) for k in range(4)]
+    for k, ch in enumerate(chunks):
+        # a star or two in each chunk row, where clear
+        for y in range(STAGE8_CHUNK):
+            if not ch[y].any() or rng.random() < 0.5:
+                c = int(rng.integers(0, 20))
+                if ch[y, max(c - 1, 0):c + 2].sum() == 0 and _runs8(ch[y]) < 6:
+                    ch[y, c] = stars[int(rng.integers(0, 3))]
+    order = [0, 1, 2, 3, 1, 0, 2]
+    r = STAGE8_INTRO
+    for k in order:
+        if r + STAGE8_CHUNK > STAGE8_BODY - 4:
+            break
+        m[r:r + STAGE8_CHUNK] = chunks[k]
+        r += STAGE8_CHUNK + int(rng.integers(4, 8))
+    # HIVE MOTHERSHIP: its tiles over clear rows
+    bow = STAGE8_BODY + STAGE8_GAP                  # its lowest row (the mandibles' tips)
+    stern = bow + B8_H - 1
+    m[bow:stern + 1, :] = 0
+    for hr in range(B8_H):                          # hull row hr (from the top) is map row stern - hr
+        for hc in range(B8_W):
+            if hull[hr, hc]:
+                m[stern - hr, HULL8_COL + hc] = base + hull[hr, hc] - 1
+    for r in range(rows):
+        assert _runs8(m[r]) <= MAX_RUNS, (r, _runs8(m[r]))
+
+    # HIVE MOTHERSHIP's numbers for its boss code: each part's x (with no
+    # sway) and the world height of its top; where the scroll stops, where
+    # it has gone; its rows (they sway: engine.asm)
+    xs, ylo, yhi = [], [], []
+    for sl in B8_SLOTS:
+        if sl is None:
+            xs.append(0)
+            ylo.append(0)
+            yhi.append(0)
+            continue
+        name, dy = sl
+        c, r_, w_, h_ = B8_PARTS[name]
+        xs.append(8 * (HULL8_COL + c))
+        y = (stern - r_ + 1) * 16 - dy
+        ylo.append(y & 255)
+        yhi.append(y >> 8)
+    top8 = (stern + 1) * 16
+    # (stage8.bas: no asteroids in view from scroll position DP_END * 256 on)
+    last = max(r for r in range(STAGE8_BODY) if any(int(t) in solid for t in m[r]))
+    b8 = {"b8_stop": top8 - 208 + B8_TOP, "b8_gone": top8 + 8, "b8_row": bow, "b8_end": stern + 1,
+          "b8_sway": B8_SWAY, "dp_end": ((last + 1) * 16 >> 8) + 1}
+    lines = ["; Generated by tools/gen_assets.py. Do not edit.",
+             "; HIVE MOTHERSHIP's parts (slots 0-9): x, and the world height of each one's",
+             "; top (lo, hi). Its stop (a scroll position), where it has gone, its map rows",
+             "; (from, to), its sway (pixels either side)."]
+    lines.append("b8_x .byte " + ",".join(str(v) for v in xs))
+    lines.append("b8_ylo .byte " + ",".join(str(v) for v in ylo))
+    lines.append("b8_yhi .byte " + ",".join(str(v) for v in yhi))
+    for name, v in b8.items():
+        lines.append(f"{name.upper()} = {v}")
+    (GEN / "boss8tab.asm").write_text("\n".join(lines) + "\n")
+
+    gr = ground_cols([])
+    w = wave_cols(meta["waves"])
+    bossat = (bow * 16 - 208 - 144) >> 8
+    return {"n": 8, "map": m, "t_slots": t_slots, "t_pals": t_pals,
+            "blank": {0}, "col0": 0, "col1": 20, "loop": loop, "solid": solid,
+            "charset": "charset8", "pals": [nearest(c) for p in STAGE8_PALETTES for c in p],
+            "bg": nearest(STAGE8_BG), "song": "SONG_STAGE8", "bosssong": "SONG_BOSS8", "vec": boss_vec(8, "deep"),
+            "bossat": bossat, "waves": spread_waves(w, gr), "ground": gr,
+            "pal_codes": [[nearest(c) for c in p] for p in STAGE8_PALETTES]}
+
+
 UNIT_WEIGHT = {"ET_TRAIN": 3, "ET_GUNSHIP": 3, "ET_GUNBOAT": 3, "ET_SAUCER": 2}
 
 
@@ -1919,7 +2130,7 @@ def main():
     PREVIEW.mkdir(parents=True, exist_ok=True)
 
     font_base = 0
-    stages = [stage1(), stage2(), stage3(), stage4(), stage5(), stage6(), stage7()]
+    stages = [stage1(), stage2(), stage3(), stage4(), stage5(), stage6(), stage7(), stage8()]
     build_charset("charset", stages[0]["t_slots"], 1)
     for st in stages[1:]:
         build_charset(st["charset"], st["t_slots"], 1)
@@ -1942,12 +2153,12 @@ def main():
     bas += ["  newblock"]
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs
             if n not in in_chars and n not in STAGE2_STRIPS | STAGE3_STRIPS | STAGE4_STRIPS | STAGE5_STRIPS
-            | STAGE6_STRIPS | STAGE7_STRIPS]
+            | STAGE6_STRIPS | STAGE7_STRIPS | STAGE8_STRIPS]
     (GEN / "gfx.bas").write_text("\n".join(bas) + "\n")
     # gfxN.bas: stage N's graphics block, in its bank at $A000: the font
     # and the stage's tiles, then its own sprites.
     for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS), (4, STAGE4_STRIPS), (5, STAGE5_STRIPS),
-                          (6, STAGE6_STRIPS), (7, STAGE7_STRIPS)):
+                          (6, STAGE6_STRIPS), (7, STAGE7_STRIPS), (8, STAGE8_STRIPS)):
         bn = ["  rem Generated by tools/gen_assets.py. Do not edit.",
               f"  incgraphic gfx/charset{n}.png 160A 0 1 2 3"]
         bn += [f"  incgraphic gfx/{s}.png 160A 0 1 2 3" for s in incs if s in strips]
