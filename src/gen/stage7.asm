@@ -137,6 +137,8 @@ s7_rowshift
     echo "ERROR: stage 7 header layout"
     err
   endif
+; the stage's code: boss build, enter, fight, place, attack, sinking; hook
+  .word .boss7_build,.boss7_enter,.boss7_fight,.boss7_place,.boss7_attack,.boss7_sinking,.lunar,0
 
 ; Row u's characters: those of its runs of drawn tiles, one after the
 ; other (2 bytes a tile: doublewide). Background tiles aren't drawn.

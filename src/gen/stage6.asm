@@ -141,6 +141,8 @@ s6_rowshift
     echo "ERROR: stage 6 header layout"
     err
   endif
+; the stage's code: boss build, enter, fight, place, attack, sinking; hook
+  .word .boss6_build,.boss6_enter,.boss6_fight,.boss6_place,.boss6_attack,.boss6_sinking,.ascent,0
 
 ; Row u's characters: those of its runs of drawn tiles, one after the
 ; other (2 bytes a tile: doublewide). Background tiles aren't drawn.

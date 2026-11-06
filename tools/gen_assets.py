@@ -576,7 +576,13 @@ def stg_layout():
         lay[name] = (off, size)
         off += size
     lay["stg_end"] = (off, 0)
+    # the stage's own code (stages 5 on), for jmp (stg_vec + 2k): its boss's
+    # build, enter, fight, place, attack, sinking, and its main loop hook
+    lay["stg_vec"] = (off, 2 * len(STG_VEC))
     return lay
+
+
+STG_VEC = ("build", "enter", "fight", "place", "attack", "sinking", "hook", "spare")
 
 
 STG = stg_layout()
@@ -675,6 +681,12 @@ def stage_bank(st):
     lines.append(f'    echo "ERROR: stage {n} header layout"')
     lines.append("    err")
     lines.append("  endif")
+    vec = st.get("vec")
+    if vec:
+        lines.append("; the stage's code: boss build, enter, fight, place, attack, sinking; hook")
+        lines.append("  .word " + ",".join(f".{v}" if v else "0" for v in vec))
+    else:
+        lines.append(f"  ds {2 * len(STG_VEC)},0")
     lines.append("")
     lines.append("; Row u's characters: those of its runs of drawn tiles, one after the")
     lines.append("; other (2 bytes a tile: doublewide). Background tiles aren't drawn.")
@@ -710,6 +722,11 @@ def stage_bank(st):
 STAGE1_RUNS = [(18, 141), (95, 141), (142, 162), (192, 207)]
 
 
+def boss_vec(n, hook):
+    """Stage n's vectors (STG_VEC): its boss's routines, its hook."""
+    return [f"boss{n}_{v}" for v in STG_VEC[:6]] + [hook, None]
+
+
 def stage1_map():
     meta = json.loads((MGF / "stage1.json").read_text())
     cols, rows = meta["cols"], meta["rows"]
@@ -741,6 +758,8 @@ def stg_consts():
         if name == "stg_end":
             continue
         out.append(f"  dim {name} = ${0x8000 + off:04X}")
+    for k, v in enumerate(STG_VEC):
+        out.append(f"  const STGV_{v.upper()} = ${0x8000 + STG['stg_vec'][0] + 2 * k:04X}")
     return out
 
 
@@ -1481,7 +1500,7 @@ def stage5():
     return {"n": 5, "map": m, "t_slots": t_slots, "t_pals": t_pals,
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
             "charset": "charset5", "pals": [nearest(c) for p in STAGE5_PALETTES for c in p],
-            "bg": nearest(STAGE5_BG), "song": "SONG_STAGE5", "bosssong": "SONG_BOSS5", "bossat": bossat,
+            "bg": nearest(STAGE5_BG), "song": "SONG_STAGE5", "bosssong": "SONG_BOSS5", "vec": boss_vec(5, "blizzard"), "bossat": bossat,
             "waves": spread_waves(w, gr), "ground": gr,
             "pal_codes": [[nearest(c) for c in p] for p in STAGE5_PALETTES]}
 
@@ -1697,7 +1716,7 @@ def stage6():
     return {"n": 6, "map": m, "t_slots": tiles, "t_pals": pals,
             "blank": blank, "col0": 0, "col1": 20, "loop": 16,
             "charset": "charset6", "pals": [nearest(c) for p in STAGE6_PALETTES for c in p],
-            "bg": _fade_code(STAGE6_OCEAN), "song": "SONG_STAGE6", "bosssong": "SONG_BOSS6", "bossat": bossat,
+            "bg": _fade_code(STAGE6_OCEAN), "song": "SONG_STAGE6", "bosssong": "SONG_BOSS6", "vec": boss_vec(6, "ascent"), "bossat": bossat,
             "waves": spread_waves(w, gr), "ground": gr,
             "pal_codes": [[nearest(c) for c in p] for p in STAGE6_PALETTES]}
 
@@ -1834,7 +1853,7 @@ def stage7():
     return {"n": 7, "map": m, "t_slots": t_slots, "t_pals": t_pals,
             "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
             "charset": "charset7", "pals": [nearest(c) for p in STAGE7_PALETTES for c in p],
-            "bg": nearest(STAGE7_BG), "song": "SONG_STAGE7", "bosssong": "SONG_BOSS7", "bossat": bossat,
+            "bg": nearest(STAGE7_BG), "song": "SONG_STAGE7", "bosssong": "SONG_BOSS7", "vec": boss_vec(7, "lunar"), "bossat": bossat,
             "waves": spread_waves(w, gr), "ground": gr,
             "pal_codes": [[nearest(c) for c in p] for p in STAGE7_PALETTES]}
 

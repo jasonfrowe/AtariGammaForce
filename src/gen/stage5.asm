@@ -141,6 +141,8 @@ s5_rowshift
     echo "ERROR: stage 5 header layout"
     err
   endif
+; the stage's code: boss build, enter, fight, place, attack, sinking; hook
+  .word .boss5_build,.boss5_enter,.boss5_fight,.boss5_place,.boss5_attack,.boss5_sinking,.blizzard,0
 
 ; Row u's characters: those of its runs of drawn tiles, one after the
 ; other (2 bytes a tile: doublewide). Background tiles aren't drawn.

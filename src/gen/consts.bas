@@ -38,6 +38,15 @@
   dim stg_rowlo = $82A0
   dim stg_rowhi = $8390
   dim stg_rowshift = $8480
+  dim stg_vec = $8570
+  const STGV_BUILD = $8570
+  const STGV_ENTER = $8572
+  const STGV_FIGHT = $8574
+  const STGV_PLACE = $8576
+  const STGV_ATTACK = $8578
+  const STGV_SINKING = $857A
+  const STGV_HOOK = $857C
+  const STGV_SPARE = $857E
   const TXT_ATARI = 0
   const TXT_PUSH = 1
   const TXT_B1 = 2

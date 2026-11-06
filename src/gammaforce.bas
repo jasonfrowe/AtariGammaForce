@@ -619,12 +619,9 @@ end
   asm
   jsr bul_update
 end
-  rem stage 5's blizzards (stage5.bas, in its bank)
-  if stage = 5 then gosub blizzard
-  rem stage 6's fade (stage6.bas, in its bank)
-  if stage = 6 then gosub ascent
-  rem stage 7's launch rails (stage7.bas, in its bank)
-  if stage = 7 then gosub lunar
+  rem stage 5 on: the stage's own (its bank's hook: stage 5's blizzards,
+  rem 6's fade, 7's launch rails)
+  if stage >= 5 then gosub stage_hook
   asm
   ifconst PROFILE
   lda #8
@@ -1120,9 +1117,7 @@ boss_warning
   if stage = 2 then gosub boss2_build
   if stage = 3 then gosub boss3_build
   if stage = 4 then gosub boss4_build
-  if stage = 5 then gosub boss5_build
-  if stage = 6 then gosub boss6_build
-  if stage = 7 then gosub boss7_build
+  if stage >= 5 then gosub boss_vbuild
   gosub boss_place
   bstate = 2 : btl = 0 : bth = 0
   return
@@ -1130,9 +1125,11 @@ boss_warning
 boss_enter
   if stage = 3 then goto boss3_enter
   if stage = 4 then goto boss4_enter
-  if stage = 5 then goto boss5_enter
-  if stage = 6 then goto boss6_enter
-  if stage = 7 then goto boss7_enter
+  if stage < 5 then goto boss_enter_1
+  asm
+  jmp (STGV_ENTER)
+end
+boss_enter_1
   by = by + 1
   gosub boss_place
   if by < 89 then return
@@ -1142,9 +1139,11 @@ boss_enter
 boss_fight
   if stage = 3 then goto boss3_fight
   if stage = 4 then goto boss4_fight
-  if stage = 5 then goto boss5_fight
-  if stage = 6 then goto boss6_fight
-  if stage = 7 then goto boss7_fight
+  if stage < 5 then goto boss_fight_1
+  asm
+  jmp (STGV_FIGHT)
+end
+boss_fight_1
   btl = btl + 1
   if btl = 0 then bth = bth + 1
   rem sway: x = 80 + 17 sin(t/2), y = 89 + 6 sin(t/4) (stage 2: 12, 7)
@@ -1190,9 +1189,11 @@ boss_nodive
 boss_place
   if stage = 3 then goto boss3_place
   if stage = 4 then goto boss4_place
-  if stage = 5 then goto boss5_place
-  if stage = 6 then goto boss6_place
-  if stage = 7 then goto boss7_place
+  if stage < 5 then goto boss_place_1
+  asm
+  jmp (STGV_PLACE)
+end
+boss_place_1
   asm
   ldx #10
 boss_place_loop
@@ -1234,10 +1235,10 @@ boss_attack
   if stage = 2 then goto boss2_attack
   if stage = 3 then goto boss3_attack
   if stage = 4 then goto boss4_attack
-  if stage = 5 then goto boss5_attack
-  if stage = 6 then goto boss6_attack
-  if stage = 7 then goto boss7_attack
-  goto boss1_attack
+  if stage < 5 then goto boss1_attack
+  asm
+  jmp (STGV_ATTACK)
+end
 
   rem Damage temp1 to boss part i. A wing's bottom half passes its hits
   rem to the top half, the slot before it.
@@ -1347,6 +1348,20 @@ boss_bonus
 end
   return
 
+  rem stage 5 on: the stage's own code, by its bank's vectors (stg_vec)
+stage_hook
+  asm
+  jmp (STGV_HOOK)
+end
+boss_vbuild
+  asm
+  jmp (STGV_BUILD)
+end
+boss_vsinking
+  asm
+  jmp (STGV_SINKING)
+end
+
   rem Explosions all over it, then gone
 boss_dying
   btl = btl + 1
@@ -1354,9 +1369,7 @@ boss_dying
   if temp1 = 0 then gosub boss_boom
   if stage = 3 then gosub boss3_sinking
   if stage = 4 then gosub boss4_sinking
-  if stage = 5 then gosub boss5_sinking
-  if stage = 6 then gosub boss6_sinking
-  if stage = 7 then gosub boss7_sinking
+  if stage >= 5 then gosub boss_vsinking
   if btl < 240 then gosub boss_place : return
   for k = 0 to 10 : etype[k] = 0 : next
   bstate = 5 : btl = 0
