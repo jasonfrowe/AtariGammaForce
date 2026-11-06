@@ -4,7 +4,7 @@
   rem  Sun. Its hull is part of the map (as HIVE MOTHERSHIP's: map rows after
   rem  the flares), and the scroll brings it in and stops with it at the top
   rem  of the screen. It holds still: the battlefield's flares under it
-  rem  (stage9.bas) keep the ship from camping under the core. Four prisms
+  rem  (stage9.bas) keep the ship from camping under the core. Two prisms
   rem  orbit it (as HALO STATION's satellites) firing pink threes at the
   rem  ship, two ring cannons fire pink rings, four turrets aimed blue; the
   rem  beam emitter below the core glows, then pours three fans of needles
@@ -12,13 +12,13 @@
   rem  while any prism orbits, then burns red.
   rem  With the emitter gone the core sprays at the ship; hurt, it fires
   rem  blue threes too; late in the fight, pink rings.
-  rem  Slots: 0-1 the cannons, 2 the emitter, 3-4 and 10-11 the prisms, 5
-  rem  the core, 6-9 the turrets.
+  rem  Slots: 0-1 the cannons, 2 the emitter, 3-4 the prisms (two, not
+  rem  MegaGammaForce's four: for speed), 5 the core, 6-9 the turrets.
   rem  Beaten (or gone), it sinks away below: the scroll carries it off.
   rem  It lives in stage 9's bank; the shared boss code calls it.
   rem ======================================================================
 
-  rem its clocks: the turrets (0-83), the prisms (0-159), the cannons
+  rem its clocks: the turrets (0-83), the prisms (0-79), the cannons
   rem (0-129), the beam (0-149), the core's ring (0-169)
   dim b9tur = $22E0
   dim b9pr = $22E1
@@ -41,7 +41,7 @@ boss9_build
   rem Each part's line from the scroll: spos + 240 - its top's world
   rem height (16 bits), its x the table's; off the screen,
   rem it waits off to the right. Then the prisms, round the core (their
-  rem table's place), a quarter turn apart, turning a step a frame in the
+  rem table's place), half a turn apart, turning a step a frame in the
   rem fight.
 boss9_place
   asm
@@ -85,7 +85,7 @@ b9p_next
   inc borbit
 b9p_still
   ; the orbit: 50 lines up and down, 64 pixels across
-  ldx #11
+  ldx #4
 b9p_prism
   lda etype,x
   cmp #ET_PPOD
@@ -137,20 +137,19 @@ b9p_proff
   sta exh,x
 b9p_prnext
   dex
-  bpl b9p_prism
+  cpx #3
+  bcs b9p_prism
 end
   rem the core is shut while any prism orbits (gammaforce.bas part_core):
   rem gold; then it burns red
   ecol[5] = 4
   if etype[3] = ET_PPOD || etype[4] = ET_PPOD then ecol[5] = 0
-  if etype[10] = ET_PPOD || etype[11] = ET_PPOD then ecol[5] = 0
   rem the core pulses; the prisms turn; each cannon glows in the 20
   rem frames before its ring, the emitter as its needles charge (its last
   rem 40 frames)
   eframe[5] = (tick / 8) & 1
   temp1 = tick / 8
   eframe[3] = temp1 & 1 : eframe[4] = (temp1 + 1) & 1
-  eframe[10] = temp1 & 1 : eframe[11] = (temp1 + 1) & 1
   temp2 = 0
   if b9can >= 10 && b9can < 30 then temp2 = 1
   eframe[0] = temp2
@@ -203,7 +202,7 @@ boss9_fight
   b9tur = b9tur + 1
   if b9tur >= 84 then b9tur = 0
   b9pr = b9pr + 1
-  if b9pr >= 160 then b9pr = 0
+  if b9pr >= 80 then b9pr = 0
   b9can = b9can + 1
   if b9can >= 130 then b9can = 0
   b9beam = b9beam + 1
@@ -230,8 +229,9 @@ boss9_attack
 end
 b9_tur_next
   next
-  rem the prisms: an aimed pink three, each every 160 frames, by turns
-  for k = 3 to 11
+  rem the prisms: an aimed pink three, each every 80 frames, by turns (two
+  rem prisms, not MegaGammaForce's four, firing as often as its four)
+  for k = 3 to 4
     if etype[k] <> ET_PPOD then goto b9_pr_next
     if eyh[k] < 8 then goto b9_pr_next
     if b9pr <> boss9_ph[k] then goto b9_pr_next
@@ -324,29 +324,29 @@ end
   return
 
   rem each part's moment in its clock, so they fire by turns: the cannons
-  rem (0-1), the prisms (3-4, 10-11), the turrets (6-9)
+  rem (0-1), the prisms (3-4), the turrets (6-9)
   data boss9_ph
-  30, 95, 0, 0, 40, 0, 0, 21, 42, 63, 80, 120
+  30, 95, 0, 0, 40, 0, 0, 21, 42, 63, 0, 0
 end
-  rem the prisms' places round the orbit (a quarter turn apart)
+  rem the prisms' places round the orbit (half a turn apart)
   data b9_pang
-  0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 128, 192
+  0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0
 end
 
   rem ---- parts: type, image, hit points, share of the boss (%), palette
   rem (the core's 30 is counted apart; positions in gen/boss9tab.asm)
   data boss9_type
-  ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PPOD, ET_PPOD, ET_PCORE, ET_PTURRET, ET_PTURRET, ET_PTURRET, ET_PTURRET, ET_PPOD, ET_PPOD
+  ET_PCANNON, ET_PCANNON, ET_PCANNON, ET_PPOD, ET_PPOD, ET_PCORE, ET_PTURRET, ET_PTURRET, ET_PTURRET, ET_PTURRET, 0, 0
 end
   data boss9_img
-  IMG_BCANNON, IMG_BCANNON, IMG_B9EMIT, IMG_B9PRISM, IMG_B9PRISM, IMG_B9CORE, IMG_TURRET, IMG_TURRET, IMG_TURRET, IMG_TURRET, IMG_B9PRISM, IMG_B9PRISM
+  IMG_BCANNON, IMG_BCANNON, IMG_B9EMIT, IMG_B9PRISM, IMG_B9PRISM, IMG_B9CORE, IMG_TURRET, IMG_TURRET, IMG_TURRET, IMG_TURRET, 0, 0
 end
   data boss9_hp
-  210, 210, 210, 76, 76, 255, 76, 76, 76, 76, 76, 76
+  210, 210, 210, 76, 76, 255, 76, 76, 76, 76, 0, 0
 end
   data boss9_wt
-  10, 10, 14, 5, 5, 0, 4, 4, 4, 4, 5, 5
+  10, 10, 14, 10, 10, 0, 4, 4, 4, 4, 0, 0
 end
   data boss9_col
-  0, 0, 0, 5, 5, 0, 4, 4, 4, 4, 5, 5
+  0, 0, 0, 5, 5, 0, 4, 4, 4, 4, 0, 0
 end

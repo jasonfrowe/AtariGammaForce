@@ -2146,6 +2146,7 @@ B9_PARTS = {"CORE": (3, 1, 2, 2), "CANNON_L": (0, 1, 2, 2), "CANNON_R": (6, 1, 2
 # less half a prism). 5 is the core (the shared code's reactor slot)
 B9_SLOTS = [("CANNON_L", 0), ("CANNON_R", 0), ("EMITTER", 0), ("CORE", 8), ("CORE", 8), ("CORE", 0),
             ("TUR0", 0), ("TUR1", 0), ("TUR2", 0), ("TUR3", 0), ("CORE", 8), ("CORE", 8)]
+# (slots 10-11 unused: two prisms, not MegaGammaForce's four, for speed)
 
 
 def _runs9(row, pals):
