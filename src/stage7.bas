@@ -5,8 +5,8 @@
   rem  at the bottom of the screen, its nose showing, blinking red
   rem  and yellow for 48 frames; then it shoots up the screen. It is a
   rem  tower (shots stop on it), but rising it is a projectile: touching it
-  rem  is a hit. Canisters come from the stage's start to its last ground
-  rem  units, not in the boss fight. A canister's line is the scroll plus
+  rem  is a hit. Canisters come from early in the stage until the boss is
+  rem  beaten or escapes. A canister's line is the scroll plus
   rem  eparam (objects.asm en_update): waiting, eparam keeps it on its line;
   rem  rising, it loses 3 a step (about 2.4 lines a frame up the screen).
   rem  estate: 1 waiting (ewang its count: etimer is en_think's), 2 rising.
@@ -16,14 +16,18 @@
   dim b7launch = $22E4
 
 lunar
-  rem launches: from scroll 512 to 2815, not once the boss is on its way
-  if bstate then goto lunar_move
+  rem launches: from scroll 512 on, through MASS DRIVER's fight, not once
+  rem it is beaten
+  if bstate >= 4 then goto lunar_move
   if spos_hi < 2 then goto lunar_move
-  if spos_hi >= 11 then goto lunar_move
   b7launch = b7launch + 1
   if b7launch < 150 then goto lunar_move
   b7launch = 0
-  for k = 0 to NEW1
+  rem in the fight only slots 10 and 11: a destroyed part's slot is empty
+  rem but still MASS DRIVER's
+  temp2 = 0
+  if bstate then temp2 = 10
+  for k = temp2 to NEW1
     if etype[k] = 0 then goto lunar_spawn
   next
   goto lunar_move
