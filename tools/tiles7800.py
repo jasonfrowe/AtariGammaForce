@@ -961,3 +961,285 @@ def station6():
         for c in (3, 4):
             tiles[r][c][:] = 0
     return tiles
+
+
+# ---------------------------------------------------------------------------
+# Stage 7, SEA OF TRANQUILITY: the Moon. The regolith is the background
+# color (gray), so open ground costs nothing; craters, the bases and the
+# roads are drawn. Palettes: P0 MASS DRIVER's hull (1 shadow, 2 gunmetal,
+# 3 light), P1 the regolith's shades (1 deep shadow, 2 dark dust, 3 sunlit
+# rim), P2 the bases (1 dark metal, 2 dome glass, 3 white markings; in the
+# boss fight the rail's coils, its three colors turned round).
+
+HULL7, MOON7, BASE7 = 0, 1, 2
+
+
+def _crater7(size, seed):
+    """A crater size tiles across (size x size tiles): its rim lit on the
+    upper left, the bowl's near (upper-left) wall in deep shadow, its far
+    wall catching the light, the floor dark dust; bright flecks of ejecta
+    round it. Returns its tiles, top row first, left to right."""
+    n = size * H                                    # screen units across and down
+    img = np.zeros((n, size * W), dtype=np.uint8)
+    rng = np.random.default_rng(700 + seed)
+    c = n / 2
+    r = n / 2 - 1.5 - size * 0.4
+    bump = rng.uniform(-0.05, 0.05, 8)
+    for py in range(n):
+        for px in range(size * W):
+            x, y = px * 2 + 1.0 - c, py + 0.5 - c
+            a = math.atan2(y, x)
+            d = math.hypot(x, y) / (r * (1 + bump[int((a + math.pi) / (2 * math.pi) * 8) % 8]))
+            lit = -(x + y) / (math.sqrt(2) * max(1.0, math.hypot(x, y)))  # + toward the upper left
+            if 0.8 < d < 1.08:
+                if lit > 0.25:
+                    img[py, px] = 3
+                elif lit < -0.3:
+                    img[py, px] = 2
+            elif d <= 0.8:
+                img[py, px] = 2
+                if lit > 0.05:
+                    img[py, px] = 1
+                if lit < -0.45 and d > 0.45:
+                    img[py, px] = 0                 # the far wall, as lit as the plain
+            elif d < 1.45 and size > 1 and rng.random() < 0.06:
+                img[py, px] = 3                     # ejecta
+    return [img[ty * H:(ty + 1) * H, tx * W:(tx + 1) * W].copy() for ty in range(size) for tx in range(size)]
+
+
+def _floor7(edges):
+    """A base's floor plate (the plain's own gray, dark seams), a 9-slice:
+    edges (n, e, s, w) get a curb, bright where it faces up or left."""
+    t = np.zeros((H, W), dtype=np.uint8)
+    t[H - 1, :] = 1
+    t[:, W - 1] = 1
+    t[7, 2:W - 1:4] = 1                             # rivets
+    n_, e_, s_, w_ = edges
+    if n_:
+        t[0, :] = 3
+        t[1, :] = 1
+    if w_:
+        t[:, 0] = 3
+        t[:, 1] = 1
+    if s_:
+        t[H - 2, :] = 1
+        t[H - 1, :] = 1
+    if e_:
+        t[:, W - 2] = 1
+    return t
+
+
+def _dome7():
+    """A glass dome on the floor, 2 x 2 tiles: dark frame, glass ribbed,
+    a white glint on its upper left."""
+    big = np.zeros((2 * H, 2 * W), dtype=np.uint8)
+    for py in range(2 * H):
+        for px in range(2 * W):
+            x, y = px * 2 + 1.0 - 16, py + 0.5 - 16
+            d = math.hypot(x, y)
+            if d < 14:
+                big[py, px] = 1
+            if d < 12.5:
+                big[py, px] = 2
+                if px in (3, 5, 10, 12) or (x + y > 9 and (px + py) % 2 == 0):
+                    big[py, px] = 1                 # ribs, the shaded side
+            if abs(d - 8) < 0.9 and x + y < -4:
+                big[py, px] = 3
+            if math.hypot(x + 5, y + 5) < 2.2:
+                big[py, px] = 3
+    return _quarters(big)
+
+
+def _pad7():
+    """A landing pad: a dark disc with a white ring and H, glass-blue
+    lights round its edge."""
+    big = np.zeros((2 * H, 2 * W), dtype=np.uint8)
+    for py in range(2 * H):
+        for px in range(2 * W):
+            x, y = px * 2 + 1.0 - 16, py + 0.5 - 16
+            d = math.hypot(x, y)
+            ang = math.degrees(math.atan2(y, x)) % 360
+            if d < 14:
+                big[py, px] = 1
+            if abs(d - 13) < 1.0 and int(ang // 30) % 2 == 0:
+                big[py, px] = 2
+            if abs(d - 10) < 0.8:
+                big[py, px] = 3
+    big[10:22, 5:6] = 3
+    big[10:22, 10:11] = 3
+    big[15:17, 5:11] = 3
+    return _quarters(big)
+
+
+def _bunker7():
+    """A turret bunker: a square concrete rim (P1: lit on its upper left)
+    round a dark gun well."""
+    big = np.zeros((2 * H, 2 * W), dtype=np.uint8)
+    for py in range(2 * H):
+        for px in range(2 * W):
+            x, y = px * 2 + 1.0 - 16, py + 0.5 - 16
+            sq = max(abs(x), abs(y))
+            if sq < 14:
+                big[py, px] = 2
+                if sq >= 12:
+                    big[py, px] = 3 if x + y < 0 else 1
+            d = math.hypot(x, y)
+            if d < 9.5:
+                big[py, px] = 1
+            if d < 7.5:
+                big[py, px] = 1 if (px + py) % 2 else 2
+    return _quarters(big)
+
+
+def _road7(plaza):
+    """A rover road: dark ruts in packed dust between rows of guide
+    lights (bright dots); across a plaza, a dark roadway."""
+    t = np.zeros((H, W), dtype=np.uint8)
+    t[1, :] = 3 if not plaza else 1
+    t[14, :] = 1
+    if plaza:
+        t[2:14, :] = 1
+        t[7:9, 1:7:3] = 3                           # a dashed centre line
+    else:
+        for y in (5, 10):
+            t[y, :] = 2
+        t[1, 0::4] = 1
+    return t
+
+
+def luna_tiles(ids, used):
+    """Our tiles for MegaGammaForce's lunar names (luna.py), those of them
+    in used (the map's tile numbers). Returns (tiles, palettes, lut); tile
+    0 is blank (the plain: regolith)."""
+    tiles, pals, lut = [np.zeros((H, W), dtype=np.uint8)], [MOON7], {}
+
+    def add(key, t, pal):
+        if key not in lut:
+            lut[key] = len(tiles)
+            tiles.append(t)
+            pals.append(pal)
+        return lut[key]
+
+    craters = {}
+    dome, pad, bunker = _dome7(), _pad7(), _bunker7()
+    out = {}
+    for name, i in ids.items():
+        if i not in used:
+            continue
+        if name.startswith("reg"):
+            out[i] = 0
+        elif name.startswith("crater"):
+            # crater{size}_{variant}_{k}: k counts from its top row, left
+            # to right. One picture per size (the bank's graphics are few).
+            size, _, k = (int(v) for v in name[6:].split("_"))
+            if size not in craters:
+                craters[size] = _crater7(size, size)
+            out[i] = add(f"crater{size}_{k}", craters[size][k], MOON7)
+        elif name.startswith("floor"):
+            e = int(name[5:])
+            edges = ((e >> 3) & 1, (e >> 2) & 1, (e >> 1) & 1, e & 1)
+            # (luna's floor edges: bit 3 the plaza's last row, its top as
+            # the map scrolls; bit 1 its first, the bottom)
+            n_, e_, s_, w_ = edges
+            out[i] = add(f"floor{e}", _floor7((n_, e_, s_, w_)), BASE7)
+        elif name.startswith(("dome", "pad", "bunker")):
+            kind = name.rstrip("0123")
+            q = {"dome": dome, "pad": pad, "bunker": bunker}[kind][int(name[len(kind):])]
+            out[i] = add(name, q, MOON7 if kind == "bunker" else BASE7)
+        elif name.startswith("roadp"):
+            out[i] = add("roadp", _road7(True), BASE7)
+        elif name.startswith("road"):
+            out[i] = add("road", _road7(False), MOON7)
+    return tiles, pals, out
+
+
+def driver_tiles(ids):
+    """MASS DRIVER's hull, for MegaGammaForce's names (driver.py), 10 tiles
+    by 9 rows: gunmetal deck (P0), hover nacelles down both sides, and the
+    rail cannon up its middle, its coil rings in P2's three colors (turned
+    round in the fight, so charge seems to run down the barrel). The
+    sockets and hatches are left plain (parts cover them). Returns (tiles,
+    palettes, lut, the clear tile)."""
+    tiles, pals, lut = [], [], {}
+
+    def add(t, pal):
+        key = (t.tobytes(), pal)
+        if key not in lut:
+            lut[key] = len(tiles)
+            tiles.append(t)
+            pals.append(pal)
+        return lut[key]
+
+    def rail(side):
+        t = np.zeros((H, W), dtype=np.uint8)
+        for y in range(H):
+            t[y, :] = 1 + (y // 3) % 3 if y % 3 != 2 else 1
+        if side == 0:
+            t[:, 0] = 1
+            t[:, 6:] = 1                            # the bore's shadow
+        else:
+            t[:, W - 1] = 1
+            t[:, :2] = 1
+        return t
+
+    def nacelle(end, side):
+        t = _plate(1)
+        t[:, 0 if side == 0 else W - 1] = 1
+        t[:, 1 if side == 0 else W - 2] = 3 if side == 0 else 1
+        for y in range(3, H, 5):
+            t[y:y + 2, 2:6] = 1                     # vents
+        if end:
+            for y in range(H):
+                for x in range(W):
+                    u = (W - 0.5 - x) / W if side == 0 else (x + 0.5) / W
+                    v = (H - 0.5 - y) / H if end == "top" else (y + 0.5) / H
+                    if u * u + v * v > 1:
+                        t[y, x] = 0
+        return t
+
+    deck0, deck1 = _plate(0), _plate(5)
+    stripe = _plate(0)
+    for y in range(1, H - 1):
+        for x in range(W):
+            if ((x + y) // 3) % 2 == 0:
+                stripe[y, x] = 1                    # hazard stripes
+    lamp = _plate(0)
+    lamp[6:10, 2:6] = 1
+    lamp[7:9, 3:5] = 3
+    socket = _plate(0)
+    socket[2:14, 1:7] = 1
+    big = np.concatenate([np.concatenate([_plate(0), _plate(5)], axis=1)] * 2)
+    for y in range(2 * H):
+        for x in range(2 * W):
+            d = math.hypot((x + 0.5 - W) * 2, y + 0.5 - H)
+            if d < 14:
+                big[y, x] = 3
+            if d < 12:
+                big[y, x] = 1
+    bigq = _quarters(big)
+    door = np.full((H, W), 1, dtype=np.uint8)
+    for y in range(1, H):
+        for x in range(1, W - 1):
+            door[y, x] = 3 if ((x + y) // 3) % 2 == 0 else 1
+    out = {}
+    for name, i in ids.items():
+        if name == "clear" or name.startswith("crater"):
+            continue
+        if name.startswith("deck"):
+            out[i] = add(deck0 if int(name[4:]) % 2 == 0 else deck1, HULL7)
+        elif name.startswith("rail"):
+            out[i] = add(rail(int(name[4:])), BASE7)
+        elif name.startswith("nac"):
+            side, end = int(name[3]), name[4:] or None
+            out[i] = add(nacelle(end, side), HULL7)
+        elif name == "stripe":
+            out[i] = add(stripe, HULL7)
+        elif name == "lamp":
+            out[i] = add(lamp, HULL7)
+        elif name.startswith("big"):
+            out[i] = add(bigq[int(name[3:])], HULL7)
+        elif name == "small":
+            out[i] = add(socket, HULL7)
+        elif name in ("hatch0", "hatch1"):
+            out[i] = add(door if name == "hatch0" else door[::-1].copy(), HULL7)
+    return tiles, pals, out, ids.get("clear")

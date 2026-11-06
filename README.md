@@ -9,7 +9,7 @@ with an assembly display engine for smooth vertical scrolling.
 
 ![Atari Gamma Force: the title, four stages and their bosses](docs/gameplay.gif)
 
-**Status:** playable through six stages, round and round. Stage 1 (the
+**Status:** playable through seven stages, round and round. Stage 1 (the
 fortress at sea, and the GAMMA CORE), stage 2 (NEON SPIRES, a city at
 night that winds and splits, with wasps, tanks, towers to fly around and
 the SPIRE WARDEN), stage 3 (IRON TIDE: islands, gunboats, and LEVIATHAN,
@@ -19,7 +19,10 @@ winding a figure of eight), stage 5 (FROZEN STRAIT: pack ice, icebergs,
 blizzards, and GLACIER CRAWLER) and stage 6 (ASCENT: climbing out of the
 atmosphere as the ocean darkens below, past the Earth's limb into space
 among satellites, to HALO STATION, a ring station with orbiting gun
-satellites) scroll pixel-exact to
+satellites) and stage 7 (SEA OF TRANQUILITY: the Moon's craters, lunar
+bases with domes and landing pads, rovers, and MASS DRIVER, a hovering
+rail cannon that sways as it fires slugs down the screen) scroll
+pixel-exact to
 MegaGammaForce's music converted to POKEY, with its enemy waves, ground
 units and bullet patterns; the Vulcan, the Radiant Sword (absorbing pink
 bullets), the Hyper Sword, the color chain, score and lives work. See [docs/DESIGN.md](docs/DESIGN.md) for the plan and
@@ -86,8 +89,7 @@ or with CMake: `cmake --preset default && cmake --build --preset default`.
 
 Test builds: `GF_DEFINES="CHEAT BOSSTEST STAGE2TEST" tools/build.sh` makes
 `build/gammaforce-test.a78` with any of: an invulnerable ship, a start at
-the boss, a start at stage 2, 3 or 4 (`STAGE2TEST`, `STAGE3TEST`,
-`STAGE4TEST`; and
+the boss, a start at a later stage (`STAGE2TEST` to `STAGE7TEST`; and
 `FPS30`, `PROFILE`).
 
 Run it in [A7800](https://github.com/7800-devtools/a7800):
@@ -106,7 +108,7 @@ a7800 a7800 -cart build/gammaforce.a78
 | `tools/vgm2pokey.py` | MegaGammaForce's OPL2 VGM music to POKEY data |
 | `src/gfx/`, `src/gen/` | Generated graphics and data (committed; made by `tools/gen_assets.py`) |
 | `assets/art7800.txt` | The sprites, drawn as text |
-| `assets/mgf/` | MegaGammaForce's maps, waves and music (`tools/import_mgf.py`) |
+| `assets/mgf/` | MegaGammaForce's maps, waves and music (`tools/import_mgf.py`; stage 7's `tools/import_mgf7.py`) |
 | `src/asm/objects.asm` | Enemy bullets, enemy movement, hit tests, score |
 | `tools/7800basic/` | 7800basic v0.41 (stock) |
 | `tools/test_scroll.sh` | Headless engine regression test |

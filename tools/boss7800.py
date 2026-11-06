@@ -612,3 +612,68 @@ def pod6():
 
 def parts6():
     return {"sat": sat6(), "b6core": core6(), "b6pod": pod6()}
+
+
+# MASS DRIVER, the stage 7 boss: its sprites, in P0 (the hull's colors:
+# 1 shadow, 2 gunmetal, 3 light), 16 px by 32 lines each.
+
+def rect(x0, y0, x1, y1):
+    return lambda x, y: x0 <= x < x1 and y0 <= y < y1
+
+
+def breech7():
+    """The breech, the core: an armored block over the rail's end, three
+    vents across it, a capacitor eye; frames: it pulses."""
+    frames = []
+    for hot in (False, True):
+        c = Canvas(16, 32)
+        c.fill(rect(2, 1, 30, 31), 2)
+        c.outline(1)
+        c.fill(rect(4, 3, 28, 5), 3)                # its lit top edge
+        for y in (7, 23):
+            c.fill(rect(6, y, 26, y + 3), 1)        # vents
+        c.fill(circle(16, 16, 8), 1)
+        c.fill(circle(16, 16, 6 if hot else 4.5), 3)
+        c.fill(circle(16, 16, 2 if hot else 1.5), 2)
+        frames.append(c.a)
+    return frames
+
+
+def cap7():
+    """A capacitor pod: a drum wound with coils round a core; frames: the
+    charge, its rings lit in turn."""
+    frames = []
+    for hot in (False, True):
+        c = Canvas(16, 32)
+        c.fill(circle(16, 16, 15), 2)
+        c.outline(1)
+        for r, lit in ((12, not hot), (9, hot), (6, not hot)):
+            c.fill(ring(16, 16, r - 1.2, r), 3 if lit else 1)
+        c.fill(circle(16, 16, 4), 3 if hot else 1)
+        for a in range(45, 360, 90):
+            x, y = 16 + math.cos(math.radians(a)) * 13, 16 + math.sin(math.radians(a)) * 13
+            c.fill(circle(x, y, 1.6), 3)
+        frames.append(c.a)
+    return frames
+
+
+def muzzle7():
+    """The muzzle, pointing down: the barrel's banded end, tapering to its
+    bore; frames: idle, and charged (the bore glows white, for the slugs)."""
+    frames = []
+    for hot in (False, True):
+        c = Canvas(16, 32)
+        c.fill(rect(4, 0, 28, 22), 2)
+        c.fill(poly([(4, 20), (28, 20), (23, 31), (9, 31)]), 2)
+        c.outline(1)
+        for y in (4, 10, 16):
+            c.fill(rect(6, y, 26, y + 2), 3)        # its rings
+        c.fill(circle(16, 26, 5), 1)
+        if hot:
+            c.fill(circle(16, 26, 3.5), 3)
+        frames.append(c.a)
+    return frames
+
+
+def parts7():
+    return {"b7breech": breech7(), "b7cap": cap7(), "b7muzzle": muzzle7()}

@@ -6,8 +6,8 @@
   rem ======================================================================
 
   rem 272K SuperGame: bank 1 fixed at $4000 (the game), banks 2-16 switched
-  rem in at $8000 (one per stage), the last bank (17) fixed at $C000
-  rem (graphics).
+  rem in at $8000 (one per stage: stages 1-7 in banks 2-8), the last bank
+  rem (17) fixed at $C000 (graphics).
   set romsize 272k
   set zoneheight 16
   set screenheight 224
@@ -54,6 +54,7 @@
   rem const STAGE4TEST = 1
   rem const STAGE5TEST = 1
   rem const STAGE6TEST = 1
+  rem const STAGE7TEST = 1
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
@@ -73,7 +74,7 @@
   rem stage 4's armored train cars, on the railway (eframe 0: the engine)
   const ET_TRAIN = 10
   rem the stages, round and round
-  const NSTAGES = 6
+  const NSTAGES = 7
   rem boss parts: types from ET_PART up are placed by the boss code
   const ET_PART = 11
   const ET_PCANNON = 11
@@ -396,6 +397,10 @@ title_fire
   endif
   ifconst STAGE6TEST
   lda #6
+  sta stage
+  endif
+  ifconst STAGE7TEST
+  lda #7
   sta stage
   endif
   lda #160
@@ -1081,11 +1086,10 @@ boss
 boss_wait
   if wn < stg_nwaves then return
   if spos_hi < stg_bossat then return
-  rem (stage 3's ship and stage 5's crawler come in with the map: they
-  rem can't wait for a clear sky)
+  rem (stage 3's ship, stage 5's crawler and the later stages' bosses
+  rem come in with the map: they can't wait for a clear sky)
   if stage = 3 then goto boss_go
-  if stage = 5 then goto boss_go
-  if stage = 6 then goto boss_go
+  if stage >= 5 then goto boss_go
   for k = 0 to NE1
     if etype[k] then return
   next
@@ -1116,6 +1120,7 @@ boss_warning
   if stage = 4 then gosub boss4_build
   if stage = 5 then gosub boss5_build
   if stage = 6 then gosub boss6_build
+  if stage = 7 then gosub boss7_build
   gosub boss_place
   bstate = 2 : btl = 0 : bth = 0
   return
@@ -1125,6 +1130,7 @@ boss_enter
   if stage = 4 then goto boss4_enter
   if stage = 5 then goto boss5_enter
   if stage = 6 then goto boss6_enter
+  if stage = 7 then goto boss7_enter
   by = by + 1
   gosub boss_place
   if by < 89 then return
@@ -1136,6 +1142,7 @@ boss_fight
   if stage = 4 then goto boss4_fight
   if stage = 5 then goto boss5_fight
   if stage = 6 then goto boss6_fight
+  if stage = 7 then goto boss7_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
   rem sway: x = 80 + 17 sin(t/2), y = 89 + 6 sin(t/4) (stage 2: 12, 7)
@@ -1183,6 +1190,7 @@ boss_place
   if stage = 4 then goto boss4_place
   if stage = 5 then goto boss5_place
   if stage = 6 then goto boss6_place
+  if stage = 7 then goto boss7_place
   asm
   ldx #10
 boss_place_loop
@@ -1226,6 +1234,7 @@ boss_attack
   if stage = 4 then goto boss4_attack
   if stage = 5 then goto boss5_attack
   if stage = 6 then goto boss6_attack
+  if stage = 7 then goto boss7_attack
   goto boss1_attack
 
   rem Damage temp1 to boss part i. A wing's bottom half passes its hits
@@ -1252,9 +1261,10 @@ part_hit
   if stage = 6 then gosub b6_debris
   goto part_score
 part_notpod
-  rem stage 5's guns, drill and bridge blow apart, leaving their wells bare
-  rem (its hatches leave craters, as LEVIATHAN's bays)
-  if stage = 5 && eimg[i] <> IMG_B3BAY then goto part_blast
+  rem stage 5's guns, drill and bridge blow apart, leaving their wells bare,
+  rem and stage 7's pods and muzzle (their hatches leave craters, as
+  rem LEVIATHAN's bays)
+  if stage >= 5 && eimg[i] <> IMG_B3BAY then goto part_blast
   rem explosions down the part, and it stays as a wreck
   temp7 = temp7 + 4 : temp8 = temp8 + 4 : gosub spawn_fx
   temp8 = eyh[i] + 20 : gosub spawn_fx
@@ -1344,6 +1354,7 @@ boss_dying
   if stage = 4 then gosub boss4_sinking
   if stage = 5 then gosub boss5_sinking
   if stage = 6 then gosub boss6_sinking
+  if stage = 7 then gosub boss7_sinking
   if btl < 240 then gosub boss_place : return
   for k = 0 to 10 : etype[k] = 0 : next
   bstate = 5 : btl = 0
@@ -1679,6 +1690,21 @@ end
   inline musicdata6b.asm
   dmahole 0
   inline musicdata6.asm
+
+  rem ======================================================================
+  rem  Bank 8: stage 7 (map, waves, MASS DRIVER's tables, its graphics
+  rem  block at $A000, the stage's song; the boss's song and MASS DRIVER's
+  rem  code at $B000)
+  rem ======================================================================
+  bank 8
+  rem the stage header must come first: it is read at $8000
+  inline stage7.asm
+  inline boss7tab.asm
+  incbasic gen/gfx7.bas
+  inline musicdata7b.asm
+  dmahole 0
+  inline musicdata7.asm
+  incbasic boss7.bas
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

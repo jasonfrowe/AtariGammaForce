@@ -164,7 +164,8 @@ hole at $B000.
 | 5 | stage 4: header, map, boss tune, DUNE WYRM's path, graphics ($A000), song and DUNE WYRM's code (`src/boss4.bas`, $B000) |
 | 6 | stage 5: header, map, the stage song's voices 0 and 2, boss tune (less its voice 1), graphics ($A000), the stage song's voice 1, the boss tune's voice 1, GLACIER CRAWLER's code and tables ($B000) |
 | 7 | stage 6: header, map, HALO STATION's tables and the fade, the fade's code (`src/stage6.bas`), HALO STATION's code (`src/boss6.bas`), the stage song's voices 1 and 2, graphics ($A000), the boss tune and the stage song's voice 0 ($B000) |
-| 8-16 | free (stages 7 on) |
+| 8 | stage 7: header, map, MASS DRIVER's tables, graphics ($A000), the stage song and the boss tune's voice 0; the rest of the boss tune and MASS DRIVER's code (`src/boss7.bas`, $B000) |
+| 9-16 | free (stages 8 on) |
 | 17 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
 
 ## Wrecks under the ship
@@ -227,6 +228,16 @@ the stars, and the scroll stops with it near the top of the screen. Its
 turrets and core are pinned to map rows; its four gun satellites orbit
 the hub (`b6_ox`/`b6_oy`, a step a frame and one more for each one gone),
 and the core is shut while any of them orbits.
+
+Stage 7's MASS DRIVER is map rows too, and it sways from side to side:
+the engine adds `pfsway` (pixels, signed) to the x of every row from
+`pfswayrow` on as it builds them (`pf_rowshift`), and the boss moves the
+sway a pixel at a time, patching the rows already built: each ring
+buffer's background objects and zone 14's tiles (`b7_sway`; `ringrow`
+says which map row each ring buffer holds). The rail's coils are drawn
+in palette 2's three colors, turned round every 4 frames (palette 2 is
+the bases', and there are none near the boss). `pf_stage` turns the sway
+off (`pfswayrow` $FF).
 
 Stage 6 also fades: as the ship climbs, the ocean (the background color)
 and its clouds (palette 1) darken to black by the scroll position

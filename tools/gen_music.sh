@@ -5,7 +5,10 @@
 # its bank than its stage tune: they don't fit in one). Stage 5's songs are
 # split by voice (NAME.vN) between its bank's main area and its DMA hole,
 # and so are stage 6's (the boss's song and one voice of the stage's in
-# the hole, the stage song's other two in the main area).
+# the hole, the stage song's other two in the main area). Stage 7's
+# stage song is the shortened cut (MegaGammaForce's Stage7_cut.fur): the
+# stage song and one voice of the boss's in its bank's main area, the rest
+# of the boss's (and MASS DRIVER's code) in its DMA hole.
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 M="$ROOT/assets/mgf/music"
 G="$ROOT/src/gen"
@@ -13,10 +16,12 @@ G="$ROOT/src/gen"
     "$M/Stage1.vgm" "$M/Boss.vgm" "$M/Title.vgm" "$M/Stage2.vgm" "$M/Boss.vgm:boss2" \
     "$M/Stage3.vgm" "$M/Boss3.vgm" "$M/Stage4.vgm" "$M/Boss4.vgm" "$M/Stage5_cut.vgm:stage5" "$M/Boss5_cut.vgm:boss5" \
     "$M/Stage6.vgm:stage6" "$M/Boss6.vgm:boss6" \
+    "$M/Stage7_cut.vgm:stage7" "$M/Boss7.vgm:boss7" \
     -o "$G/musicdata.asm" --fixed "$G/musiccommon.asm" \
     --to "$G/musicdata2.asm=stage2" --to "$G/musicdata2b.asm=boss2" \
     --to "$G/musicdata3.asm=stage3" --to "$G/musicdata3b.asm=boss3" \
     --to "$G/musicdata4.asm=stage4" --to "$G/musicdata4b.asm=boss4" \
     --to "$G/musicdata5.asm=stage5,boss5.v1" --to "$G/musicdata5b.asm=boss5" \
     --to "$G/musicdata5c.asm=stage5.v0,stage5.v2" \
-    --to "$G/musicdata6.asm=boss6,stage6.v0" --to "$G/musicdata6b.asm=stage6"
+    --to "$G/musicdata6.asm=boss6,stage6.v0" --to "$G/musicdata6b.asm=stage6" \
+    --to "$G/musicdata7.asm=boss7" --to "$G/musicdata7b.asm=stage7,boss7.v0"

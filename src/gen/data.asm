@@ -21,12 +21,14 @@ txt_name3 .byte 38,56,50,48,20,60,38,28,30 ; 'IRON TIDE'
 txt_name4 .byte 58,26,50,56,26,36,30,28,20,58,22,48,28,58 ; 'SCORCHED SANDS'
 txt_name5 .byte 32,56,50,72,30,48,20,58,60,56,22,38,60 ; 'FROZEN STRAIT'
 txt_name6 .byte 22,58,26,30,48,60 ; 'ASCENT'
+txt_name7 .byte 58,30,22,20,50,32,20,60,56,22,48,54,62,38,44,38,60,70 ; 'SEA OF TRANQUILITY'
 txt_sel1 .byte 74,20,20,20,58,60,22,34,30,20,2,20,20,20,76 ; '<   STAGE 1   >'
 txt_sel2 .byte 74,20,20,20,58,60,22,34,30,20,4,20,20,20,76 ; '<   STAGE 2   >'
 txt_sel3 .byte 74,20,20,20,58,60,22,34,30,20,6,20,20,20,76 ; '<   STAGE 3   >'
 txt_sel4 .byte 74,20,20,20,58,60,22,34,30,20,8,20,20,20,76 ; '<   STAGE 4   >'
 txt_sel5 .byte 74,20,20,20,58,60,22,34,30,20,10,20,20,20,76 ; '<   STAGE 5   >'
 txt_sel6 .byte 74,20,20,20,58,60,22,34,30,20,12,20,20,20,76 ; '<   STAGE 6   >'
+txt_sel7 .byte 74,20,20,20,58,60,22,34,30,20,14,20,20,20,76 ; '<   STAGE 7   >'
 txt_mode0 .byte 80,20,20,20,30,68,52,30,56,60,20,20,20,82 ; '^   EXPERT   _'
 txt_mode1 .byte 80,20,20,20,48,50,56,46,22,44,20,20,20,82 ; '^   NORMAL   _'
 txt_mode2 .byte 80,20,60,30,28,28,70,20,24,30,22,56,20,82 ; '^ TEDDY BEAR _'
@@ -38,14 +40,14 @@ restmpl .byte 28,30,58,60,56,62,26,60,38,50,48,20,0,0,0,78,20,20,20,20
   .byte 46,22,68,20,26,36,22,38,48,20,20,20,20,0,0,0,20,20,20,20
   .byte 24,50,48,62,58,20,20,20,20,20,20,0,0,0,0,0,20,20,20,20
 txtlo .byte <txt_atari,<txt_push,<txt_b1,<txt_credit,<txt_over,<txt_clear,<txt_escaped,<txt_perfect
-  .byte <txt_name1,<txt_name2,<txt_name3,<txt_name4,<txt_name5,<txt_name6,<txt_sel1,<txt_sel2
-  .byte <txt_sel3,<txt_sel4,<txt_sel5,<txt_sel6,<txt_mode0,<txt_mode1,<txt_mode2,<txt_resa
-  .byte <txt_resb,<txt_resc
+  .byte <txt_name1,<txt_name2,<txt_name3,<txt_name4,<txt_name5,<txt_name6,<txt_name7,<txt_sel1
+  .byte <txt_sel2,<txt_sel3,<txt_sel4,<txt_sel5,<txt_sel6,<txt_sel7,<txt_mode0,<txt_mode1
+  .byte <txt_mode2,<txt_resa,<txt_resb,<txt_resc
 txthi .byte >txt_atari,>txt_push,>txt_b1,>txt_credit,>txt_over,>txt_clear,>txt_escaped,>txt_perfect
-  .byte >txt_name1,>txt_name2,>txt_name3,>txt_name4,>txt_name5,>txt_name6,>txt_sel1,>txt_sel2
-  .byte >txt_sel3,>txt_sel4,>txt_sel5,>txt_sel6,>txt_mode0,>txt_mode1,>txt_mode2,>txt_resa
-  .byte >txt_resb,>txt_resc
-txtlen .byte 5,10,19,15,9,11,12,19,12,11,9,14,13,6,15,15,15,15,15,15,14,14,14,16,16,16
+  .byte >txt_name1,>txt_name2,>txt_name3,>txt_name4,>txt_name5,>txt_name6,>txt_name7,>txt_sel1
+  .byte >txt_sel2,>txt_sel3,>txt_sel4,>txt_sel5,>txt_sel6,>txt_sel7,>txt_mode0,>txt_mode1
+  .byte >txt_mode2,>txt_resa,>txt_resb,>txt_resc
+txtlen .byte 5,10,19,15,9,11,12,19,12,11,9,14,13,6,18,15,15,15,15,15,15,15,14,14,14,16,16,16
 
 ; P0C1..P7C3, in register order
 palettedata
@@ -61,18 +63,54 @@ palettedata
 ; Sprite images. IMG_x = image number; imglo/imghi = graphics of the
 ; first strip of frame 0; imgw = width in bytes; imgstrips = 16-line strips;
 ; imgframes = frame count. Frame f of strip s is at (strip label) + f*w.
-imglo .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship0,<turret,<wasp,<tank,<tower0,<b2coret0,<b2coreb0,<b2pod0,<b2cannon0,<gunboat0,<b3bridget0,<b3bridgeb0,<b3reactor0,<b3gun,<b3bay0,<train0,<b4headt0,<b4headb,<b4seg0,<b4tail0,<berg0,<b5reactor0,<b5drill0,<b5gun,<b5bridge0,<slab,<flake,<sat0,<b6core0,<b6pod0,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0,<bwingrb0,<bcannon0,<bturret,<logo_gamma0,<logo_force0,<hudcell0,<hudcell1,<hudgem,<hudgem0,<hudship
-imghi .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>wasp,>tank,>tower0,>b2coret0,>b2coreb0,>b2pod0,>b2cannon0,>gunboat0,>b3bridget0,>b3bridgeb0,>b3reactor0,>b3gun,>b3bay0,>train0,>b4headt0,>b4headb,>b4seg0,>b4tail0,>berg0,>b5reactor0,>b5drill0,>b5gun,>b5bridge0,>slab,>flake,>sat0,>b6core0,>b6pod0,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0,>bwingrb0,>bcannon0,>bturret,>logo_gamma0,>logo_force0,>hudcell0,>hudcell1,>hudgem,>hudgem0,>hudship
-imglo2 .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<wasp,<tank,<tower1,<b2coret1,<b2coreb1,<b2pod1,<b2cannon1,<gunboat1,<b3bridget1,<b3bridgeb1,<b3reactor1,<b3gun,<b3bay1,<train1,<b4headt1,<b4headb,<b4seg1,<b4tail1,<berg1,<b5reactor1,<b5drill1,<b5gun,<b5bridge1,<slab,<flake,<sat1,<b6core1,<b6pod1,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1,<bwingrb1,<bcannon1,<bturret,<logo_gamma1,<logo_force1,<hudcell0,<hudcell1,<hudgem,<hudgem0,<hudship
-imghi2 .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>wasp,>tank,>tower1,>b2coret1,>b2coreb1,>b2pod1,>b2cannon1,>gunboat1,>b3bridget1,>b3bridgeb1,>b3reactor1,>b3gun,>b3bay1,>train1,>b4headt1,>b4headb,>b4seg1,>b4tail1,>berg1,>b5reactor1,>b5drill1,>b5gun,>b5bridge1,>slab,>flake,>sat1,>b6core1,>b6pod1,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1,>bwingrb1,>bcannon1,>bturret,>logo_gamma1,>logo_force1,>hudcell0,>hudcell1,>hudgem,>hudgem0,>hudship
-imgw .byte 4,1,2,2,2,1,1,1,2,4,2,2,2,4,8,8,4,4,4,8,8,4,3,2,4,6,6,4,4,8,4,4,3,4,8,2,16,4,4,6,8,8,4,4,4,4,4,2,23,23,2,2,2,2,2
-imgstrips .byte 2,1,1,1,1,1,1,1,1,2,1,1,1,2,2,2,2,2,2,2,2,2,1,2,2,2,1,2,2,2,2,2,1,2,1,1,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,1,1,1,1
-imgframes .byte 3,1,2,4,2,2,1,2,6,2,8,2,8,1,2,2,2,2,2,1,1,2,8,3,2,2,2,2,1,1,2,1,8,1,1,1,1,2,2,4,1,1,1,1,1,1,2,8,1,1,1,1,1,1,1
+imglo
+  .byte <ship0,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship0,<turret,<wasp,<tank,<tower0,<b2coret0,<b2coreb0
+  .byte <b2pod0,<b2cannon0,<gunboat0,<b3bridget0,<b3bridgeb0,<b3reactor0,<b3gun,<b3bay0,<train0,<b4headt0,<b4headb,<b4seg0,<b4tail0,<berg0,<b5reactor0,<b5drill0
+  .byte <b5gun,<b5bridge0,<slab,<flake,<sat0,<b6core0,<b6pod0,<b7breech0,<b7cap0,<b7muzzle0,<sword0,<bcoret0,<bcoreb0,<bwinglt0,<bwinglb0,<bwingrt0
+  .byte <bwingrb0,<bcannon0,<bturret,<logo_gamma0,<logo_force0,<hudcell0,<hudcell1,<hudgem,<hudgem0,<hudship
+imghi
+  .byte >ship0,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship0,>turret,>wasp,>tank,>tower0,>b2coret0,>b2coreb0
+  .byte >b2pod0,>b2cannon0,>gunboat0,>b3bridget0,>b3bridgeb0,>b3reactor0,>b3gun,>b3bay0,>train0,>b4headt0,>b4headb,>b4seg0,>b4tail0,>berg0,>b5reactor0,>b5drill0
+  .byte >b5gun,>b5bridge0,>slab,>flake,>sat0,>b6core0,>b6pod0,>b7breech0,>b7cap0,>b7muzzle0,>sword0,>bcoret0,>bcoreb0,>bwinglt0,>bwinglb0,>bwingrt0
+  .byte >bwingrb0,>bcannon0,>bturret,>logo_gamma0,>logo_force0,>hudcell0,>hudcell1,>hudgem,>hudgem0,>hudship
+imglo2
+  .byte <ship1,<vulcan,<dart,<saucer,<drone,<pinkbullet,<needle,<bluebullet,<expl,<gunship1,<turret,<wasp,<tank,<tower1,<b2coret1,<b2coreb1
+  .byte <b2pod1,<b2cannon1,<gunboat1,<b3bridget1,<b3bridgeb1,<b3reactor1,<b3gun,<b3bay1,<train1,<b4headt1,<b4headb,<b4seg1,<b4tail1,<berg1,<b5reactor1,<b5drill1
+  .byte <b5gun,<b5bridge1,<slab,<flake,<sat1,<b6core1,<b6pod1,<b7breech1,<b7cap1,<b7muzzle1,<sword1,<bcoret1,<bcoreb1,<bwinglt1,<bwinglb1,<bwingrt1
+  .byte <bwingrb1,<bcannon1,<bturret,<logo_gamma1,<logo_force1,<hudcell0,<hudcell1,<hudgem,<hudgem0,<hudship
+imghi2
+  .byte >ship1,>vulcan,>dart,>saucer,>drone,>pinkbullet,>needle,>bluebullet,>expl,>gunship1,>turret,>wasp,>tank,>tower1,>b2coret1,>b2coreb1
+  .byte >b2pod1,>b2cannon1,>gunboat1,>b3bridget1,>b3bridgeb1,>b3reactor1,>b3gun,>b3bay1,>train1,>b4headt1,>b4headb,>b4seg1,>b4tail1,>berg1,>b5reactor1,>b5drill1
+  .byte >b5gun,>b5bridge1,>slab,>flake,>sat1,>b6core1,>b6pod1,>b7breech1,>b7cap1,>b7muzzle1,>sword1,>bcoret1,>bcoreb1,>bwinglt1,>bwinglb1,>bwingrt1
+  .byte >bwingrb1,>bcannon1,>bturret,>logo_gamma1,>logo_force1,>hudcell0,>hudcell1,>hudgem,>hudgem0,>hudship
+imgw
+  .byte 4,1,2,2,2,1,1,1,2,4,2,2,2,4,8,8
+  .byte 4,4,4,8,8,4,3,2,4,6,6,4,4,8,4,4
+  .byte 3,4,8,2,16,4,4,4,4,4,6,8,8,4,4,4
+  .byte 4,4,2,23,23,2,2,2,2,2
+imgstrips
+  .byte 2,1,1,1,1,1,1,1,1,2,1,1,1,2,2,2
+  .byte 2,2,2,2,2,2,1,2,2,2,1,2,2,2,2,2
+  .byte 1,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2
+  .byte 2,2,1,2,2,1,1,1,1,1
+imgframes
+  .byte 3,1,2,4,2,2,1,2,6,2,8,2,8,1,2,2
+  .byte 2,2,2,1,1,2,8,3,2,2,2,2,1,1,2,1
+  .byte 8,1,1,1,1,2,2,2,2,2,4,1,1,1,1,1
+  .byte 1,2,8,1,1,1,1,1,1,1
 ; lines used in the image's last strip (the plotter skips the part
 ; of a strip that would only be empty lines)
-imgh .byte 7,8,15,10,12,7,7,7,9,11,10,13,14,16,16,16,16,16,16,16,16,16,16,16,15,16,16,16,16,16,16,16,16,16,15,8,14,16,16,14,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16
+imgh
+  .byte 7,8,15,10,12,7,7,7,9,11,10,13,14,16,16,16
+  .byte 16,16,16,16,16,16,16,16,15,16,16,16,16,16,16,16
+  .byte 16,16,15,8,14,16,16,16,16,16,14,16,16,16,16,16
+  .byte 16,16,16,16,16,16,16,16,16,16
 ; -width & 31, the width bits of a 4-byte header
-imgnegw .byte 28,31,30,30,30,31,31,31,30,28,30,30,30,28,24,24,28,28,28,24,24,28,29,30,28,26,26,28,28,24,28,28,29,28,24,30,16,28,28,26,24,24,28,28,28,28,28,30,9,9,30,30,30,30,30
+imgnegw
+  .byte 28,31,30,30,30,31,31,31,30,28,30,30,30,28,24,24
+  .byte 28,28,28,24,24,28,29,30,28,26,26,28,28,24,28,28
+  .byte 29,28,24,30,16,28,28,28,28,28,26,24,24,28,28,28
+  .byte 28,28,30,9,9,30,30,30,30,30
 
 
 ; Trig: angles are 256 per turn, 0 = right, 64 = down.

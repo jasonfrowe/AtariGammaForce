@@ -1,0 +1,519 @@
+{
+ "cols": 20,
+ "rows": 176,
+ "tile_ids": {
+  "reg0": 0,
+  "reg1": 1,
+  "reg2": 2,
+  "reg3": 3,
+  "crater1_0_0": 4,
+  "crater1_1_0": 5,
+  "crater2_0_0": 6,
+  "crater2_0_1": 7,
+  "crater2_0_2": 8,
+  "crater2_0_3": 9,
+  "crater2_1_0": 10,
+  "crater2_1_1": 11,
+  "crater2_1_2": 12,
+  "crater2_1_3": 13,
+  "crater3_0_0": 14,
+  "crater3_0_1": 15,
+  "crater3_0_2": 16,
+  "crater3_0_3": 17,
+  "crater3_0_4": 18,
+  "crater3_0_5": 19,
+  "crater3_0_6": 20,
+  "crater3_0_7": 21,
+  "crater3_0_8": 22,
+  "floor0": 23,
+  "floor1": 24,
+  "floor2": 25,
+  "floor3": 26,
+  "floor4": 27,
+  "floor5": 28,
+  "floor6": 29,
+  "floor7": 30,
+  "floor8": 31,
+  "floor9": 32,
+  "floor10": 33,
+  "floor11": 34,
+  "floor12": 35,
+  "floor13": 36,
+  "floor14": 37,
+  "floor15": 38,
+  "dome0": 39,
+  "dome1": 40,
+  "dome2": 41,
+  "dome3": 42,
+  "pad0": 43,
+  "pad1": 44,
+  "pad2": 45,
+  "pad3": 46,
+  "bunker0": 47,
+  "bunker1": 48,
+  "bunker2": 49,
+  "bunker3": 50,
+  "road0": 51,
+  "roadp0": 52,
+  "road1": 53,
+  "roadp1": 54
+ },
+ "bunkers": [
+  [
+   13,
+   10
+  ],
+  [
+   19,
+   12
+  ],
+  [
+   25,
+   4
+  ],
+  [
+   31,
+   4
+  ],
+  [
+   31,
+   7
+  ],
+  [
+   31,
+   13
+  ],
+  [
+   75,
+   6
+  ],
+  [
+   75,
+   12
+  ],
+  [
+   91,
+   0
+  ],
+  [
+   131,
+   6
+  ],
+  [
+   131,
+   9
+  ],
+  [
+   131,
+   12
+  ],
+  [
+   137,
+   14
+  ],
+  [
+   140,
+   8
+  ],
+  [
+   150,
+   11
+  ],
+  [
+   163,
+   4
+  ],
+  [
+   167,
+   17
+  ]
+ ],
+ "roads": [
+  29,
+  42,
+  56,
+  78,
+  94,
+  108,
+  129,
+  146,
+  160
+ ],
+ "hull_w": 10,
+ "hull_h": 9,
+ "hull_tile_ids": {
+  "clear": 0,
+  "deck0": 1,
+  "deck1": 2,
+  "deck2": 3,
+  "deck3": 4,
+  "rail0": 5,
+  "nac0": 6,
+  "nac0top": 7,
+  "nac0bottom": 8,
+  "rail1": 9,
+  "nac1": 10,
+  "nac1top": 11,
+  "nac1bottom": 12,
+  "stripe": 13,
+  "lamp": 14,
+  "big0": 15,
+  "big1": 16,
+  "big2": 17,
+  "big3": 18,
+  "small": 19,
+  "hatch0": 20,
+  "hatch1": 21,
+  "crater_big0": 22,
+  "crater_big1": 23,
+  "crater_big2": 24,
+  "crater_big3": 25,
+  "crater": 26
+ },
+ "hull_parts": {
+  "BREECH": [
+   4,
+   0,
+   2,
+   2
+  ],
+  "CAP_L": [
+   1,
+   2,
+   2,
+   2
+  ],
+  "CAP_R": [
+   7,
+   2,
+   2,
+   2
+  ],
+  "HATCH_L": [
+   3,
+   4,
+   1,
+   2
+  ],
+  "HATCH_R": [
+   6,
+   4,
+   1,
+   2
+  ],
+  "TUR0": [
+   1,
+   0,
+   1,
+   1
+  ],
+  "TUR1": [
+   8,
+   0,
+   1,
+   1
+  ],
+  "TUR2": [
+   1,
+   6,
+   1,
+   1
+  ],
+  "TUR3": [
+   8,
+   6,
+   1,
+   1
+  ],
+  "MUZZLE": [
+   4,
+   7,
+   2,
+   2
+  ]
+ },
+ "fields": [
+  "at",
+  "type",
+  "color",
+  "x",
+  "dx",
+  "count",
+  "gap",
+  "param"
+ ],
+ "waves": [
+  [
+   120,
+   "ET_WASP",
+   "COL_RED",
+   50,
+   0,
+   3,
+   14,
+   30
+  ],
+  [
+   160,
+   "ET_WASP",
+   "COL_RED",
+   142,
+   0,
+   3,
+   14,
+   30
+  ],
+  [
+   300,
+   "ET_DART",
+   "COL_YELLOW",
+   30,
+   24,
+   3,
+   12,
+   100
+  ],
+  [
+   360,
+   "ET_DART",
+   "COL_YELLOW",
+   162,
+   -24,
+   3,
+   12,
+   100
+  ],
+  [
+   500,
+   "ET_GUNSHIP",
+   "COL_GRAY",
+   60,
+   0,
+   1,
+   1,
+   50
+  ],
+  [
+   530,
+   "ET_GUNSHIP",
+   "COL_GRAY",
+   132,
+   0,
+   1,
+   1,
+   80
+  ],
+  [
+   680,
+   "ET_SAUCER",
+   "COL_BLUE",
+   96,
+   0,
+   3,
+   16,
+   60
+  ],
+  [
+   820,
+   "ET_DRONE",
+   "COL_RED",
+   50,
+   46,
+   3,
+   24,
+   64
+  ],
+  [
+   960,
+   "ET_WASP",
+   "COL_YELLOW",
+   20,
+   26,
+   6,
+   9,
+   30
+  ],
+  [
+   1100,
+   "ET_DART",
+   "COL_BLUE",
+   172,
+   -26,
+   6,
+   8,
+   110
+  ],
+  [
+   1240,
+   "ET_GUNSHIP",
+   "COL_GRAY",
+   96,
+   0,
+   1,
+   1,
+   60
+  ],
+  [
+   1380,
+   "ET_SAUCER",
+   "COL_RED",
+   50,
+   0,
+   3,
+   16,
+   40
+  ],
+  [
+   1410,
+   "ET_SAUCER",
+   "COL_YELLOW",
+   140,
+   0,
+   3,
+   16,
+   40
+  ],
+  [
+   1560,
+   "ET_DRONE",
+   "COL_BLUE",
+   60,
+   0,
+   1,
+   1,
+   70
+  ],
+  [
+   1580,
+   "ET_DRONE",
+   "COL_BLUE",
+   132,
+   0,
+   1,
+   1,
+   70
+  ],
+  [
+   1600,
+   "ET_DRONE",
+   "COL_BLUE",
+   96,
+   0,
+   1,
+   1,
+   50
+  ],
+  [
+   1740,
+   "ET_WASP",
+   "COL_RED",
+   96,
+   0,
+   6,
+   8,
+   44
+  ],
+  [
+   1880,
+   "ET_DART",
+   "COL_YELLOW",
+   30,
+   18,
+   6,
+   8,
+   120
+  ],
+  [
+   2020,
+   "ET_GUNSHIP",
+   "COL_GRAY",
+   50,
+   0,
+   1,
+   1,
+   50
+  ],
+  [
+   2050,
+   "ET_GUNSHIP",
+   "COL_GRAY",
+   142,
+   0,
+   1,
+   1,
+   80
+  ],
+  [
+   2200,
+   "ET_WASP",
+   "COL_BLUE",
+   30,
+   0,
+   3,
+   8,
+   24
+  ],
+  [
+   2210,
+   "ET_WASP",
+   "COL_RED",
+   96,
+   0,
+   3,
+   8,
+   24
+  ],
+  [
+   2220,
+   "ET_WASP",
+   "COL_YELLOW",
+   162,
+   0,
+   3,
+   8,
+   24
+  ],
+  [
+   2380,
+   "ET_SAUCER",
+   "COL_BLUE",
+   96,
+   0,
+   3,
+   14,
+   50
+  ],
+  [
+   2520,
+   "ET_DART",
+   "COL_RED",
+   20,
+   30,
+   6,
+   7,
+   110
+  ],
+  [
+   2660,
+   "ET_DRONE",
+   "COL_YELLOW",
+   40,
+   56,
+   3,
+   22,
+   60
+  ],
+  [
+   2790,
+   "ET_GUNSHIP",
+   "COL_GRAY",
+   96,
+   0,
+   1,
+   1,
+   60
+  ]
+ ],
+ "source": "MegaGammaForce gtools/art (luna.py, driver.py, waves.py S7_WAVES), as its commit 35d274c^ tools/art",
+ "note": "ground: stage order (row 0 first), 20 columns; bunkers: (row, col) of the bunker's lower row; roads: rows; hull: rows from the breech (top) down to the muzzle; parts: (col, row, w, h) in hull tiles"
+}

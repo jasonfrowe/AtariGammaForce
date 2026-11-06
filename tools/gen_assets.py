@@ -219,12 +219,14 @@ SCREEN_TEXTS = {
     "name4": "SCORCHED SANDS",
     "name5": "FROZEN STRAIT",
     "name6": "ASCENT",
+    "name7": "SEA OF TRANQUILITY",
     "sel1": "<   STAGE 1   >",
     "sel2": "<   STAGE 2   >",
     "sel3": "<   STAGE 3   >",
     "sel4": "<   STAGE 4   >",
     "sel5": "<   STAGE 5   >",
     "sel6": "<   STAGE 6   >",
+    "sel7": "<   STAGE 7   >",
     # the title's difficulty (TXT_MODE0 + easy): up and down choose
     "mode0": "^   EXPERT   _",
     "mode1": "^   NORMAL   _",
@@ -326,6 +328,11 @@ SPRITES = [
     ("sat", "boss6", 0, 0, None, None, 0),
     ("b6core", "boss6", 0, 0, None, None, 4),
     ("b6pod", "boss6", 0, 0, None, None, 0),
+    # Stage 7's: MASS DRIVER's breech (its core), capacitor pods and muzzle
+    # (in its bank)
+    ("b7breech", "boss7", 0, 0, None, None, 0),
+    ("b7cap", "boss7", 0, 0, None, None, 0),
+    ("b7muzzle", "boss7", 0, 0, None, None, 0),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -349,7 +356,7 @@ SPRITES = [
     ("hudgem0", "art", 0, 0, None, None, 3),
     ("hudship", "art", 0, 0, None, None, 3),
 ]
-BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5", "boss6")} - \
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5", "boss6", "boss7")} - \
     {"gunboat", "train", "berg", "slab", "flake", "sat"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
@@ -361,6 +368,7 @@ STAGE4_STRIPS = {"train0", "train1", "b4headt0", "b4headt1", "b4headb", "b4seg0"
 STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "berg0", "berg1",
                  "b5bridge0", "b5bridge1", "slab", "flake"}
 STAGE6_STRIPS = {"sat0", "sat1", "b6core0", "b6core1", "b6pod0", "b6pod1"}
+STAGE7_STRIPS = {"b7breech0", "b7breech1", "b7cap0", "b7cap1", "b7muzzle0", "b7muzzle1"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -476,6 +484,9 @@ def build_sprites():
         elif fn == "boss6":
             import boss7800
             conv = boss7800.parts6()[name]
+        elif fn == "boss7":
+            import boss7800
+            conv = boss7800.parts7()[name]
         elif fn == "logo":
             import logo7800
             conv = [logo7800.words()[name]]
@@ -1691,6 +1702,109 @@ def stage6():
 
 # What a unit costs the frame, roughly, for spread_waves: train cars and
 # gunships are tall (3 objects or more), saucers fire rings of 8
+# Stage 7, SEA OF TRANQUILITY: the Moon (the regolith is the background),
+# craters, three bases (plazas of metal floor with domes, landing pads and
+# turret bunkers), rover roads, lone bunkers on the plain; then MASS DRIVER,
+# a hovering gun platform round a rail cannon, its hull map rows (as the
+# crawler's), which sway from side to side in the fight (boss7.bas).
+STAGE7_BG = (118, 118, 128)
+STAGE7_PALETTES = [
+    [(14, 14, 18), (108, 108, 110), (204, 200, 194)],   # P0 the hull: shadow, gunmetal, light
+    [(22, 22, 28), (82, 82, 92), (204, 204, 212)],      # P1 the regolith: deep shadow, dark dust, sunlit
+    [(40, 44, 60), (70, 140, 210), (232, 238, 248)],    # P2 the bases: dark metal, dome glass, markings
+]
+# the rail's coils in the fight (P2, turned round: boss7.bas)
+STAGE7_COILS = [(110, 50, 230), (190, 130, 255), (250, 230, 255)]
+STAGE7_GAP = 14                      # bare regolith before MASS DRIVER
+WAVES_END_7 = 2950                   # no ground units past this
+HULL7_COL = 5                        # the hull's left column (10 wide, centred)
+B7_TOP = 2                           # the fight: the hull's top at line 2
+B7_SWAY = 15                         # its sway, pixels either side (MegaGammaForce's 18 of 192)
+# slots: name, lines down, pixels right. 5 is the core (the shared code's
+# reactor slot), 10 is free (a dart from the hatches may take it)
+B7_SLOTS = [("CAP_L", 0, 0), ("CAP_R", 0, 0), ("MUZZLE", 0, 0), ("HATCH_L", 0, 0), ("HATCH_R", 0, 0),
+            ("BREECH", 0, 0), ("TUR0", 3, 0), ("TUR1", 3, 0), ("TUR2", 3, 0), ("TUR3", 3, 0)]
+
+
+def stage7():
+    import tiles7800
+    meta = json.loads((MGF / "stage7.json").read_text())
+    cols = meta["cols"]
+    body = np.frombuffer((MGF / "stage7_ground.bin").read_bytes(), dtype=np.uint8).reshape(-1, cols).copy()
+    ids = meta["tile_ids"]
+    m_tiles, m_pals, m_lut = tiles7800.luna_tiles(ids, {int(t) for t in body.ravel()})
+    h_tiles, h_pals, h_lut, h_clear = tiles7800.driver_tiles(meta["hull_tile_ids"])
+    base = len(m_tiles)
+    t_slots, t_pals = m_tiles + h_tiles, m_pals + h_pals
+    print(f"stage 7: {len(m_tiles)} + {len(h_tiles)} tiles")
+    assert len(t_slots) <= 62, f"stage 7: {len(t_slots)} tiles (62 fit beside its sprites)"
+    hull = np.frombuffer((MGF / "stage7_hull.bin").read_bytes(), dtype=np.uint8).reshape(
+        meta["hull_h"], meta["hull_w"])
+    hh, hw = hull.shape
+    loop = 16
+    rows = body.shape[0] + STAGE7_GAP + hh + loop
+    assert rows <= MAX_ROWS, rows
+    m = np.zeros((rows, 20), dtype=np.uint8)
+    m[:body.shape[0], :] = np.vectorize(lambda t: m_lut[int(t)])(body)
+    bow = body.shape[0] + STAGE7_GAP                 # the hull's first row (the muzzle's end)
+    stern = bow + hh - 1
+    for r in range(hh):                              # hull row r (from the breech) is map row stern - r
+        for c in range(hw):
+            t = int(hull[r, c])
+            if t != h_clear:
+                m[stern - r, HULL7_COL + c] = base + h_lut[t]
+
+    units = []
+    # Turrets on the bunkers (as MegaGammaForce's: all past the start)
+    for i, (r, c) in enumerate(meta["bunkers"]):
+        y = (r + 1) * 16
+        if 300 < y < WAVES_END_7:
+            units.append((y, (c + 1) * 8, "ET_TURRET", 4 + i % 3, 0))
+    # A rover on every road, from the left and the right by turns: veterans
+    # (bit 6), as stage 5's snow tanks
+    for j, r in enumerate(meta["roads"]):
+        y = r * 16 + 8
+        if 300 < y < WAVES_END_7 - 100:
+            left = j % 2 == 1
+            units.append((y, 148 if left else 8, "ET_TANK", 4 + (j // 3) % 3, (0x80 if left else 0) | 0x40 | 7))
+
+    # MASS DRIVER's numbers for its boss code: each part's x (with no sway)
+    # and the world height of its top; where the scroll stops, and where it
+    # has gone; the first hull row (rows from it sway: engine.asm)
+    parts = meta["hull_parts"]
+    xs, ylo, yhi = [], [], []
+    for name, dy, dx in B7_SLOTS:
+        c, r, w_, h_ = parts[name]
+        xs.append(8 * (HULL7_COL + c) + dx)
+        y = (stern - r + 1) * 16 - dy
+        ylo.append(y & 255)
+        yhi.append(y >> 8)
+    top7 = (stern + 1) * 16
+    b7 = {"b7_stop": top7 - 208 + B7_TOP, "b7_gone": top7 + 8, "b7_row": bow, "b7_sway": B7_SWAY}
+    lines = ["; Generated by tools/gen_assets.py. Do not edit.",
+             "; MASS DRIVER's parts (slots 0-9): x, and the world height of each one's top",
+             "; (lo, hi). Its stop (a scroll position), where it has gone, its first map",
+             "; row, its sway (pixels either side); the rail's coil colors (P2 in the fight)."]
+    lines.append("b7_x .byte " + ",".join(str(v) for v in xs))
+    lines.append("b7_ylo .byte " + ",".join(str(v) for v in ylo))
+    lines.append("b7_yhi .byte " + ",".join(str(v) for v in yhi))
+    for name, v in b7.items():
+        lines.append(f"{name.upper()} = {v}")
+    lines.append("b7_coil .byte " + ",".join(f"${nearest(c):02X}" for c in STAGE7_COILS * 2))
+    (GEN / "boss7tab.asm").write_text("\n".join(lines) + "\n")
+
+    gr = ground_cols(units)
+    w = wave_cols(meta["waves"])
+    # the warning when the hull is about 9 rows above the screen
+    bossat = (bow * 16 - 208 - 144) >> 8
+    return {"n": 7, "map": m, "t_slots": t_slots, "t_pals": t_pals,
+            "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
+            "charset": "charset7", "pals": [nearest(c) for p in STAGE7_PALETTES for c in p],
+            "bg": nearest(STAGE7_BG), "song": "SONG_STAGE7", "bosssong": "SONG_BOSS7", "bossat": bossat,
+            "waves": spread_waves(w, gr), "ground": gr,
+            "pal_codes": [[nearest(c) for c in p] for p in STAGE7_PALETTES]}
+
+
 UNIT_WEIGHT = {"ET_TRAIN": 3, "ET_GUNSHIP": 3, "ET_GUNBOAT": 3, "ET_SAUCER": 2}
 
 
@@ -1752,7 +1866,7 @@ def main():
     PREVIEW.mkdir(parents=True, exist_ok=True)
 
     font_base = 0
-    stages = [stage1(), stage2(), stage3(), stage4(), stage5(), stage6()]
+    stages = [stage1(), stage2(), stage3(), stage4(), stage5(), stage6(), stage7()]
     build_charset("charset", stages[0]["t_slots"], 1)
     for st in stages[1:]:
         build_charset(st["charset"], st["t_slots"], 1)
@@ -1775,12 +1889,12 @@ def main():
     bas += ["  newblock"]
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs
             if n not in in_chars and n not in STAGE2_STRIPS | STAGE3_STRIPS | STAGE4_STRIPS | STAGE5_STRIPS
-            | STAGE6_STRIPS]
+            | STAGE6_STRIPS | STAGE7_STRIPS]
     (GEN / "gfx.bas").write_text("\n".join(bas) + "\n")
     # gfxN.bas: stage N's graphics block, in its bank at $A000: the font
     # and the stage's tiles, then its own sprites.
     for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS), (4, STAGE4_STRIPS), (5, STAGE5_STRIPS),
-                          (6, STAGE6_STRIPS)):
+                          (6, STAGE6_STRIPS), (7, STAGE7_STRIPS)):
         bn = ["  rem Generated by tools/gen_assets.py. Do not edit.",
               f"  incgraphic gfx/charset{n}.png 160A 0 1 2 3"]
         bn += [f"  incgraphic gfx/{s}.png 160A 0 1 2 3" for s in incs if s in strips]
@@ -1841,15 +1955,19 @@ def main():
         w.append(str(wb))
         st.append(str(strips))
         fr.append(str(frames))
-    asm += ["imglo .byte " + ",".join(lo), "imghi .byte " + ",".join(hi),
-            "imglo2 .byte " + ",".join(lo2), "imghi2 .byte " + ",".join(hi2),
-            "imgw .byte " + ",".join(w), "imgstrips .byte " + ",".join(st),
-            "imgframes .byte " + ",".join(fr),
-            "; lines used in the image's last strip (the plotter skips the part",
-            "; of a strip that would only be empty lines)",
-            "imgh .byte " + ",".join(hh),
-            "; -width & 31, the width bits of a 4-byte header",
-            "imgnegw .byte " + ",".join(str((-int(x)) & 31) for x in w), ""]
+    def rows_of(label, vals):
+        # (dasm takes 32 operators a line)
+        out = [label]
+        for i in range(0, len(vals), 16):
+            out.append("  .byte " + ",".join(vals[i:i + 16]))
+        return out
+    asm += rows_of("imglo", lo) + rows_of("imghi", hi) + rows_of("imglo2", lo2) + rows_of("imghi2", hi2)
+    asm += rows_of("imgw", w) + rows_of("imgstrips", st) + rows_of("imgframes", fr)
+    asm += ["; lines used in the image's last strip (the plotter skips the part",
+            "; of a strip that would only be empty lines)"]
+    asm += rows_of("imgh", hh)
+    asm += ["; -width & 31, the width bits of a 4-byte header"]
+    asm += rows_of("imgnegw", [str((-int(x)) & 31) for x in w]) + [""]
     asm += trig_tables()
     asm += chain_table()
     for ch, name in ((" ", "SPACE"), ("X", "X"), ("I", "I"), ("H", "H"), ("Y", "Y"), ("P", "P"), ("0", "0"),
