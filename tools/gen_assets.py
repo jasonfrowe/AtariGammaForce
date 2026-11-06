@@ -2107,8 +2107,11 @@ def stage8():
 # which is fatal to fly through (by each map row's masks: stage_bank).
 # Each group alone always leaves a way through. Then GAMMA PRIME, the
 # Gamma Core's true form, a sunburst fortress of gold, its hull map rows
-# (as HIVE MOTHERSHIP's), swaying in the fight; P0 and P1 hold its gold
-# and its spine's gamma light then (the flares are behind).
+# (as HIVE MOTHERSHIP's), still; under it the battlefield's own flares, a
+# column under the core (group A, in P2) and the flanks (group B, P1), so
+# the ship can't camp under the core. P0 holds the hull's gold then, P2
+# and P1 the battlefield's flares (from FL_END on: the surface and the
+# stage's flares are behind, and the rows from there are bare).
 STAGE9_BG = (204, 92, 10)
 STAGE9_PALETTES = [
     [(96, 22, 0), (110, 28, 0), (124, 34, 0)],          # P0 flares A, dark (stage9.bas lights them)
@@ -2120,13 +2123,16 @@ FLARE9_COLORS = [[(96, 22, 0), (110, 28, 0), (124, 34, 0)],
                  [(200, 60, 0), (230, 100, 10), (250, 140, 30)],
                  [(230, 50, 10), (255, 190, 60), (255, 250, 210)],
                  [(200, 60, 0), (220, 100, 20), (240, 150, 60)]]
-# the fight's: P0 GAMMA PRIME's gold, P1 its spine (gold, gamma light)
-GAMMA9_COLORS = [[(90, 60, 20), (196, 150, 60), (255, 240, 190)],
-                 [(196, 150, 60), (80, 255, 140), (230, 255, 230)]]
+# the fight's P0: GAMMA PRIME's gold
+GAMMA9_COLORS = [[(90, 60, 20), (196, 150, 60), (255, 240, 190)]]
+# the battlefield's flares, rows up from the bottom of the six under the
+# hull: (shape: FLARES9's, group, column, row)
+ARENA9 = [(2, "A", 9, 0), (0, "A", 8, 4), (1, "B", 3, 1), (1, "B", 15, 1)]
+ARENA9_ROWS = 6
 STAGE9_BODY = 176                    # rows before the gap
 STAGE9_CHUNK = 20                    # a chunk of flares' rows
 STAGE9_GAP = 14                      # bare surface before GAMMA PRIME
-FLARE9_CLEAR = 18                    # no flares in the rows before it (P0 turns gold)
+FLARE9_CLEAR = 22                    # bare rows before it (the palettes turn: FL_END)
 HULL9_COL = 5                        # the hull's left column (10 wide, centred)
 B9_TOP = 0                           # the fight: the hull's top at line 0
 B9_W, B9_H = 10, 7
@@ -2134,7 +2140,6 @@ B9_W, B9_H = 10, 7
 # column and row of each one's top left, size in tiles
 B9_PARTS = {"CORE": (4, 2, 2, 2), "CANNON_L": (1, 2, 2, 2), "CANNON_R": (7, 2, 2, 2), "EMITTER": (4, 4, 2, 2),
             "TUR0": (2, 0, 1, 1), "TUR1": (7, 0, 1, 1), "TUR2": (2, 5, 1, 1), "TUR3": (7, 5, 1, 1)}
-B9_SWAY = 13                         # its sway, pixels either side (MegaGammaForce's 16 of 192)
 # slots: name, lines down (a prism: the core's, 8 down: the orbit's centre
 # less half a prism). 5 is the core (the shared code's reactor slot)
 B9_SLOTS = [("CANNON_L", 0), ("CANNON_R", 0), ("EMITTER", 0), ("CORE", 8), ("CORE", 8), ("CORE", 0),
@@ -2160,10 +2165,12 @@ def stage9():
     h_tiles, h_pals, hull = t7.gamma_tiles(B9_W, B9_H, B9_PARTS)
     base = len(s_tiles)
     t_slots, t_pals = s_tiles + h_tiles, s_pals + h_pals
-    # group B: the flares' tiles again, in P1
+    # group B: the flares' tiles again, in P1; and the battlefield's group
+    # A, in P2
     flare_tiles = sorted({int(t) for g in flares for t in g.ravel() if t})
-    alias = [(t, t7.FLARE9_B) for t in flare_tiles]
+    alias = [(t, t7.FLARE9_B) for t in flare_tiles] + [(t, t7.SUN9) for t in flare_tiles]
     to_b = {t: len(t_slots) + k for k, t in enumerate(flare_tiles)}
+    to_a2 = {t: len(t_slots) + len(flare_tiles) + k for k, t in enumerate(flare_tiles)}
     print(f"stage 9: {len(s_tiles)} + {len(h_tiles)} tiles, {len(lethal)} lethal")
     assert len(t_slots) <= 64, f"stage 9: {len(t_slots)} tiles (64 fit beside its sprites)"
     vpals = [None] + t_pals[1:] + [p for _, p in alias]
@@ -2288,12 +2295,10 @@ def stage9():
             m[r:r + 4] = lull
             r += 4
             lulls -= 1
-    while r < rows:
-        m[r:min(r + 16, rows)] = plain[:min(16, rows - r)]
-        r += 16
-    m[rows - loop:] = plain                         # (the loop: seamless)
-    flare_numbers = set(lethal) | set(to_b.values()) | set(flare_tiles)
-    last_flare = max(y for y in range(rows) if any(int(t) in flare_numbers for t in m[y]))
+    # then bare surface: from where the stage's last tile has gone (FL_END),
+    # the palettes are the fight's
+    last_tile = r - 1
+    m[r:] = 0
 
     # GAMMA PRIME: its tiles over clear rows
     bow = STAGE9_BODY + STAGE9_GAP                  # its lowest row
@@ -2303,6 +2308,11 @@ def stage9():
         for hc in range(B9_W):
             if hull[hr, hc]:
                 m[stern - hr, HULL9_COL + hc] = base + hull[hr, hc] - 1
+    # the battlefield's flares, in the rows under it
+    for k, grp, c, r_ in ARENA9:
+        g = flares[k]
+        remap = to_a2 if grp == "A" else to_b
+        put(g, bow - ARENA9_ROWS + r_, c, remap=remap)
     for y in range(rows):
         assert _runs9(m[y], vpals) <= MAX_RUNS, (y, _runs9(m[y], vpals))
 
@@ -2318,18 +2328,16 @@ def stage9():
         ylo.append(y & 255)
         yhi.append(y >> 8)
     top9 = (stern + 1) * 16
-    fl_end = (last_flare + 1) * 16
-    assert fl_end + 240 < bow * 16, "a flare still in view as the hull comes"
-    b9 = {"b9_stop": top9 - 208 + B9_TOP, "b9_gone": top9 + 8, "b9_row": bow, "b9_end": stern + 1,
-          "b9_sway": B9_SWAY, "fl_end": fl_end,
+    fl_end = (last_tile + 1) * 16
+    assert fl_end + 240 <= (bow - ARENA9_ROWS) * 16, "the stage's tiles still in view as the battlefield comes"
+    b9 = {"b9_stop": top9 - 208 + B9_TOP, "b9_gone": top9 + 8, "fl_end": fl_end,
           "fl_c0": 2 * NFONT + 2 * lethal.start, "fl_c1": 2 * NFONT + 2 * lethal.stop}
     lines = ["; Generated by tools/gen_assets.py. Do not edit.",
              "; GAMMA PRIME's parts (slots 0-11): x, and the world height of each one's",
-             "; top (lo, hi). Its stop (a scroll position), where it has gone, its map rows",
-             "; (from, to), its sway (pixels either side); where the flares end (a scroll",
-             "; position: past it, none in view), the characters of the tiles that kill",
-             "; (from, to); the flares' colors (dark, warning, erupting, fading), the",
-             "; fight's (P0 gold, P1 the spine)."]
+             "; top (lo, hi). Its stop (a scroll position), where it has gone; where the",
+             "; stage's flares end (a scroll position: past it, only the battlefield's",
+             "; are in view), the characters of the tiles that kill (from, to); the",
+             "; flares' colors (dark, warning, erupting, fading), the fight's P0 (gold)."]
     lines.append("b9_x .byte " + ",".join(str(v) for v in xs))
     lines.append("b9_ylo .byte " + ",".join(str(v) for v in ylo))
     lines.append("b9_yhi .byte " + ",".join(str(v) for v in yhi))

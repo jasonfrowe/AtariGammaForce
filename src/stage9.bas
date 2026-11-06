@@ -5,11 +5,14 @@
   rem  flickers faster and faster in warning, then erupts, then fades: a
   rem  cycle of 512 frames (the clock turns every other frame: at
   rem  MegaGammaForce's 256 they changed too often), B half a cycle behind
-  rem  A, so they take turns (MegaGammaForce's bg.c). Erupting, a flare is fatal to fly through
-  rem  (tested at the ship's middle and 3 pixels either side, as
-  rem  MegaGammaForce's); shots, bullets and the enemies pass through.
-  rem  Past the flares (FL_END), P0 and P1 hold GAMMA PRIME's gold and its
-  rem  spine's gamma light, which runs.
+  rem  A, so they take turns (MegaGammaForce's bg.c). Erupting, a flare is
+  rem  fatal to fly through (tested at the ship's middle and 3 pixels
+  rem  either side, as MegaGammaForce's); shots, bullets and the enemies
+  rem  pass through.
+  rem  Past the stage's flares (FL_END), P0 holds GAMMA PRIME's gold, and
+  rem  the same clock lights the battlefield's flares under it: group A (a
+  rem  column under the core) in P2, B (the flanks) in P1. Once GAMMA PRIME
+  rem  is beaten or gone they no longer burn.
   rem ======================================================================
 
   rem the flares' clock (0-255)
@@ -17,44 +20,38 @@
 
 corona
   asm
+  ; the stage's: group A in P0 (its bits as an object's: $00); in the
+  ; fight, the hull's gold in P0 and group A in P2 ($40)
+  lda #0
+  sta temp8                ; (A's palette, from P0C1)
+  sta temp9                ; (its bits)
   lda spos_lo
   cmp #<FL_END
   lda spos_hi
   sbc #>FL_END
   bcc cr_flares
-  ; GAMMA PRIME's colors: its gold, and its spine's two lights swapped
-  ; every 8 frames
   ldx #2
 cr_gold
   lda b9_cols,x
   sta P0C1,x
   dex
   bpl cr_gold
-  lda b9_cols+3
-  sta P1C1
-  ldx b9_cols+4
-  ldy b9_cols+5
-  lda tick
-  and #8
-  beq cr_spine
-  ldx b9_cols+5
-  ldy b9_cols+4
-cr_spine
-  stx P1C2
-  sty P1C3
-  rts
+  lda #8
+  sta temp8
+  lda #$40
+  sta temp9
 cr_flares
   lda tick
   and #1
   bne cr_slow
   inc flt
 cr_slow
-  ; group A's colors (P0), then B's (P1), half a cycle on
+  ; group A's colors, then B's (P1), half a cycle on
   lda flt
   jsr cr_phase
   sta obj                  ; (A's phase)
   tax
-  ldy #0
+  ldy temp8
   jsr cr_colors
   lda flt
   eor #128
@@ -66,7 +63,10 @@ cr_slow
   ; the one erupting (never both): its palette, in an object's bits
   lda plvuln
   beq cr_done
-  lda #0
+  lda bstate
+  cmp #4
+  bcs cr_done              ; (GAMMA PRIME beaten or gone)
+  lda temp9
   ldx obj
   cpx #2
   beq cr_ship
@@ -124,7 +124,8 @@ cr_late
 cr_ph_done
   rts
 
-  ; phase X's three colors into the palette at P0C1 + Y (P0: 0, P1: 4)
+  ; phase X's three colors into the palette at P0C1 + Y (P0: 0, P1: 4,
+  ; P2: 8)
 cr_colors
   lda cr_x3,x
   tax

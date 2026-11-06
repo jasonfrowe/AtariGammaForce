@@ -1481,10 +1481,10 @@ def hive_tiles(w, h, parts):
 # are P2. The flares (MegaGammaForce's sky) are tiles too, in two groups:
 # A in P0, B in P1, drawn once and used by both (gen_assets: a tile number
 # for each group, the same characters). stage9.bas lights each group's
-# palette in turn. In the fight P0 and P1 hold GAMMA PRIME's gold and the
-# gamma light of its spine.
+# palette in turn. In the fight P0 holds GAMMA PRIME's gold, and P2 and
+# P1 the battlefield's two groups of flares (the surface is behind).
 FLARE9_A, FLARE9_B, SUN9 = 0, 1, 2
-GOLD9, SPINE9 = 0, 1
+GOLD9 = 0
 
 
 def _noise9(w, h, cell, seed):
@@ -1692,19 +1692,18 @@ def _gold9(variant):
 
 
 def _spine9():
-    """The spine (P1): gold at its edges (P1's first color matches the
-    plating), a channel of gamma light down the middle in bands of its
-    other two, which stage9.bas swaps so the light runs."""
-    t = np.ones((H, W), dtype=np.uint8)
+    """The spine: gold at its edges, a channel down the middle in bands
+    of light and shadow."""
+    t = np.full((H, W), 2, dtype=np.uint8)
     for y in range(H):
-        t[y, 2:6] = 2 if (y // 4) % 2 == 0 else 3
+        t[y, 2:6] = 3 if (y // 4) % 2 == 0 else 1
     return t
 
 
 def gamma_tiles(w, h, parts):
     """GAMMA PRIME's hull: its map (h x w tile numbers into the returned
     tiles, 0 clear) in gold plate (P0), its rim in marching squares, the
-    spine's light (P1) above the core and below the emitter, the parts'
+    spine's channel above the core and below the emitter, the parts'
     sockets plain (their sprites cover them). Returns (tiles, palettes,
     map) - tile numbers from 1."""
     tiles, pals, ids = [None], [GOLD9], {}
@@ -1727,7 +1726,7 @@ def gamma_tiles(w, h, parts):
                 m[r, c] = add(_gold9(int(rng.choice(4, p=[0.4, 0.25, 0.2, 0.15]))))
             elif any(cfg):
                 m[r, c] = add(_blend(cfg, 2, 3, 1, cut=0.5))
-    spine = add(_spine9(), SPINE9)
+    spine = add(_spine9())
     cx, cy = parts["CORE"][:2]
     ey = parts["EMITTER"][1] + parts["EMITTER"][3]
     for r in list(range(0, cy)) + list(range(ey, h)):

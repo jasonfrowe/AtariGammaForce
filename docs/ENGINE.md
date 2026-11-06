@@ -251,9 +251,10 @@ in palette 2's three colors, turned round every 4 frames (palette 2 is
 the bases', and there are none near the boss). `pf_stage` turns the sway
 off (`pfswayrow` $FF).
 
-Stage 8's HIVE MOTHERSHIP and stage 9's GAMMA PRIME are map rows and
-sway the same way (their own copies of the patch, `b8_sway` and `b9_sway`,
-which stop at `pfswayend`). GAMMA PRIME has twelve parts, so the shared
+Stage 8's HIVE MOTHERSHIP is map rows and sways the same way (its own
+copy of the patch, `b8_sway`, which stops at `pfswayend`). Stage 9's
+GAMMA PRIME is map rows too but holds still: flares on the battlefield
+under it keep the ship moving instead (see Flares). GAMMA PRIME has twelve parts, so the shared
 boss code counts slots 0-11 (slot 11's weight is cleared for the others).
 
 ## Solid tiles
@@ -282,9 +283,12 @@ the ship's middle, and 3 pixels either side, among its map row's
 background objects (their x, width and palette say which run it is in;
 the run's characters, which tile), and the tiles that kill are numbered
 together, so a range of characters says (no masks: the bank had no room).
-Past the last flare (`FL_END`), the two palettes hold GAMMA PRIME's gold
-and its spine's gamma light instead. Like the asteroids, the flares are a
-few chunks of rows used in turn.
+Past the stage's last tile (`FL_END`; the rows from there to the boss
+are bare), palette 0 holds GAMMA PRIME's gold, and the same clock lights
+the battlefield's flares in the rows under it: a column under the core
+(group A, in palette 2: a third alias) and the flanks (group B, palette
+1), so the ship can't camp under the core. Like the asteroids, the
+stage's flares are a few chunks of rows used in turn.
 
 Stage 6 also fades: as the ship climbs, the ocean (the background color)
 and its clouds (palette 1) darken to black by the scroll position

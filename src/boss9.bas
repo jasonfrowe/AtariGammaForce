@@ -3,12 +3,13 @@
   rem  the Gamma Core's true form, a sunburst fortress of gold feeding on the
   rem  Sun. Its hull is part of the map (as HIVE MOTHERSHIP's: map rows after
   rem  the flares), and the scroll brings it in and stops with it at the top
-  rem  of the screen; in the fight it sways from side to side. Four prisms
+  rem  of the screen. It holds still: the battlefield's flares under it
+  rem  (stage9.bas) keep the ship from camping under the core. Four prisms
   rem  orbit it (as HALO STATION's satellites) firing pink threes at the
   rem  ship, two ring cannons fire pink rings, four turrets aimed blue; the
   rem  beam emitter below the core glows, then pours three fans of needles
-  rem  straight down; the core, its gamma light running down the spine,
-  rem  fires blue rings. The core is shut (gold) while any prism orbits.
+  rem  straight down; the core fires blue rings. The core is shut (gold)
+  rem  while any prism orbits, then burns red.
   rem  With the emitter gone the core sprays at the ship; hurt, it fires
   rem  blue threes too; late in the fight, pink rings.
   rem  Slots: 0-1 the cannons, 2 the emitter, 3-4 and 10-11 the prisms, 5
@@ -24,10 +25,6 @@
   dim b9can = $22E2
   dim b9beam = $22E3
   dim b9ring = $22E4
-  rem (engine.asm's)
-  dim pfsway = $22C8
-  dim pfswayrow = $22C9
-  dim pfswayend = $22CA
 
 boss9_build
   for k = 0 to 11
@@ -39,18 +36,10 @@ boss9_build
   rem (bx, by: where it burns, round its middle)
   bcorehp = 250 : bx = 80 : by = 56 : borbit = 0
   b9tur = 0 : b9pr = 0 : b9can = 0 : b9beam = 0 : b9ring = 0
-  rem its rows sway from here on (still, for now)
-  pfsway = 0
-  asm
-  lda #B9_ROW
-  sta pfswayrow
-  lda #B9_END
-  sta pfswayend
-end
   return
 
   rem Each part's line from the scroll: spos + 240 - its top's world
-  rem height (16 bits), its x the table's plus the sway; off the screen,
+  rem height (16 bits), its x the table's; off the screen,
   rem it waits off to the right. Then the prisms, round the core (their
   rem table's place), a quarter turn apart, turning a step a frame in the
   rem fight.
@@ -80,8 +69,6 @@ b9p_loop
   bcs b9p_off
   sta eyh,x
   lda b9_x,x
-  clc
-  adc pfsway
   sta exh,x
   jmp b9p_next
 b9p_off
@@ -153,8 +140,8 @@ b9p_prnext
   bpl b9p_prism
 end
   rem the core is shut while any prism orbits (gammaforce.bas part_core):
-  rem gold; then its gamma light shows
-  ecol[5] = 1
+  rem gold; then it burns red
+  ecol[5] = 4
   if etype[3] = ET_PPOD || etype[4] = ET_PPOD then ecol[5] = 0
   if etype[10] = ET_PPOD || etype[11] = ET_PPOD then ecol[5] = 0
   rem the core pulses; the prisms turn; each cannon glows in the 20
@@ -211,15 +198,6 @@ end
 boss9_fight
   btl = btl + 1
   if btl = 0 then bth = bth + 1
-  rem the sway: B9_SWAY sin(t / 2), about 8 seconds a sweep there and back
-  wang = bth * 128 + btl / 2 + 192
-  asm
-  lda #B9_SWAY
-  sta wamp
-  jsr weave
-  lda woff
-  jsr .b9_sway
-end
   gosub boss9_place
   rem its clocks
   b9tur = b9tur + 1
@@ -236,85 +214,6 @@ end
   if bth >= 28 then bescape = 1 : gosub boss_tally : bstate = 4 : btl = 0 : pfspeed = 250 : return
   if plvuln = 0 then return
   gosub boss9_attack
-  return
-
-  rem Move the sway (pfsway) a pixel toward A (signed), and the rows already
-  rem built with it: the ring buffers' background objects (x, each one's
-  rem fifth byte) and zone 14's tiles (x, each one's fourth) of the rows
-  rem from pfswayrow up to pfswayend (HIVE MOTHERSHIP's b8_sway)
-b9_sway
-  asm
-  sec
-  sbc pfsway
-  beq b9s_done
-  bmi b9s_left
-  lda #1
-  bne b9s_go
-b9s_left
-  lda #$FF
-b9s_go
-  sta temp1
-  clc
-  adc pfsway
-  sta pfsway
-  ldx #RINGN-1
-b9s_ring
-  lda ringrow,x
-  cmp pfswayrow
-  bcc b9s_ringnext
-  cmp pfswayend
-  bcs b9s_ringnext
-  lda ringlo,x
-  sta pfq
-  lda ringhi,x
-  sta pfq+1
-  ldy #4
-b9s_obj
-  tya
-  cmp bgsize,x
-  bcs b9s_ringnext
-  lda (pfq),y
-  clc
-  adc temp1
-  sta (pfq),y
-  tya
-  clc
-  adc #5
-  tay
-  bne b9s_obj
-b9s_ringnext
-  dex
-  bpl b9s_ring
-  ldx #1
-b9s_z14
-  lda pfz14row,x
-  cmp pfswayrow
-  bcc b9s_z14next
-  cmp pfswayend
-  bcs b9s_z14next         ; (or it holds no row: $FF)
-  lda z14lo,x
-  sta pfq
-  lda z14hi,x
-  sta pfq+1
-  ldy #3
-b9s_tile
-  tya
-  cmp pfz14bg,x
-  bcs b9s_z14next
-  lda (pfq),y
-  clc
-  adc temp1
-  sta (pfq),y
-  iny
-  iny
-  iny
-  iny
-  bne b9s_tile
-b9s_z14next
-  dex
-  bpl b9s_z14
-b9s_done
-end
   return
 
 boss9_attack
@@ -409,14 +308,8 @@ b9_fan
 end
   return
 
-  rem It burns on, settling back to the middle, until it has gone below
-  rem the screen
+  rem It burns on until it has gone below the screen
 boss9_sinking
-  temp1 = 0
-  asm
-  lda temp1
-  jsr .b9_sway
-end
   if btl < 230 then return
   asm
   lda spos_lo
@@ -455,5 +348,5 @@ end
   10, 10, 14, 5, 5, 0, 4, 4, 4, 4, 5, 5
 end
   data boss9_col
-  0, 0, 0, 5, 5, 1, 4, 4, 4, 4, 5, 5
+  0, 0, 0, 5, 5, 0, 4, 4, 4, 4, 5, 5
 end
