@@ -10,7 +10,10 @@
 # voices 0 and 1 and the boss's voice 0 in its bank's main area; its
 # voice 2 and the rest of the boss's (with MASS DRIVER's code) in the hole.
 # Stage 8's (the cut too): the stage song in its bank's main area, the
-# boss's in the hole with HIVE MOTHERSHIP's code.
+# boss's in the hole with HIVE MOTHERSHIP's code. Stage 9's (the cut, and
+# MegaGammaForce's Final for GAMMA PRIME): the boss's song and the stage
+# song's voice 0 in the main area, the rest of the stage's in the hole
+# with GAMMA PRIME's code.
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 M="$ROOT/assets/mgf/music"
 G="$ROOT/src/gen"
@@ -20,6 +23,7 @@ G="$ROOT/src/gen"
     "$M/Stage6.vgm:stage6" "$M/Boss6.vgm:boss6" \
     "$M/Stage7_cut.vgm:stage7" "$M/Boss7.vgm:boss7" \
     "$M/Stage8_cut.vgm:stage8" "$M/Boss8.vgm:boss8" \
+    "$M/Stage9_cut.vgm:stage9" "$M/Final.vgm:boss9" \
     -o "$G/musicdata.asm" --fixed "$G/musiccommon.asm" \
     --to "$G/musicdata2.asm=stage2" --to "$G/musicdata2b.asm=boss2" \
     --to "$G/musicdata3.asm=stage3" --to "$G/musicdata3b.asm=boss3" \
@@ -28,4 +32,5 @@ G="$ROOT/src/gen"
     --to "$G/musicdata5c.asm=stage5.v0,stage5.v2" \
     --to "$G/musicdata6.asm=boss6,stage6.v0" --to "$G/musicdata6b.asm=stage6" \
     --to "$G/musicdata7.asm=boss7,stage7.v2" --to "$G/musicdata7b.asm=stage7,boss7.v0" \
-    --to "$G/musicdata8.asm=boss8" --to "$G/musicdata8b.asm=stage8"
+    --to "$G/musicdata8.asm=boss8" --to "$G/musicdata8b.asm=stage8" \
+    --to "$G/musicdata9.asm=stage9" --to "$G/musicdata9b.asm=boss9,stage9.v0"

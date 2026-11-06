@@ -1473,3 +1473,271 @@ def hive_tiles(w, h, parts):
             for x in range(pw):
                 m[r + y, c + x] = add(sock)
     return tiles[1:], pals[1:], m
+
+
+# ---- stage 9, CORONA -------------------------------------------------------
+# Low over the Sun: its surface is the background color; patches of
+# granulation (the lanes between the boiling cells), sunspots and faculae
+# are P2. The flares (MegaGammaForce's sky) are tiles too, in two groups:
+# A in P0, B in P1, drawn once and used by both (gen_assets: a tile number
+# for each group, the same characters). stage9.bas lights each group's
+# palette in turn. In the fight P0 and P1 hold GAMMA PRIME's gold and the
+# gamma light of its spine.
+FLARE9_A, FLARE9_B, SUN9 = 0, 1, 2
+GOLD9, SPINE9 = 0, 1
+
+
+def _noise9(w, h, cell, seed):
+    """Smooth value noise, 0-1, w x h pixels, cells `cell` pixels wide."""
+    rng = np.random.default_rng(seed)
+    gw, gh = w // cell + 2, h // cell + 2
+    g = rng.random((gh, gw))
+    yy, xx = np.mgrid[0:h, 0:w]
+    u, v = xx / cell, yy / cell
+    x0, y0 = u.astype(int), v.astype(int)
+    fx, fy = u - x0, v - y0
+    fx, fy = fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)
+    a = g[y0, x0] * (1 - fx) + g[y0, x0 + 1] * fx
+    b = g[y0 + 1, x0] * (1 - fx) + g[y0 + 1, x0 + 1] * fx
+    return a * (1 - fy) + b * fy
+
+
+def granules9(w, h, seed):
+    """A patch of granulation w x h tiles: the dark lanes between the
+    cells (2) where a lumpy blob says so, a bright fleck (3) in a cell
+    now and then. Its edge fades out, lanes breaking up."""
+    rng = np.random.default_rng(900 + seed)
+    n, m = h * H, w * W
+    pts = [(rng.uniform(-6, m * 2 + 6), rng.uniform(-6, n + 6)) for _ in range(w * h * 5)]
+    noise = _noise9(m, n, 4, 910 + seed)
+    img = np.zeros((n, m), dtype=np.uint8)
+    cx, cy = m, n / 2
+    for py in range(n):
+        for px in range(m):
+            x, y = px * 2 + 1.0, py + 0.5
+            ds = sorted(math.hypot(x - qx, y - qy) for qx, qy in pts)
+            d = math.hypot((x - cx) / (m - 2), (y - cy) / (n / 2 - 1)) + (noise[py, px] - 0.5) * 0.5
+            if d >= 1:
+                continue
+            gap = ds[1] - ds[0]
+            if gap < (1.4 if d < 0.7 else 0.9):
+                img[py, px] = 2
+            elif ds[0] < 1.2 and d < 0.8 and BAYER4[py % 4, px % 4] < 0:
+                img[py, px] = 3
+    return img
+
+
+def sunspot9(w, h, seed):
+    """A sunspot filling w x h tiles: a dark umbra (1), a penumbra of
+    radial filaments (2, lanes between), bright faculae flecked round it
+    (3)."""
+    n, m = h * H, w * W
+    noise = _noise9(m, n, 4, 920 + seed)
+    img = np.zeros((n, m), dtype=np.uint8)
+    cx, cy = m, n / 2
+    for py in range(n):
+        for px in range(m):
+            x, y = px * 2 + 1.0, py + 0.5
+            u, v = (x - cx) / (m - 1), (y - cy) / (n / 2 - 1)
+            a = math.atan2(v, u)
+            d = math.hypot(u, v) + (noise[py, px] - 0.5) * 0.3
+            bay = BAYER4[py % 4, px % 4]
+            if d < 0.42:
+                img[py, px] = 1
+            elif d < 0.82:
+                # filaments: radial stripes of penumbra, the gaps between
+                # them showing the surface
+                img[py, px] = 2 if math.cos(a * (8 + 2 * w) + noise[py, px] * 5) > -0.35 or d < 0.5 else 0
+            elif d < 1.0 and noise[py, px] > 0.5 and bay < 0.1:
+                img[py, px] = 3
+    return img
+
+
+def faculae9(kind):
+    """A bright fleck or two on the surface."""
+    t = np.zeros((H, W), dtype=np.uint8)
+    rng = np.random.default_rng(930 + kind)
+    for _ in range(1 + kind):
+        x, y = int(rng.integers(1, W - 2)), int(rng.integers(2, H - 3))
+        t[y, x] = 3
+        t[y + 1, x] = 2
+        if kind:
+            t[y, x + 1] = 2
+    return t
+
+
+def flare9(kind, w, h, seed):
+    """A flare w x h tiles, its feet at the bottom: a prominence loop (an
+    arch of plasma) or a tongue licking up from its root (MegaGammaForce's
+    sun.py). Shades 1-3 by strength."""
+    n, m = h * H, w * W
+    noise = _noise9(m, n, 4, 940 + seed)
+    img = np.zeros((n, m), dtype=np.uint8)
+    for py in range(n):
+        for px in range(m):
+            x, y = px * 2 + 1.0, py + 0.5
+            bay = BAYER4[py % 4, px % 4]
+            nz = noise[py, px] - 0.5
+            if kind == "loop":
+                cx, rx, ry = m, m - 5, n - 4
+                d = abs(math.hypot((x - cx) / rx, (y - n) / ry) - 1) * min(rx, ry) + nz * 3
+                thick = 3.4 + 1.6 * math.sin(math.atan2(n - y, x - cx) * 3 + seed)
+                if d >= thick:
+                    continue
+                f = 1 - d / thick + nz * 0.4
+            else:
+                t = (n - y) / n
+                cx = m + math.sin(t * math.pi * 2 + seed) * m * 0.22
+                half = (m - 3) * (1 - t ** 1.5) + 1.5
+                d = abs(x - cx) / half + nz * 0.5
+                if d >= 1:
+                    continue
+                f = (1 - d) * 0.85 + (1 - t) * 0.25 + nz * 0.3
+            img[py, px] = 1 + int(np.clip(math.floor(f * 3 + bay * 0.6), 0, 2))
+    return img
+
+
+# the flares drawn (kind, w, h in tiles), each used by both groups
+FLARES9 = [("loop", 4, 2), ("tongue", 2, 3), ("tongue", 2, 4)]
+
+
+def _cut9(img, w, h, tiles, pals, pal, keep=0.0):
+    """Cut an image into tiles (appended): its h x w grid of tile numbers,
+    0 where a tile would be (nearly) empty."""
+    g = np.zeros((h, w), dtype=int)
+    for r in range(h):
+        for c in range(w):
+            t = img[r * H:(r + 1) * H, c * W:(c + 1) * W].copy()
+            if (t > 0).mean() <= keep:
+                continue
+            g[r, c] = len(tiles)
+            tiles.append(t)
+            pals.append(pal)
+    return g
+
+
+def corona_tiles():
+    """Stage 9's ground and flares: tile 0 blank (the surface), granulation
+    patches, sunspots, faculae (P2); the flares (P0, group A's). Returns
+    (tiles, palettes, patches: h x w grids of tile numbers (granulation,
+    then sunspots), flecks: faculae tile numbers, flares: grids,
+    lethal: the flare tiles that kill (a quarter of them plasma or more))."""
+    tiles, pals = [np.zeros((H, W), dtype=np.uint8)], [SUN9]
+    patches = [_cut9(granules9(3, 2, 0), 3, 2, tiles, pals, SUN9, keep=0.04),
+               _cut9(sunspot9(4, 3, 0), 4, 3, tiles, pals, SUN9, keep=0.04),
+               _cut9(sunspot9(2, 2, 1), 2, 2, tiles, pals, SUN9, keep=0.04)]
+    flecks = []
+    for k in range(2):
+        flecks.append(len(tiles))
+        tiles.append(faculae9(k))
+        pals.append(SUN9)
+    # the flares: their lethal tiles (a quarter of them plasma or more)
+    # numbered together, first, so a range says which kill (stage9.bas)
+    cut, flares = [], []
+    for i, (kind, w, h) in enumerate(FLARES9):
+        img = flare9(kind, w, h, i)
+        g = np.zeros((h, w), dtype=int)
+        for r in range(h):
+            for c in range(w):
+                t = img[r * H:(r + 1) * H, c * W:(c + 1) * W].copy()
+                if (t > 0).mean() > 0.03:
+                    g[r, c] = len(cut) + 1
+                    cut.append(t)
+        flares.append(g)
+    order = sorted(range(len(cut)), key=lambda k: (cut[k] > 0).mean() < 0.25)
+    first = len(tiles)
+    number = {}
+    for k in order:
+        number[k + 1] = len(tiles)
+        tiles.append(cut[k])
+        pals.append(FLARE9_A)
+    flares = [np.vectorize(lambda t: number[int(t)] if t else 0)(g) for g in flares]
+    lethal = range(first, first + sum((t > 0).mean() >= 0.25 for t in cut))
+    return tiles, pals, patches, flecks, flares, lethal
+
+
+def gamma_shape(w, h):
+    """GAMMA PRIME's hull corners, (h + 1) x (w + 1): a disc and eight
+    rays (MegaGammaForce's gamma.py, in 7 rows)."""
+    g = np.zeros((h + 1, w + 1), dtype=np.uint8)
+    for y in range(h + 1):
+        for x in range(w + 1):
+            dx, dy = x - w / 2, (y - h / 2) * 1.05
+            r = math.hypot(dx, dy)
+            a = math.degrees(math.atan2(dy, dx)) % 45
+            ray = min(a, 45 - a)
+            if r < 3.1 or (r < 6.2 and ray < 30 - r * 3.6):
+                g[y, x] = 1
+    return g
+
+
+def _gold9(variant):
+    """Gold plating (2), lit from the upper left: long plates, a seam (1,
+    its lit lip 3) along the tile's top; variant 1 riveted, 2 a vent, 3 a
+    seam down its left too."""
+    t = np.full((H, W), 2, dtype=np.uint8)
+    t[0, :] = 1
+    t[1, :] = 3
+    t[H - 1, :] = 1
+    if variant == 1:
+        for y, x in ((5, 1), (5, 6), (12, 1), (12, 6)):
+            t[y, x] = 1
+    elif variant == 2:
+        t[6:13:2, 2:6] = 1
+        t[7:14:2, 2:6] = 3
+    elif variant == 3:
+        t[:, 0] = 1
+        t[1:, 1] = 3
+    return t
+
+
+def _spine9():
+    """The spine (P1): gold at its edges (P1's first color matches the
+    plating), a channel of gamma light down the middle in bands of its
+    other two, which stage9.bas swaps so the light runs."""
+    t = np.ones((H, W), dtype=np.uint8)
+    for y in range(H):
+        t[y, 2:6] = 2 if (y // 4) % 2 == 0 else 3
+    return t
+
+
+def gamma_tiles(w, h, parts):
+    """GAMMA PRIME's hull: its map (h x w tile numbers into the returned
+    tiles, 0 clear) in gold plate (P0), its rim in marching squares, the
+    spine's light (P1) above the core and below the emitter, the parts'
+    sockets plain (their sprites cover them). Returns (tiles, palettes,
+    map) - tile numbers from 1."""
+    tiles, pals, ids = [None], [GOLD9], {}
+
+    def add(t, pal=GOLD9):
+        key = (t.tobytes(), pal)
+        if key not in ids:
+            ids[key] = len(tiles)
+            tiles.append(t)
+            pals.append(pal)
+        return ids[key]
+
+    g = gamma_shape(w, h)
+    m = np.zeros((h, w), dtype=np.uint8)
+    rng = np.random.default_rng(9)
+    for r in range(h):
+        for c in range(w):
+            cfg = (int(g[r, c]), int(g[r, c + 1]), int(g[r + 1, c + 1]), int(g[r + 1, c]))
+            if cfg == (1, 1, 1, 1):
+                m[r, c] = add(_gold9(int(rng.choice(4, p=[0.4, 0.25, 0.2, 0.15]))))
+            elif any(cfg):
+                m[r, c] = add(_blend(cfg, 2, 3, 1, cut=0.5))
+    spine = add(_spine9(), SPINE9)
+    cx, cy = parts["CORE"][:2]
+    ey = parts["EMITTER"][1] + parts["EMITTER"][3]
+    for r in list(range(0, cy)) + list(range(ey, h)):
+        for c in (cx, cx + 1):
+            if all(g[r + a, c + b] for a in (0, 1) for b in (0, 1)):
+                m[r, c] = spine
+    sock = _gold9(0)
+    sock[1:H - 1, 1:W - 1] = 1
+    for name, (c, r, pw, ph) in parts.items():
+        for y in range(ph):
+            for x in range(pw):
+                m[r + y, c + x] = add(sock)
+    return tiles[1:], pals[1:], m

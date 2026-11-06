@@ -221,14 +221,9 @@ SCREEN_TEXTS = {
     "name6": "ASCENT",
     "name7": "SEA OF TRANQUILITY",
     "name8": "DEEP FIELD",
+    "name9": "CORONA",
+    # (copied into a RAM line, its digit changed: SCREEN_RAM's sel)
     "sel1": "<   STAGE 1   >",
-    "sel2": "<   STAGE 2   >",
-    "sel3": "<   STAGE 3   >",
-    "sel4": "<   STAGE 4   >",
-    "sel5": "<   STAGE 5   >",
-    "sel6": "<   STAGE 6   >",
-    "sel7": "<   STAGE 7   >",
-    "sel8": "<   STAGE 8   >",
     # the title's difficulty (TXT_MODE0 + easy): up and down choose
     "mode0": "^   EXPERT   _",
     "mode1": "^   NORMAL   _",
@@ -236,7 +231,12 @@ SCREEN_TEXTS = {
 }
 # Playfield texts that are lines of RAM (20 characters, written by the
 # game): the results screen's figures. Templates below fill them.
-SCREEN_RAM = {"resa": 0x23A0, "resb": 0x23B4, "resc": 0x23C8}
+SCREEN_RAM = {"resa": 0x23A0, "resb": 0x23B4, "resc": 0x23C8, "sel": 0x23A0}
+# Playfield texts kept in stage 9's bank (shown only while it is in: the
+# ending, after GAMMA PRIME), to spare the fixed bank.
+BANK9_TEXTS = {"end1": "ALL CLEAR", "end2": "GAMMA CORE IS DEAD", "end3": "THE SUN BURNS CLEAN"}
+# their lengths shown (the title's stage choice, in resa's RAM, is shorter)
+SCREEN_RAM_LEN = {"sel": len(SCREEN_TEXTS["sel1"])}
 # 16 shown of each 20-character RAM line (digits written by the game at
 # rtline 12, 33 and 51)
 RESULT_LINES = ["DESTRUCTION 000%    ", "MAX CHAIN    000    ", "BONUS      00000    "]
@@ -343,6 +343,11 @@ SPRITES = [
     ("b8pod", "boss8", 0, 0, None, None, 0),
     ("b8clawl", "boss8", 0, 0, None, None, 0),
     ("b8clawr", "boss8", 0, 0, None, None, 0),
+    # Stage 9's: GAMMA PRIME's core, beam emitter and orbiting prisms (in
+    # its bank; its ring cannons are GAMMA CORE's, its turrets the shared)
+    ("b9core", "boss9", 0, 0, None, None, 1),
+    ("b9emit", "boss9", 0, 0, None, None, 0),
+    ("b9prism", "boss9", 0, 0, None, None, 5),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -366,7 +371,7 @@ SPRITES = [
     ("hudgem0", "art", 0, 0, None, None, 3),
     ("hudship", "art", 0, 0, None, None, 3),
 ]
-BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5", "boss6", "boss7", "boss8")} - \
+BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5", "boss6", "boss7", "boss8", "boss9")} - \
     {"gunboat", "train", "berg", "slab", "flake", "sat", "b7can"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
@@ -380,6 +385,7 @@ STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "b
 STAGE6_STRIPS = {"sat0", "sat1", "b6core0", "b6core1", "b6pod0", "b6pod1"}
 STAGE7_STRIPS = {"b7breech0", "b7breech1", "b7cap0", "b7cap1", "b7muzzle0", "b7muzzle1", "b7can0", "b7can1"}
 STAGE8_STRIPS = {"b8eye0", "b8eye1", "b8pod0", "b8pod1", "b8clawl0", "b8clawl1", "b8clawr0", "b8clawr1"}
+STAGE9_STRIPS = {"b9core0", "b9core1", "b9emit0", "b9emit1", "b9prism"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 
@@ -501,6 +507,9 @@ def build_sprites():
         elif fn == "boss8":
             import boss7800
             conv = boss7800.parts8()[name]
+        elif fn == "boss9":
+            import boss7800
+            conv = boss7800.parts9()[name]
         elif fn == "logo":
             import logo7800
             conv = [logo7800.words()[name]]
@@ -595,6 +604,7 @@ def stg_layout():
 
 
 STG_VEC = ("build", "enter", "fight", "place", "attack", "sinking", "hook", "spare")
+# (stage 9's spare: the ending's texts, boss9.bas finale)
 
 
 STG = stg_layout()
@@ -640,8 +650,14 @@ def stage_bank(st):
     """Assembly for a stage's bank. st: dict with
     n, map (rows x 20 tile numbers), t_pals, blank (tile numbers drawn as
     background), col0, col1, loop, charset (label), pals (P0-P2 codes),
-    bg, song, bosssong, waves (field -> list), ground (field -> list)."""
-    n, m, t_pals = st["n"], st["map"], st["t_pals"]
+    bg, song, bosssong, waves (field -> list), ground (field -> list).
+    Optional: solid (tile numbers: a mask of them follows each row's
+    objects), or masks (a list of such sets: a mask for each, in turn);
+    alias (map numbers from len(t_slots) on: (tile, palette) each, the
+    tile's characters in another palette)."""
+    n, m = st["n"], st["map"]
+    _slots, t_pals = virtual_tiles(st)
+    alias = st.get("alias") or []
     rows = m.shape[0]
     assert rows <= MAX_ROWS
     col0, col1 = st["col0"], st["col1"]
@@ -653,10 +669,15 @@ def stage_bank(st):
     # Blank tiles must be the first ones (characters below stg_blank are
     # background), which tiles7800 arranges.
     assert blank == set(range(len(blank)))
-    chars = lambda t: first_tile_char + 2 * int(t)  # noqa: E731
-    assert len(t_pals) <= MAX_TILES
+    def chars(t):
+        t = int(t)
+        if t >= len(st["t_slots"]):
+            t = alias[t - len(st["t_slots"])][0]
+        return first_tile_char + 2 * t
+    assert len(st["t_slots"]) <= MAX_TILES
     shift = st.get("shift") or [(0, 0)] * rows
 
+    masks = st.get("masks") or ([st["solid"]] if st.get("solid") is not None else [])
     lines = [f"; Generated by tools/gen_assets.py. Do not edit.",
              f"; Stage {n}'s bank: switched in at $8000 for the whole stage.",
              f"; The header has the same layout in every stage bank (STG_ consts).",
@@ -719,12 +740,12 @@ def stage_bank(st):
         for (start, k, pal), off in zip(runs, at):  # one object a line: dasm allows 32 operators a line
             obj_lines.append(f"  .byte <({p}r{u}+{off}),$60,>({p}r{u}+{off}),{(pal << 5) | ((-k) & 31)},"
                              f"{(start + col0) * TILE_W}")
-        if st.get("solid") is not None:
+        for mask in masks:
             # then which columns are solid (bit c % 8 of byte c / 8, columns
-            # from col0): stage8.bas
+            # from col0): stage8.bas, stage9.bas
             bits = [0, 0, 0]
             for c, t in enumerate(key):
-                if int(t) in st["solid"]:
+                if int(t) in mask:
                     bits[c // 8] |= 1 << (c % 8)
             obj_lines.append("  .byte " + ",".join(str(b) for b in bits))
     lines.append("")
@@ -740,6 +761,16 @@ def stage_bank(st):
 # seamless) is repeated, so the fortress runs on almost to the boss; then
 # its tapering end, a little sea, and the 16-row boss loop. Same 208 rows.
 STAGE1_RUNS = [(18, 141), (95, 141), (142, 162), (192, 207)]
+
+
+def virtual_tiles(st):
+    """A stage's tiles and their palettes as the map numbers them: its
+    tiles, then its aliases (stage_bank)."""
+    slots, pals = list(st["t_slots"]), list(st["t_pals"])
+    for t, pal in st.get("alias") or []:
+        slots.append(st["t_slots"][t])
+        pals.append(pal)
+    return slots, pals
 
 
 def boss_vec(n, hook):
@@ -2069,6 +2100,263 @@ def stage8():
             "pal_codes": [[nearest(c) for c in p] for p in STAGE8_PALETTES]}
 
 
+# Stage 9, CORONA: low over the Sun (its surface the background color),
+# granulation, sunspots and faculae; and flares, solar loops and tongues
+# of plasma in two groups (A in P0, B in P1, the same tiles: alias), lit
+# in turn (stage9.bas): dark, a flicker of warning, then the eruption,
+# which is fatal to fly through (by each map row's masks: stage_bank).
+# Each group alone always leaves a way through. Then GAMMA PRIME, the
+# Gamma Core's true form, a sunburst fortress of gold, its hull map rows
+# (as HIVE MOTHERSHIP's), swaying in the fight; P0 and P1 hold its gold
+# and its spine's gamma light then (the flares are behind).
+STAGE9_BG = (204, 92, 10)
+STAGE9_PALETTES = [
+    [(96, 22, 0), (110, 28, 0), (124, 34, 0)],          # P0 flares A, dark (stage9.bas lights them)
+    [(96, 22, 0), (110, 28, 0), (124, 34, 0)],          # P1 flares B
+    [(46, 6, 0), (150, 52, 0), (255, 222, 120)],        # P2 the surface: umbra, lanes, faculae (and gunships)
+]
+# the flares' colors, dark, warning, erupting, fading (MegaGammaForce's bg.c)
+FLARE9_COLORS = [[(96, 22, 0), (110, 28, 0), (124, 34, 0)],
+                 [(200, 60, 0), (230, 100, 10), (250, 140, 30)],
+                 [(230, 50, 10), (255, 190, 60), (255, 250, 210)],
+                 [(200, 60, 0), (220, 100, 20), (240, 150, 60)]]
+# the fight's: P0 GAMMA PRIME's gold, P1 its spine (gold, gamma light)
+GAMMA9_COLORS = [[(90, 60, 20), (196, 150, 60), (255, 240, 190)],
+                 [(196, 150, 60), (80, 255, 140), (230, 255, 230)]]
+STAGE9_BODY = 176                    # rows before the gap
+STAGE9_CHUNK = 20                    # a chunk of flares' rows
+STAGE9_GAP = 14                      # bare surface before GAMMA PRIME
+FLARE9_CLEAR = 18                    # no flares in the rows before it (P0 turns gold)
+HULL9_COL = 5                        # the hull's left column (10 wide, centred)
+B9_TOP = 0                           # the fight: the hull's top at line 0
+B9_W, B9_H = 10, 7
+# GAMMA PRIME's parts, repacked from MegaGammaForce's 9 rows to 7: tile
+# column and row of each one's top left, size in tiles
+B9_PARTS = {"CORE": (4, 2, 2, 2), "CANNON_L": (1, 2, 2, 2), "CANNON_R": (7, 2, 2, 2), "EMITTER": (4, 4, 2, 2),
+            "TUR0": (2, 0, 1, 1), "TUR1": (7, 0, 1, 1), "TUR2": (2, 5, 1, 1), "TUR3": (7, 5, 1, 1)}
+B9_STOP_WAVES = 2760                 # the last wave by then (its warning comes in time)
+B9_SWAY = 13                         # its sway, pixels either side (MegaGammaForce's 16 of 192)
+# slots: name, lines down (a prism: the core's, 8 down: the orbit's centre
+# less half a prism). 5 is the core (the shared code's reactor slot)
+B9_SLOTS = [("CANNON_L", 0), ("CANNON_R", 0), ("EMITTER", 0), ("CORE", 8), ("CORE", 8), ("CORE", 0),
+            ("TUR0", 0), ("TUR1", 0), ("TUR2", 0), ("TUR3", 0), ("CORE", 8), ("CORE", 8)]
+
+
+def _runs9(row, pals):
+    """Display objects a row of map numbers takes (pals: each number's
+    palette, None for the blank), cut at the split column."""
+    n, prev = 0, None
+    for c, t in enumerate(row):
+        p = pals[int(t)]
+        if p is not None and (p != prev or c == SPLIT_COL):
+            n += 1
+        prev = p
+    return n
+
+
+def stage9():
+    import tiles7800 as t7
+    meta = json.loads((MGF / "stage9.json").read_text())
+    s_tiles, s_pals, patches, flecks, flares, lethal = t7.corona_tiles()
+    h_tiles, h_pals, hull = t7.gamma_tiles(B9_W, B9_H, B9_PARTS)
+    base = len(s_tiles)
+    t_slots, t_pals = s_tiles + h_tiles, s_pals + h_pals
+    # group B: the flares' tiles again, in P1
+    flare_tiles = sorted({int(t) for g in flares for t in g.ravel() if t})
+    alias = [(t, t7.FLARE9_B) for t in flare_tiles]
+    to_b = {t: len(t_slots) + k for k, t in enumerate(flare_tiles)}
+    print(f"stage 9: {len(s_tiles)} + {len(h_tiles)} tiles, {len(lethal)} lethal")
+    assert len(t_slots) <= 64, f"stage 9: {len(t_slots)} tiles (64 fit beside its sprites)"
+    vpals = [None] + t_pals[1:] + [p for _, p in alias]
+    loop = 16
+    rows = STAGE9_BODY + STAGE9_GAP + B9_H + loop
+    assert rows <= MAX_ROWS, rows
+    m = np.zeros((rows, 20), dtype=np.uint8)
+    rng = np.random.default_rng(99)
+    used = np.zeros((rows, 20), dtype=bool)
+    assert rows >= STAGE9_CHUNK
+
+    def put(g, r, c, mark=True, remap=None):
+        """Grid g (top row first) with its bottom row at map row r."""
+        h, w = g.shape
+        for y in range(h):
+            for x in range(w):
+                if g[y, x]:
+                    t = int(g[y, x])
+                    m[r + h - 1 - y, c + x] = remap[t] if remap else t
+        if mark:
+            used[r:r + h, c:c + w] = True
+
+    def fits(g, r, c, pad=1, cap=4):
+        h, w = g.shape
+        if r < 0 or r + h > rows or c < 0 or c + w > 20:
+            return False
+        if used[max(r - pad, 0):r + h + pad, max(c - pad, 0):c + w + pad].any():
+            return False
+        keep = m.copy()
+        put(g, r, c, mark=False)
+        ok = all(_runs9(m[y], vpals) <= cap for y in range(r, r + h))
+        m[:] = keep
+        return ok
+
+    def surface(n, seed, cap=3):
+        """n rows of surface (stage order): patches of granulation and
+        sunspots (none across its ends, so it repeats), faculae."""
+        g_rng = np.random.default_rng(seed)
+        keep_m, keep_u = m.copy(), used.copy()
+        m[:n], used[:n] = 0, False
+        r = 0
+        while r < n:
+            g = patches[int(g_rng.choice(3, p=[0.55, 0.2, 0.25]))]
+            if r + g.shape[0] <= n:
+                for _ in range(6):
+                    c = int(g_rng.integers(0, 20 - g.shape[1] + 1))
+                    if fits(g, r, c, pad=2, cap=cap):
+                        put(g, r, c)
+                        break
+            r += int(g_rng.integers(2, 6))
+        for y in range(n):
+            for _ in range(2):
+                x = int(g_rng.integers(0, 20))
+                if g_rng.random() < 0.35 and not used[max(y - 1, 0):y + 2, max(x - 1, 0):x + 2].any():
+                    m[y, x] = flecks[int(g_rng.integers(0, 2))]
+                    if _runs9(m[y], vpals) > cap:
+                        m[y, x] = 0
+                    else:
+                        used[y, x] = True
+        out = m[:n].copy(), used[:n].copy()
+        m[:], used[:] = keep_m, keep_u
+        return out
+
+    # the flares (MegaGammaForce's stage9_sky): a group and a shape at a
+    # time, up a chunk of rows, each group alone leaving a way through (a
+    # run of 7 clear columns in every row). The bank has room for few
+    # different rows: four chunks over the surface, used in turn.
+    def passable(gu, r0, h):
+        for y in range(r0, r0 + h):
+            run = best = 0
+            for c in range(20):
+                run = 0 if gu[y, c] else run + 1
+                best = max(best, run)
+            if best < 7:
+                return False
+        return True
+
+    def chunk(seed):
+        c_rng = np.random.default_rng(seed)
+        ground, _ = surface(STAGE9_CHUNK, seed + 50)
+        keep_m, keep_u = m.copy(), used.copy()
+        m[:STAGE9_CHUNK], used[:STAGE9_CHUNK] = ground, False
+        gu = {"A": np.zeros((STAGE9_CHUNK, 20), dtype=bool), "B": np.zeros((STAGE9_CHUNK, 20), dtype=bool)}
+        r = 0
+        while r < STAGE9_CHUNK:
+            grp = "AB"[int(c_rng.integers(0, 2))]
+            g = flares[int(c_rng.integers(0, len(flares)))]
+            if grp == "B":
+                g = np.vectorize(lambda t: to_b[int(t)] if t else 0)(g)
+            h, w = g.shape
+            if r + h <= STAGE9_CHUNK:
+                for _ in range(10):
+                    c = int(c_rng.integers(0, 20 - w + 1))
+                    if not fits(g, r, c, pad=0, cap=5):
+                        continue
+                    gu[grp][r:r + h, c:c + w] = True
+                    if not passable(gu[grp], r, h):
+                        gu[grp][r:r + h, c:c + w] = False
+                        continue
+                    put(g, r, c)
+                    break
+            r += int(c_rng.integers(1, 3))
+        out = m[:STAGE9_CHUNK].copy()
+        m[:], used[:] = keep_m, keep_u
+        return out
+
+    plain, _ = surface(16, 90)
+    lull, _ = surface(4, 91)
+    chunks = [chunk(92 + k) for k in range(4)]
+    end = STAGE9_BODY + STAGE9_GAP - FLARE9_CLEAR
+    m[0:16] = plain
+    m[16:20] = lull
+    # seven chunks, and lulls between to fill the rows to the end
+    r = 20
+    order = [0, 1, 2, 3, 1, 0, 2]
+    lulls = (end - r - STAGE9_CHUNK * len(order)) // 4
+    assert lulls >= 0
+    for i, k in enumerate(order):
+        m[r:r + STAGE9_CHUNK] = chunks[k]
+        r += STAGE9_CHUNK
+        if i < len(order) - 1 and i % 2 == 1 and lulls:
+            m[r:r + 4] = lull
+            r += 4
+            lulls -= 1
+    while r < rows:
+        m[r:min(r + 16, rows)] = plain[:min(16, rows - r)]
+        r += 16
+    m[rows - loop:] = plain                         # (the loop: seamless)
+    flare_numbers = set(lethal) | set(to_b.values()) | set(flare_tiles)
+    last_flare = max(y for y in range(rows) if any(int(t) in flare_numbers for t in m[y]))
+
+    # GAMMA PRIME: its tiles over clear rows
+    bow = STAGE9_BODY + STAGE9_GAP                  # its lowest row
+    stern = bow + B9_H - 1
+    m[bow:stern + 1, :] = 0
+    for hr in range(B9_H):                          # hull row hr (from the top) is map row stern - hr
+        for hc in range(B9_W):
+            if hull[hr, hc]:
+                m[stern - hr, HULL9_COL + hc] = base + hull[hr, hc] - 1
+    for y in range(rows):
+        assert _runs9(m[y], vpals) <= MAX_RUNS, (y, _runs9(m[y], vpals))
+
+    # GAMMA PRIME's numbers for its boss code: each part's x (with no
+    # sway) and the world height of its top; where the scroll stops, where
+    # it has gone; its rows (they sway: engine.asm); the flares' colors and
+    # where they end (stage9.bas)
+    xs, ylo, yhi = [], [], []
+    for name, dy in B9_SLOTS:
+        c, r_, w_, h_ = B9_PARTS[name]
+        xs.append(8 * (HULL9_COL + c))
+        y = (stern - r_ + 1) * 16 - dy
+        ylo.append(y & 255)
+        yhi.append(y >> 8)
+    top9 = (stern + 1) * 16
+    fl_end = (last_flare + 1) * 16
+    assert fl_end + 240 < bow * 16, "a flare still in view as the hull comes"
+    b9 = {"b9_stop": top9 - 208 + B9_TOP, "b9_gone": top9 + 8, "b9_row": bow, "b9_end": stern + 1,
+          "b9_sway": B9_SWAY, "fl_end": fl_end,
+          "fl_c0": 2 * NFONT + 2 * lethal.start, "fl_c1": 2 * NFONT + 2 * lethal.stop}
+    lines = ["; Generated by tools/gen_assets.py. Do not edit.",
+             "; GAMMA PRIME's parts (slots 0-11): x, and the world height of each one's",
+             "; top (lo, hi). Its stop (a scroll position), where it has gone, its map rows",
+             "; (from, to), its sway (pixels either side); where the flares end (a scroll",
+             "; position: past it, none in view), the characters of the tiles that kill",
+             "; (from, to); the flares' colors (dark, warning, erupting, fading), the",
+             "; fight's (P0 gold, P1 the spine)."]
+    lines.append("b9_x .byte " + ",".join(str(v) for v in xs))
+    lines.append("b9_ylo .byte " + ",".join(str(v) for v in ylo))
+    lines.append("b9_yhi .byte " + ",".join(str(v) for v in yhi))
+    for name, v in b9.items():
+        lines.append(f"{name.upper()} = {v}")
+    lines.append("fl_cols .byte " + ",".join(f"${nearest(c):02X}" for p in FLARE9_COLORS for c in p))
+    lines.append("b9_cols .byte " + ",".join(f"${nearest(c):02X}" for p in GAMMA9_COLORS for c in p))
+    (GEN / "boss9tab.asm").write_text("\n".join(lines) + "\n")
+
+    gr = ground_cols([])
+    w = wave_cols(meta["waves"])
+    bossat = (bow * 16 - 208 - 144) >> 8
+    # (the last stage throws everything at once: the waves may crowd more
+    # than elsewhere, so the last is over before the warning must come)
+    waves = spread_waves(w, gr, cap=14, most=40)
+    last_at = (waves["wath"][-1] << 8) | waves["watl"][-1]
+    assert last_at <= B9_STOP_WAVES, f"stage 9's last wave at {last_at}"
+    view = [FLARE9_COLORS[2], FLARE9_COLORS[0], STAGE9_PALETTES[2]]
+    return {"n": 9, "map": m, "t_slots": t_slots, "t_pals": t_pals, "alias": alias,
+            "blank": {0}, "col0": 0, "col1": 20, "loop": loop,
+            "charset": "charset9", "pals": [nearest(c) for p in STAGE9_PALETTES for c in p],
+            "bg": nearest(STAGE9_BG), "song": "SONG_STAGE9", "bosssong": "SONG_BOSS9", "vec": boss_vec(9, "corona")[:7] + ["finale"],
+            "bossat": bossat, "waves": waves, "ground": gr,
+            "pal_codes": [[nearest(c) for c in p] for p in view]}
+
+
 UNIT_WEIGHT = {"ET_TRAIN": 3, "ET_GUNSHIP": 3, "ET_GUNBOAT": 3, "ET_SAUCER": 2}
 
 
@@ -2130,7 +2418,7 @@ def main():
     PREVIEW.mkdir(parents=True, exist_ok=True)
 
     font_base = 0
-    stages = [stage1(), stage2(), stage3(), stage4(), stage5(), stage6(), stage7(), stage8()]
+    stages = [stage1(), stage2(), stage3(), stage4(), stage5(), stage6(), stage7(), stage8(), stage9()]
     build_charset("charset", stages[0]["t_slots"], 1)
     for st in stages[1:]:
         build_charset(st["charset"], st["t_slots"], 1)
@@ -2153,12 +2441,12 @@ def main():
     bas += ["  newblock"]
     bas += [f"  incgraphic gfx/{n}.png 160A 0 1 2 3" for n in incs
             if n not in in_chars and n not in STAGE2_STRIPS | STAGE3_STRIPS | STAGE4_STRIPS | STAGE5_STRIPS
-            | STAGE6_STRIPS | STAGE7_STRIPS | STAGE8_STRIPS]
+            | STAGE6_STRIPS | STAGE7_STRIPS | STAGE8_STRIPS | STAGE9_STRIPS]
     (GEN / "gfx.bas").write_text("\n".join(bas) + "\n")
     # gfxN.bas: stage N's graphics block, in its bank at $A000: the font
     # and the stage's tiles, then its own sprites.
     for n, strips in ((2, STAGE2_STRIPS), (3, STAGE3_STRIPS), (4, STAGE4_STRIPS), (5, STAGE5_STRIPS),
-                          (6, STAGE6_STRIPS), (7, STAGE7_STRIPS), (8, STAGE8_STRIPS)):
+                          (6, STAGE6_STRIPS), (7, STAGE7_STRIPS), (8, STAGE8_STRIPS), (9, STAGE9_STRIPS)):
         bn = ["  rem Generated by tools/gen_assets.py. Do not edit.",
               f"  incgraphic gfx/charset{n}.png 160A 0 1 2 3"]
         bn += [f"  incgraphic gfx/{s}.png 160A 0 1 2 3" for s in incs if s in strips]
@@ -2183,12 +2471,19 @@ def main():
     for i, (label, addr) in enumerate(SCREEN_RAM.items()):
         asm.append(f"txt_{label} = ${addr:04X} ; a RAM line")
         consts.append(f"  const TXT_{label.upper()} = {len(SCREEN_TEXTS) + i}")
+    t9 = ["; Generated by tools/gen_assets.py. Do not edit.",
+          "; Playfield texts in stage 9's bank (TXT_ numbers: data.asm's tables)."]
+    for i, (label, text) in enumerate(BANK9_TEXTS.items()):
+        t9.append(f"txt_{label} .byte " + ",".join(str(char_index(ch, font_base)) for ch in text) + f" ; {text!r}")
+        consts.append(f"  const TXT_{label.upper()} = {len(SCREEN_TEXTS) + len(SCREEN_RAM) + i}")
+    (GEN / "texts9.asm").write_text("\n".join(t9) + "\n")
     asm.append("; the results lines' templates, copied into their RAM lines")
     asm.append("restmpl .byte " + ",".join(str(char_index(ch, font_base)) for ch in RESULT_LINES[0]))
     for line in RESULT_LINES[1:]:
         asm.append("  .byte " + ",".join(str(char_index(ch, font_base)) for ch in line))
-    lens = {**{k: len(v) for k, v in SCREEN_TEXTS.items()}, **{k: RESULT_LEN for k in SCREEN_RAM}}
-    names = list(SCREEN_TEXTS) + list(SCREEN_RAM)
+    lens = {**{k: len(v) for k, v in SCREEN_TEXTS.items()}, **{k: SCREEN_RAM_LEN.get(k, RESULT_LEN) for k in SCREEN_RAM},
+            **{k: len(v) for k, v in BANK9_TEXTS.items()}}
+    names = list(SCREEN_TEXTS) + list(SCREEN_RAM) + list(BANK9_TEXTS)
     asm.append("txtlo .byte " + ",".join(f"<txt_{n}" for n in names[:8]))
     for i in range(8, len(names), 8):
         asm.append("  .byte " + ",".join(f"<txt_{n}" for n in names[i:i + 8]))
@@ -2261,7 +2556,7 @@ def main():
         y += p.size[1] + 8
     sheet.save(PREVIEW / "sprites.png")
     for st in stages:
-        map_preview(st["map"], st["t_slots"], st["t_pals"], pals=st.get("pal_codes"),
+        map_preview(st["map"], *virtual_tiles(st), pals=st.get("pal_codes"),
                     bg=st["bg"] if st["n"] > 1 else None).save(PREVIEW / f"stage{st['n']}_map.png")
     print(f"BG ${BG_CODE:02X}; palettes " + " ".join("/".join(f"{c:02X}" for c in p) for p in PAL_CODES))
     print(f"{len(incs)} sprite strips; largest row background {max_bg} bytes")

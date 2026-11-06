@@ -56,6 +56,7 @@
   rem const STAGE6TEST = 1
   rem const STAGE7TEST = 1
   rem const STAGE8TEST = 1
+  rem const STAGE9TEST = 1
   rem Always 30 frames a second (each frame two game steps). Without it the
   rem display runs at 60 and drops to 30 only while a frame runs late.
   rem const FPS30 = 1
@@ -75,7 +76,7 @@
   rem stage 4's armored train cars, on the railway (eframe 0: the engine)
   const ET_TRAIN = 10
   rem the stages, round and round
-  const NSTAGES = 8
+  const NSTAGES = 9
   rem boss parts: types from ET_PART up are placed by the boss code
   const ET_PART = 11
   const ET_PCANNON = 11
@@ -339,7 +340,9 @@ end
   tzone = 2 : temp1 = TXT_ATARI : gosub text
   rem the starting stage: left and right choose
   tpal = 6
-  tzone = 9 : temp1 = TXT_SEL1 + selstage - 1 : gosub text
+  for k = 0 to 14 : rtline[k] = txt_sel1[k] : next
+  rtline[10] = CH_0 + selstage * 2
+  tzone = 9 : temp1 = TXT_SEL : gosub text
   tpal = 3
   tzone = 10 : temp1 = TXT_NAME1 + selstage - 1 : gosub text
   rem the difficulty: up and down choose
@@ -406,6 +409,10 @@ title_fire
   endif
   ifconst STAGE8TEST
   lda #8
+  sta stage
+  endif
+  ifconst STAGE9TEST
+  lda #9
   sta stage
   endif
   lda #160
@@ -490,8 +497,10 @@ end
 main_step
   gosub step
   rem Text after the sprites, on top of them (engine.asm pf_text)
-  if overt > 0 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
+  rem (overt 1: back to the title, from a game over or the ending)
+  if overt > 1 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
   if bstate = 5 then gosub results_text
+  if bstate = 6 then gosub finale_v
   asm
   ifconst IDLELOG
   jsr il_take
@@ -675,8 +684,8 @@ player
   temp1 = 0 : temp2 = 0
   if joy0fire1 then temp1 = 1
   if joy0fire0 then temp2 = 1
-  rem the results: the buttons only go on to the next stage
-  if bstate = 5 then temp1 = 0 : temp2 = 0
+  rem the results and the ending: the buttons only go on
+  if bstate >= 5 then temp1 = 0 : temp2 = 0
 
   rem Hyper Sword: press both together with a full gauge
   temp3 = temp1 & temp2
@@ -1076,7 +1085,7 @@ ground_slot
   rem  has turrets, shots pass through the wing's middle column to reach
   rem  them (eparam, objects.asm en_hits). A destroyed cannon or wing stays
   rem  as a dark wreck. bstate: 0 none, 1 warning, 2 entering, 3 fighting,
-  rem  4 exploding, 5 stage clear.
+  rem  4 exploding, 5 stage clear, 6 the ending (after the last stage).
   rem ======================================================================
 boss
   if bstate = 0 then goto boss_wait
@@ -1117,7 +1126,9 @@ boss_warning
     ecol[k] = 0 : eflash[k] = 0 : ehit[k] = 0 : eframe[k] = 0
     evx[k] = 0 : evy[k] = 0 : ewamp[k] = 0
   next
-  rem the stage's boss: its parts from its tables (stage 2's are in its bank)
+  rem the stage's boss: its parts from its tables (stage 2's are in its bank;
+  rem only stage 9's has a part in slot 11)
+  bwt[11] = 0
   if stage = 1 then gosub boss1_build
   if stage = 2 then gosub boss2_build
   if stage = 3 then gosub boss3_build
@@ -1306,9 +1317,9 @@ part_core
   next
 part_core_2
   rem stage 2's core is shut while any of its pods orbits, stage 6's
-  rem while any of its satellites does
-  if stage <> 6 then goto part_core_6
-  for k = 0 to 3
+  rem while any of its satellites does, stage 9's any of its prisms
+  if stage <> 6 && stage <> 9 then goto part_core_6
+  for k = 0 to 11
     if etype[k] = ET_PPOD then return
   next
 part_core_6
@@ -1336,7 +1347,7 @@ part_core_hit
   jsr score_add
 end
   temp3 = 0
-  for k = 0 to 10
+  for k = 0 to 11
     if etype[k] = ET_PCANNON || etype[k] = ET_PWING then temp3 = 1
     if etype[k] = ET_PPOD then temp3 = 1
   next
@@ -1366,6 +1377,11 @@ boss_vsinking
   asm
   jmp (STGV_SINKING)
 end
+  rem (the ending's texts: stage 9's, boss9.bas)
+finale_v
+  asm
+  jmp (STGV_SPARE)
+end
 
   rem Explosions all over it, then gone
 boss_dying
@@ -1376,7 +1392,7 @@ boss_dying
   if stage = 4 then gosub boss4_sinking
   if stage >= 5 then gosub boss_vsinking
   if btl < 240 then gosub boss_place : return
-  for k = 0 to 10 : etype[k] = 0 : next
+  for k = 0 to 11 : etype[k] = 0 : next
   bstate = 5 : btl = 0
   gosub results_start
   return
@@ -1396,7 +1412,7 @@ end
   rem part never gives up its own).
 boss_tally
   bdestr = 0
-  for k = 0 to 10
+  for k = 0 to 11
     temp1 = etype[k]
     if temp1 < ET_PART then bdestr = bdestr + bwt[k]
     if temp1 = ET_PWRECK then bdestr = bdestr + bwt[k]
@@ -1468,7 +1484,10 @@ boss_clear_wait
   if joy0fire1 then temp3 = 1
   if temp3 = 0 then bready = 1 : return
   if bready = 0 then return
-  rem on to the next stage (after the last, round again)
+  rem after the last stage, the ending; then the title
+  if bstate = 6 then overt = 1 : return
+  if stage = NSTAGES then bstate = 6 : btl = 0 : bth = 0 : bready = 0 : return
+  rem on to the next stage
   bstate = 0 : wn = 0 : gn = 0 : chmax = 0
   stage = stage + 1 : smsg = 180
   if stage > NSTAGES then stage = 1
@@ -1501,6 +1520,7 @@ results_text
   if bdestr >= 100 then tpal = 7 : tzone = 10 : temp1 = TXT_PERFECT : gosub text
   rem PRESS FIRE blinks after a second. Hidden (tpal + 128: off the
   rem screen), not left out, so the zone's display list keeps its shape.
+results_push
   tpal = 7 + 128
   temp2 = tick & 32
   if temp2 then tpal = 7
@@ -1742,6 +1762,23 @@ end
   dmahole 0
   inline musicdata8.asm
   incbasic boss8.bas
+
+  rem ======================================================================
+  rem  Bank 10: stage 9 (map, waves, GAMMA PRIME's tables, the flares'
+  rem  code, its graphics block at $A000, the boss's song; the stage's song
+  rem  and GAMMA PRIME's code at $B000)
+  rem ======================================================================
+  bank 10
+  rem the stage header must come first: it is read at $8000
+  inline stage9.asm
+  inline boss9tab.asm
+  inline texts9.asm
+  incbasic stage9.bas
+  incbasic gen/gfx9.bas
+  inline musicdata9b.asm
+  dmahole 0
+  inline musicdata9.asm
+  incbasic boss9.bas
 
   rem ======================================================================
   rem  The last bank: graphics (MARIA reads them from here at any time)

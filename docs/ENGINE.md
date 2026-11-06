@@ -139,9 +139,12 @@ stage only (its boss) goes in its bank too, called from the shared code
 by `if stage = n`: the fixed bank has room only for what every stage uses.
 From stage 5 on, a stage's own code is reached through vectors in its
 header (`stg_vec`, after the row tables): its boss's build, enter, fight,
-place, attack and sinking routines and its main loop hook. The shared
-code jumps through them (`jmp (STGV_FIGHT)`...), so a new stage costs the
-fixed bank nothing.
+place, attack and sinking routines, its main loop hook, and a spare
+(stage 9's: the ending's texts). The shared code jumps through them
+(`jmp (STGV_FIGHT)`...), so a new stage costs the fixed bank nothing.
+Texts shown only with one bank in can live there too (stage 9's ending:
+`gen/texts9.asm`; only their entries in the text tables are in the fixed
+bank).
 
 A map row stores its ready-made background objects (one per run of drawn
 tiles sharing a palette; background tiles, like open sea, aren't drawn)
@@ -171,7 +174,8 @@ hole at $B000.
 | 7 | stage 6: header, map, HALO STATION's tables and the fade, the fade's code (`src/stage6.bas`), HALO STATION's code (`src/boss6.bas`), the stage song's voices 1 and 2, graphics ($A000), the boss tune and the stage song's voice 0 ($B000) |
 | 8 | stage 7: header, map, MASS DRIVER's tables, graphics ($A000), the stage song and the boss tune's voice 0; the rest of the boss tune and MASS DRIVER's code (`src/boss7.bas`, $B000) |
 | 9 | stage 8: header, map (each row's solid columns after its objects), HIVE MOTHERSHIP's tables, the asteroids' code (`src/stage8.bas`), graphics ($A000), the stage song; the boss tune and HIVE MOTHERSHIP's code (`src/boss8.bas`, $B000) |
-| 10-16 | free (stage 9 on) |
+| 10 | stage 9: header, map, GAMMA PRIME's tables, the ending's texts, the flares' code (`src/stage9.bas`), graphics ($A000), the boss tune (MegaGammaForce's Final) and the stage song's voice 0; the rest of the stage song and GAMMA PRIME's code (`src/boss9.bas`, $B000) |
+| 11-16 | free |
 | 17 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
 
 ## Wrecks under the ship
@@ -247,8 +251,10 @@ in palette 2's three colors, turned round every 4 frames (palette 2 is
 the bases', and there are none near the boss). `pf_stage` turns the sway
 off (`pfswayrow` $FF).
 
-Stage 8's HIVE MOTHERSHIP is map rows and sways the same way (its own
-copy of the patch, `b8_sway`, which stops at `pfswayend`).
+Stage 8's HIVE MOTHERSHIP and stage 9's GAMMA PRIME are map rows and
+sway the same way (their own copies of the patch, `b8_sway` and `b9_sway`,
+which stop at `pfswayend`). GAMMA PRIME has twelve parts, so the shared
+boss code counts slots 0-11 (slot 11's weight is cleared for the others).
 
 ## Solid tiles
 
@@ -262,6 +268,23 @@ pointers the engine already has find them. A point at playfield y + 32
 shot's tip, half the bullets each step, and the ship's middle and nose.
 The asteroid drifts are a few chunks of 18 rows, each used more than
 once: stage 8's bank has room for few different rows.
+
+## Flares
+
+Stage 9's solar flares are map tiles in two groups that share their
+characters: a map number from the tile count on is an alias, a tile's
+characters in another palette (`stage_bank`'s `alias`), so group A is
+drawn in palette 0 and group B in palette 1. `src/stage9.bas` writes the
+two palettes each step from a 256-frame clock (dark, a flicker of
+warning, the eruption, a fade; B half a cycle behind A, so they take
+turns). An erupting flare kills the ship: the test finds the tile under
+the ship's middle, and 3 pixels either side, among its map row's
+background objects (their x, width and palette say which run it is in;
+the run's characters, which tile), and the tiles that kill are numbered
+together, so a range of characters says (no masks: the bank had no room).
+Past the last flare (`FL_END`), the two palettes hold GAMMA PRIME's gold
+and its spine's gamma light instead. Like the asteroids, the flares are a
+few chunks of rows used in turn.
 
 Stage 6 also fades: as the ship climbs, the ocean (the background color)
 and its clouds (palette 1) darken to black by the scroll position
