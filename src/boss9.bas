@@ -15,7 +15,9 @@
   rem       the other node can be broken
   rem    3  both broken: the core opens for good, and pours out its light
   rem       (a spray of pink and blue at the ship)
-  rem  The core's rings, pink and blue, come whenever it is open.
+  rem  The core fires rings throughout: all pink while shut (pink for the
+  rem  sword to soak up, toward the Hyper), pink and blue open. Open, it
+  rem  takes half of each hit (b9_soak).
   rem  Slots: 0 the cannon, 1-2 the turrets, 3-4 the nodes, 5-6 the core
   rem  (its top and bottom halves, sharing bcorehp), 8-10 the prisms (last:
   rem  as SPIRE WARDEN's pods, so the parts drawn before them keep their
@@ -23,9 +25,11 @@
   rem  It lives in stage 9's bank; the shared boss code calls it.
   rem ======================================================================
 
-  rem its phase (0-3); the core's health while it is shut
+  rem its phase (0-3); the core's health last step (shut, it keeps it);
+  rem the odd point of its last hits (open, it takes half of them)
   dim b9phase = $22E5
   dim b9hp = $22E6
+  dim b9odd = $22E7
 
 boss9_build
   for k = 0 to 11
@@ -35,7 +39,7 @@ boss9_build
   next
   rem (the shared code readies slots 0-10)
   eflash[11] = 0 : ehit[11] = 0 : eframe[11] = 0 : evx[11] = 0 : evy[11] = 0 : ewamp[11] = 0
-  bcorehp = 250 : b9hp = 250 : borbit = 0 : bsweep = 0 : bsdir = 1 : bring = 0 : b9phase = 0
+  bcorehp = 250 : b9hp = 250 : b9odd = 0 : borbit = 0 : bsweep = 0 : bsdir = 1 : bring = 0 : b9phase = 0
   return
 
   rem In from the top (the shared code's: down to line 89)
@@ -132,10 +136,11 @@ end
   if b9phase = 0 && temp1 < 2 then b9phase = 1
   if b9phase = 1 && bcorehp < 125 then b9phase = 2 : gosub b9_regrow
   if b9phase = 2 && temp1 = 0 then b9phase = 3
-  rem open (red), its hits count; shut (gold), it keeps its health
+  rem open (red), its hits count, half of each (twice the health the
+  rem shared code gives a core); shut (gold), it keeps its health
   temp2 = b9phase & 1
   ecol[5] = 6
-  if temp2 then ecol[5] = 4 : b9hp = bcorehp
+  if temp2 then ecol[5] = 4 : gosub b9_soak
   if temp2 = 0 then bcorehp = b9hp
   ecol[6] = ecol[5]
   rem (the shared code flashes the top half: the bottom with it)
@@ -166,6 +171,16 @@ b9_noglow
   fx = exh[k] + 4 : fy = eyh[k] + 8
   gosub aim
   eframe[k] = (fang - 48) / 32 & 7
+  return
+
+  rem Half the core's loss since the last step given back (the odd point
+  rem kept for the next)
+b9_soak
+  if bcorehp >= b9hp then b9hp = bcorehp : return
+  temp3 = b9hp - bcorehp + b9odd
+  b9odd = temp3 & 1
+  bcorehp = bcorehp + temp3 / 2
+  b9hp = bcorehp
   return
 
   rem The prisms grow back (the core at half)
@@ -228,12 +243,12 @@ end
   jsr bul_fire
 end
 b9_core
-  rem the core, open: turning rings of 8, pink and blue (twice as often
-  rem once it is hurt); for good, a spray at the ship besides
-  temp1 = b9phase & 1
-  if temp1 = 0 then return
+  rem the core: turning rings of 8, always (so there is always pink for
+  rem the sword, and the Hyper); shut, all pink; open, pink and blue, and
+  rem twice as often once it is hurt; for good, a spray at the ship besides
+  temp3 = b9phase & 1
   temp4 = 63
-  if bcorehp < 125 then temp4 = 31
+  if temp3 && bcorehp < 125 then temp4 = 31
   temp1 = btl & temp4
   if temp1 = 0 then bring = 8 : bspin = bspin + 7
   if bring = 0 then goto b9_spray
@@ -241,7 +256,7 @@ b9_core
   for k = 0 to 1
     bring = bring - 1
     fang = bring * 32 + bspin : fkind = BK_PINK
-    temp1 = bring & 1
+    temp1 = bring & temp3
     if temp1 then fkind = BK_BLUE
     asm
     jsr bul_fire
