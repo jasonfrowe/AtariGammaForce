@@ -5,10 +5,10 @@
 ; are in view), the characters of the tiles that kill (from, to); the
 ; flares' colors (dark, warning, erupting, fading), the fight's P0 (gold).
 b9_x .byte 48,96,72,72,72,72,56,96,56,96,72,72
-b9_ylo .byte 48,48,16,40,40,48,80,80,0,0,40,40
+b9_ylo .byte 32,32,0,24,24,32,48,48,0,0,24,24
 b9_yhi .byte 12,12,12,12,12,12,12,12,12,12,12,12
-B9_STOP = 2944
-B9_GONE = 3160
+B9_STOP = 2928
+B9_GONE = 3128
 FL_END = 2688
 FL_C0 = 134
 FL_C1 = 170

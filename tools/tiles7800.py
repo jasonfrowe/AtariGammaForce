@@ -1658,15 +1658,15 @@ def corona_tiles():
 
 def gamma_shape(w, h):
     """GAMMA PRIME's hull corners, (h + 1) x (w + 1): a disc and eight
-    rays (MegaGammaForce's gamma.py, in 7 rows)."""
+    rays (MegaGammaForce's gamma.py, smaller)."""
     g = np.zeros((h + 1, w + 1), dtype=np.uint8)
     for y in range(h + 1):
         for x in range(w + 1):
             dx, dy = x - w / 2, (y - h / 2) * 1.05
-            r = math.hypot(dx, dy)
+            r = math.hypot(dx, dy) / (h / 2)          # (in half heights)
             a = math.degrees(math.atan2(dy, dx)) % 45
             ray = min(a, 45 - a)
-            if r < 3.1 or (r < 6.2 and ray < 30 - r * 3.6):
+            if r < 0.89 or (r < 1.8 and ray < 30 - r * 12.6):
                 g[y, x] = 1
     return g
 

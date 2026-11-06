@@ -84,7 +84,7 @@ b9p_next
   bne b9p_still           ; (it turns only in the fight)
   inc borbit
 b9p_still
-  ; the orbit: 66 lines up and down, 64 pixels across
+  ; the orbit: 50 lines up and down, 64 pixels across
   ldx #11
 b9p_prism
   lda etype,x
@@ -110,7 +110,7 @@ b9p_prism
   sec
   sbc #64
   sta wang
-  lda #66
+  lda #50
   sta wamp
   jsr weave
   ldx temp6

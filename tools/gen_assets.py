@@ -2127,19 +2127,21 @@ FLARE9_COLORS = [[(96, 22, 0), (110, 28, 0), (124, 34, 0)],
 GAMMA9_COLORS = [[(90, 60, 20), (196, 150, 60), (255, 240, 190)]]
 # the battlefield's flares, rows up from the bottom of the six under the
 # hull: (shape: FLARES9's, group, column, row)
-ARENA9 = [(2, "A", 9, 0), (0, "A", 8, 4), (1, "B", 3, 1), (1, "B", 15, 1)]
-ARENA9_ROWS = 6
+ARENA9 = [(2, "A", 9, 0), (1, "A", 9, 4), (1, "B", 3, 1), (1, "B", 15, 1)]
+ARENA9_ROWS = 7
 STAGE9_BODY = 176                    # rows before the gap
 STAGE9_CHUNK = 20                    # a chunk of flares' rows
 STAGE9_GAP = 14                      # bare surface before GAMMA PRIME
 FLARE9_CLEAR = 22                    # bare rows before it (the palettes turn: FL_END)
-HULL9_COL = 5                        # the hull's left column (10 wide, centred)
-B9_TOP = 0                           # the fight: the hull's top at line 0
-B9_W, B9_H = 10, 7
-# GAMMA PRIME's parts, repacked from MegaGammaForce's 9 rows to 7: tile
-# column and row of each one's top left, size in tiles
-B9_PARTS = {"CORE": (4, 2, 2, 2), "CANNON_L": (1, 2, 2, 2), "CANNON_R": (7, 2, 2, 2), "EMITTER": (4, 4, 2, 2),
-            "TUR0": (2, 0, 1, 1), "TUR1": (7, 0, 1, 1), "TUR2": (2, 5, 1, 1), "TUR3": (7, 5, 1, 1)}
+HULL9_COL = 6                        # the hull's left column (8 wide, centred)
+B9_TOP = 16                          # the fight: the hull's top at line 16 (its prisms' orbit on the screen)
+B9_W, B9_H = 8, 5
+# GAMMA PRIME's parts, repacked from MegaGammaForce's 10 x 9 to 8 x 5 (its
+# hull's tiles were most of the fight's DMA; and a smaller boss leaves the
+# battlefield room): tile column and row of each one's top left, size in
+# tiles
+B9_PARTS = {"CORE": (3, 1, 2, 2), "CANNON_L": (0, 1, 2, 2), "CANNON_R": (6, 1, 2, 2), "EMITTER": (3, 3, 2, 2),
+            "TUR0": (1, 0, 1, 1), "TUR1": (6, 0, 1, 1), "TUR2": (1, 3, 1, 1), "TUR3": (6, 3, 1, 1)}
 # slots: name, lines down (a prism: the core's, 8 down: the orbit's centre
 # less half a prism). 5 is the core (the shared code's reactor slot)
 B9_SLOTS = [("CANNON_L", 0), ("CANNON_R", 0), ("EMITTER", 0), ("CORE", 8), ("CORE", 8), ("CORE", 0),
