@@ -6,3 +6,5 @@
   incgraphic gfx/b7cap1.png 160A 0 1 2 3
   incgraphic gfx/b7muzzle0.png 160A 0 1 2 3
   incgraphic gfx/b7muzzle1.png 160A 0 1 2 3
+  incgraphic gfx/b7can0.png 160A 0 1 2 3
+  incgraphic gfx/b7can1.png 160A 0 1 2 3

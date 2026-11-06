@@ -6,9 +6,9 @@
 # split by voice (NAME.vN) between its bank's main area and its DMA hole,
 # and so are stage 6's (the boss's song and one voice of the stage's in
 # the hole, the stage song's other two in the main area). Stage 7's
-# stage song is the shortened cut (MegaGammaForce's Stage7_cut.fur): the
-# stage song and one voice of the boss's in its bank's main area, the rest
-# of the boss's (and MASS DRIVER's code) in its DMA hole.
+# stage song is the shortened cut (MegaGammaForce's Stage7_cut.fur): its
+# voices 0 and 1 and the boss's voice 0 in its bank's main area; its
+# voice 2 and the rest of the boss's (with MASS DRIVER's code) in the hole.
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 M="$ROOT/assets/mgf/music"
 G="$ROOT/src/gen"
@@ -24,4 +24,4 @@ G="$ROOT/src/gen"
     --to "$G/musicdata5.asm=stage5,boss5.v1" --to "$G/musicdata5b.asm=boss5" \
     --to "$G/musicdata5c.asm=stage5.v0,stage5.v2" \
     --to "$G/musicdata6.asm=boss6,stage6.v0" --to "$G/musicdata6b.asm=stage6" \
-    --to "$G/musicdata7.asm=boss7" --to "$G/musicdata7b.asm=stage7,boss7.v0"
+    --to "$G/musicdata7.asm=boss7,stage7.v2" --to "$G/musicdata7b.asm=stage7,boss7.v0"

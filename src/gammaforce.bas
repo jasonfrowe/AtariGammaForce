@@ -623,6 +623,8 @@ end
   if stage = 5 then gosub blizzard
   rem stage 6's fade (stage6.bas, in its bank)
   if stage = 6 then gosub ascent
+  rem stage 7's launch rails (stage7.bas, in its bank)
+  if stage = 7 then gosub lunar
   asm
   ifconst PROFILE
   lda #8
@@ -1692,14 +1694,15 @@ end
   inline musicdata6.asm
 
   rem ======================================================================
-  rem  Bank 8: stage 7 (map, waves, MASS DRIVER's tables, its graphics
-  rem  block at $A000, the stage's song; the boss's song and MASS DRIVER's
-  rem  code at $B000)
+  rem  Bank 8: stage 7 (map, waves, MASS DRIVER's tables, the launch
+  rem  rails' code, its graphics block at $A000, the stage's song; the boss's
+  rem  song and MASS DRIVER's code at $B000)
   rem ======================================================================
   bank 8
   rem the stage header must come first: it is read at $8000
   inline stage7.asm
   inline boss7tab.asm
+  incbasic stage7.bas
   incbasic gen/gfx7.bas
   inline musicdata7b.asm
   dmahole 0

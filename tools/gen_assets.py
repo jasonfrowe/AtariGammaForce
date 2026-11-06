@@ -333,6 +333,8 @@ SPRITES = [
     ("b7breech", "boss7", 0, 0, None, None, 0),
     ("b7cap", "boss7", 0, 0, None, None, 0),
     ("b7muzzle", "boss7", 0, 0, None, None, 0),
+    # and the bases' launched canisters (towers rising up the screen: stage7.bas)
+    ("b7can", "boss7", 0, 0, None, None, 4),
     ("sword", "sword", 0, 0, None, None, 7),
     # GAMMA CORE, the stage 1 boss (tools/boss7800.py). Its 64-line parts are
     # top and bottom halves (the plotter does two strips).
@@ -357,7 +359,7 @@ SPRITES = [
     ("hudship", "art", 0, 0, None, None, 3),
 ]
 BOSS_PARTS = {e[0] for e in SPRITES if e[1] in ("boss", "boss2", "boss3", "boss4", "boss5", "boss6", "boss7")} - \
-    {"gunboat", "train", "berg", "slab", "flake", "sat"}
+    {"gunboat", "train", "berg", "slab", "flake", "sat", "b7can"}
 # Sprites that live in stage 2's graphics block (its bank), by strip label
 # (the wasp and the tank are in the last bank's sprite block: they don't fit)
 STAGE2_SPRITES = {"tower", "b2coret", "b2coreb", "b2pod", "b2cannon"}
@@ -368,7 +370,7 @@ STAGE4_STRIPS = {"train0", "train1", "b4headt0", "b4headt1", "b4headb", "b4seg0"
 STAGE5_STRIPS = {"b5reactor0", "b5reactor1", "b5drill0", "b5drill1", "b5gun", "berg0", "berg1",
                  "b5bridge0", "b5bridge1", "slab", "flake"}
 STAGE6_STRIPS = {"sat0", "sat1", "b6core0", "b6core1", "b6pod0", "b6pod1"}
-STAGE7_STRIPS = {"b7breech0", "b7breech1", "b7cap0", "b7cap1", "b7muzzle0", "b7muzzle1"}
+STAGE7_STRIPS = {"b7breech0", "b7breech1", "b7cap0", "b7cap1", "b7muzzle0", "b7muzzle1", "b7can0", "b7can1"}
 STAGE2_STRIPS = {"tower0", "tower1", "b2coret0", "b2coret1", "b2coreb0", "b2coreb1", "b2pod0", "b2pod1",
                  "b2cannon0", "b2cannon1"}
 

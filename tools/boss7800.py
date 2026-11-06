@@ -676,4 +676,20 @@ def muzzle7():
 
 
 def parts7():
-    return {"b7breech": breech7(), "b7cap": cap7(), "b7muzzle": muzzle7()}
+    return {"b7breech": breech7(), "b7cap": cap7(), "b7muzzle": muzzle7(), "b7can": can7()}
+
+
+def can7():
+    """A cargo canister from the bases' launch rails: 8 px by 32 lines, a
+    nose cone, banded hull, fins and its rocket's flame below (in the
+    enemies' colors: 1 dark, 2 body, 3 bright)."""
+    c = Canvas(8, 32)
+    c.fill(poly([(8, 0), (12, 7), (4, 7)]), 2)              # the nose
+    c.fill(rect(4, 7, 12, 23), 2)
+    c.fill(poly([(0, 26), (4, 18), (4, 24)]), 2)            # fins
+    c.fill(poly([(16, 26), (12, 18), (12, 24)]), 2)
+    c.outline(1)
+    for y in (10, 16):
+        c.fill(rect(4, y, 12, y + 2), 3)                    # bands
+    c.fill(poly([(5, 24), (11, 24), (8, 32)]), 3)          # the flame
+    return [c.a]
