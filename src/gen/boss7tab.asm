@@ -3,10 +3,10 @@
 ; (lo, hi). Its stop (a scroll position), where it has gone, its first map
 ; row, its sway (pixels either side); the rail's coil colors (P2 in the fight).
 b7_x .byte 48,96,72,64,88,72,48,104,48,104
-b7_ylo .byte 80,80,0,48,48,112,109,109,13,13
+b7_ylo .byte 48,48,0,48,48,80,77,77,13,13
 b7_yhi .byte 12,12,12,12,12,12,12,12,12,12
-B7_STOP = 2978
-B7_GONE = 3192
+B7_STOP = 2944
+B7_GONE = 3160
 B7_ROW = 190
 B7_SWAY = 15
 b7_coil .byte $75,$69,$7F,$75,$69,$7F

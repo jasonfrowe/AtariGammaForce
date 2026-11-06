@@ -1718,12 +1718,45 @@ STAGE7_COILS = [(110, 50, 230), (190, 130, 255), (250, 230, 255)]
 STAGE7_GAP = 14                      # bare regolith before MASS DRIVER
 WAVES_END_7 = 2950                   # no ground units past this
 HULL7_COL = 5                        # the hull's left column (10 wide, centred)
-B7_TOP = 2                           # the fight: the hull's top at line 2
+B7_TOP = 0                           # the fight: the hull's top at line 0
+# MASS DRIVER's hull, repacked from MegaGammaForce's 9 rows to 7 (112
+# lines: its 144 left the ship only the bottom of the screen): where
+# each part sits, tile column and row of its top left, size in tiles
+B7_PARTS = {"BREECH": (4, 0, 2, 2), "TUR0": (1, 0, 1, 1), "TUR1": (8, 0, 1, 1),
+            "CAP_L": (1, 2, 2, 2), "HATCH_L": (3, 2, 1, 2), "HATCH_R": (6, 2, 1, 2), "CAP_R": (7, 2, 2, 2),
+            "TUR2": (1, 4, 1, 1), "TUR3": (8, 4, 1, 1), "MUZZLE": (4, 5, 2, 2)}
+B7_H = 7
 B7_SWAY = 15                         # its sway, pixels either side (MegaGammaForce's 18 of 192)
 # slots: name, lines down, pixels right. 5 is the core (the shared code's
 # reactor slot), 10 is free (a dart from the hatches may take it)
 B7_SLOTS = [("CAP_L", 0, 0), ("CAP_R", 0, 0), ("MUZZLE", 0, 0), ("HATCH_L", 0, 0), ("HATCH_R", 0, 0),
             ("BREECH", 0, 0), ("TUR0", 3, 0), ("TUR1", 3, 0), ("TUR2", 3, 0), ("TUR3", 3, 0)]
+
+
+def driver_map(ids):
+    """MASS DRIVER's hull from MegaGammaForce's tiles (driver.py), laid out
+    as its own but 7 rows: deck, hover nacelles down both sides, the rail
+    up the middle from the breech to the muzzle."""
+    m = np.zeros((B7_H, 10), dtype=np.uint8)
+    rng = np.random.default_rng(7)
+    for r in range(B7_H):
+        for c in range(1, 9):
+            m[r, c] = ids[f"deck{int(rng.integers(0, 4))}"]
+        end = "top" if r == 0 else "bottom" if r == B7_H - 1 else ""
+        m[r, 0], m[r, 9] = ids[f"nac0{end}"], ids[f"nac1{end}"]
+        m[r, 4], m[r, 5] = ids["rail0"], ids["rail1"]
+    for c in (1, 2, 3, 6, 7, 8):
+        m[B7_H - 1, c] = ids["stripe"]
+    m[5, 1], m[5, 8] = ids["lamp"], ids["lamp"]
+    for name, (c, r, w, h) in B7_PARTS.items():
+        if w == 2:
+            for k in range(4):
+                m[r + k // 2, c + k % 2] = ids[f"big{k}"]
+        elif name.startswith("TUR"):
+            m[r, c] = ids["small"]
+        else:
+            m[r, c], m[r + 1, c] = ids["hatch0"], ids["hatch1"]
+    return m
 
 
 def stage7():
@@ -1738,8 +1771,7 @@ def stage7():
     t_slots, t_pals = m_tiles + h_tiles, m_pals + h_pals
     print(f"stage 7: {len(m_tiles)} + {len(h_tiles)} tiles")
     assert len(t_slots) <= 62, f"stage 7: {len(t_slots)} tiles (62 fit beside its sprites)"
-    hull = np.frombuffer((MGF / "stage7_hull.bin").read_bytes(), dtype=np.uint8).reshape(
-        meta["hull_h"], meta["hull_w"])
+    hull = driver_map(meta["hull_tile_ids"])
     hh, hw = hull.shape
     loop = 16
     rows = body.shape[0] + STAGE7_GAP + hh + loop
@@ -1771,7 +1803,7 @@ def stage7():
     # MASS DRIVER's numbers for its boss code: each part's x (with no sway)
     # and the world height of its top; where the scroll stops, and where it
     # has gone; the first hull row (rows from it sway: engine.asm)
-    parts = meta["hull_parts"]
+    parts = B7_PARTS
     xs, ylo, yhi = [], [], []
     for name, dy, dx in B7_SLOTS:
         c, r, w_, h_ = parts[name]
