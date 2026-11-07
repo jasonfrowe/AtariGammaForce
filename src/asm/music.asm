@@ -41,6 +41,7 @@ mus_rethi   = $2286 ; [3]
 mus_endlo   = $2289 ; [3] the address just past the phrase
 mus_endhi   = $228C ; [3]
 mus_guard   = $228F ; commands a voice may still read this frame
+mus_loops   = $22FB ; counts the song's plays to the end (voice 0's)
 
 ; ---------------------------------------------------------------------------
 ; mus_play: start song A from the top.
@@ -89,6 +90,15 @@ mus_silence
      rts
 
 ; Voice X back to the start of its stream, silent.
+; Voice X at its song's end: voice 0's counted (mus_loops), for the
+; jukebox, which goes on to the next track
+mus_count
+     cpx #0
+     bne mus_count_done
+     inc mus_loops
+mus_count_done
+     rts
+
 mus_restart
      lda #0
      sta mus_incall,x
@@ -210,6 +220,7 @@ mus_tick_adv
      inc musp+1
      jmp mus_tick_cmd
 mus_tick_end
+     jsr mus_count
      jsr mus_restart         ; loop the song (the guard counts on)
      jmp mus_tick_load
 mus_tick_call

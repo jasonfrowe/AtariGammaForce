@@ -189,7 +189,7 @@ def epilogue():
 
 
 def maya():
-    """Captain Maya Vance: an orange helmet, its gold visor up, her face."""
+    """Captain Maya Kestrel: an orange helmet, its gold visor up, her face."""
     p = Pic(32, 48, (10, 10, 30))
     p.fill(p.disc(32, 22, 21), (230, 90, 20))              # the helmet
     p.fill(p.disc(32, 22, 21) & (p.y < 12), (250, 210, 40))   # the visor, raised

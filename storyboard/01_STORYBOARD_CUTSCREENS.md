@@ -52,7 +52,7 @@ flowchart TD
 #### Visual Composition
 * **Panel A (Catapult Bay):** Subterranean launch tube beneath the ocean. Steam and coolant vapor billow across magnetic catapult rails. High-intensity spotlights slice through the mist.
 * **Panel B (The Interceptor):** Front 3/4 angle of the **GF-01 Gamma Force**. Twin vulcan muzzle ports gleam; the crystalline bow emitter radiates faint pink-blue electromagnetic halos.
-* **Panel C (Hero Pilot):** Close-up profile of Captain Maya "Vanguard" Vance in the cockpit. Her helmet visor is raised, eyes locked on the launch greenlights, hands firm on the flight sticks.
+* **Panel C (Hero Pilot):** Close-up profile of Captain Maya "Vanguard" Kestrel in the cockpit. Her helmet visor is raised, eyes locked on the launch greenlights, hands firm on the flight sticks.
 
 ```
 +--------------------------------------------------------+
@@ -106,7 +106,7 @@ flowchart TD
 | and will crush your ship if you ram them. Fly around   |
 | the towers while you bomb the tanks below!"            |
 |                                                        |
-| CAPTAIN VANCE:                                         |
+| CAPTAIN KESTREL:                                         |
 | "Copy that, Nathan. Navigating between the spires."    |
 +--------------------------------------------------------+
 ```
@@ -139,7 +139,7 @@ flowchart TD
 | and unleash wide spreads of pink fans and blue rings.  |
 | Clear the sea lanes before they deploy the Leviathan!" |
 |                                                        |
-| CAPTAIN VANCE:                                         |
+| CAPTAIN KESTREL:                                         |
 | "Gunboats in my sights. Sword ready. Going in!"        |
 +--------------------------------------------------------+
 ```
@@ -171,7 +171,7 @@ flowchart TD
 | heavy armor and gun turrets. Strip the gun cars down,  |
 | and watch the desert floor for seismic anomalies!"     |
 |                                                        |
-| CAPTAIN VANCE:                                         |
+| CAPTAIN KESTREL:                                         |
 | "I see the tracks. Armored train intercepted!"         |
 +--------------------------------------------------------+
 ```
@@ -202,7 +202,7 @@ flowchart TD
 | shelves are collapsing into the sea. Keep your flight  |
 | vector steady and stop that Glacier Crawler!"          |
 |                                                        |
-| CAPTAIN VANCE:                                         |
+| CAPTAIN KESTREL:                                         |
 | "Canopy heating active. Fighting the wind shear now!"  |
 +--------------------------------------------------------+
 ```
@@ -240,7 +240,7 @@ flowchart TD
 | lethal space debris and dead satellites! Tumbling      |
 | wreckage will crush your hull. Dodge the debris field!"|
 |                                                        |
-| CAPTAIN VANCE:                                         |
+| CAPTAIN KESTREL:                                         |
 | "Confirmed. Breaking orbit into the debris now!"       |
 +--------------------------------------------------------+
 ```
@@ -272,7 +272,7 @@ flowchart TD
 | BEHIND your ship! When you see red and yellow warning  |
 | blinks at the bottom of the screen, move immediately!" |
 |                                                        |
-| CAPTAIN VANCE:                                         |
+| CAPTAIN KESTREL:                                         |
 | "Understood! Keeping eyes glued to the bottom sensors!"|
 +--------------------------------------------------------+
 ```
@@ -307,7 +307,7 @@ flowchart TD
 | Use your Radiant Sword to carve lanes through the      |
 | rocks, and hunt down that Hive Mothership!"            |
 |                                                        |
-| CAPTAIN VANCE:                                         |
+| CAPTAIN KESTREL:                                         |
 | "Solid rock ahead. Powering up the sword. Punching in!"|
 +--------------------------------------------------------+
 ```
@@ -345,7 +345,7 @@ flowchart TD
 | touch of an active flare will vaporize the ship!       |
 | Break their prisms and destroy Gamma Prime!"           |
 |                                                        |
-| CAPTAIN VANCE:                                         |
+| CAPTAIN KESTREL:                                         |
 | "The heat is intense, but the sword is holding!        |
 | For Earth and Sol... THIS ENDS NOW!"                   |
 +--------------------------------------------------------+

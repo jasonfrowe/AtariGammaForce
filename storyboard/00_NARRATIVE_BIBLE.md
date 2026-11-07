@@ -51,7 +51,7 @@ Engineered using captured resonant gamma-crystal fragments from the first vangua
 
 ## 4. Characters & Dramatis Personae
 
-### Captain Maya "Vanguard" Vance (Callsign: Gamma-1)
+### Captain Maya "Vanguard" Kestrel (Callsign: Gamma-1)
 * **Role:** Pilot, GF-01 Gamma Force.
 * **Profile:** Ace orbital interceptor test pilot. Fierce, hyper-intuitive, and unflappable under lethal g-forces. When the Coronal Swarm annihilated Earth’s orbital defense platforms in the opening strike, Maya was the only pilot to slip through the burning planetary blockade and land her damaged prototype in the subterranean Marianas bunker. She flies the Gamma Force with surgical precision, treating the Radiant Sword as an extension of her own nervous system.
 * **Visual Concept:** Form-fitting pressurized G-suit with composite titanium collar; flight helmet with gold-tinted reflective visor flipped up; sharp, determined gaze, dark windswept hair.

@@ -12,7 +12,7 @@ This suite documents the narrative arc, visual storyboard, static cut screens, c
 |---|---|
 | [**00_NARRATIVE_BIBLE.md**](00_NARRATIVE_BIBLE.md) | World lore, alien invasion premises, solar siphon mechanics, weapons lore (Vulcan, Radiant Sword, Hyper Sword), and narrative tone. |
 | [**01_STORYBOARD_CUTSCREENS.md**](01_STORYBOARD_CUTSCREENS.md) | Detailed storyboard sequences, camera framing, screen layout specifications for Atari 7800 MARIA display modes, Atari hazard stripe divider styling, and dialogue/scroller scripts. |
-| [**`02_CHARACTER_SHEETS.md`**](02_CHARACTER_SHEETS.md) | Bios, personality, visual design guidelines, and in-flight voice lines for **Captain Maya "Vanguard" Vance** (Female ace pilot, Gamma-1), **Dr. Nathan Thorne** (Male Tactical Operations & Chief Engineer), and the entity Gamma Prime. |
+| [**`02_CHARACTER_SHEETS.md`**](02_CHARACTER_SHEETS.md) | Bios, personality, visual design guidelines, and in-flight voice lines for **Captain Maya "Vanguard" Kestrel** (Female ace pilot, Gamma-1), **Dr. Nathan Thorne** (Male Tactical Operations & Chief Engineer), and the entity Gamma Prime. |
 | [**`03_STAGE_NARRATIVE_LOGS.md`**](03_STAGE_NARRATIVE_LOGS.md) | Comprehensive stage-by-stage dossiers across all 9 stages: environmental descriptions, tactical objectives, specific hazard alerts, radio chatter, and boss threat breakdowns. |
 
 ---
@@ -27,14 +27,14 @@ This suite documents the narrative arc, visual storyboard, static cut screens, c
 ---
 
 ### 2. Characters Concept Art: Pilot & Tactical Ops (Reversed Genders)
-> *Captain Maya Vance (Gamma-1) in high-G flight suit and cockpit alongside Dr. Nathan Thorne at EDC Tactical Command.*
+> *Captain Maya Kestrel (Gamma-1) in high-G flight suit and cockpit alongside Dr. Nathan Thorne at EDC Tactical Command.*
 
 ![Characters Concept Art](img/characters_concept.png)
 
 ---
 
 ### 3. Climax Concept Art: The Solar Corona & Gamma Prime
-> *Captain Vance dives into the roaring thermonuclear corona of the Sun, enveloped in the protective gamma barrier of the Radiant Sword, charging the golden sunburst fortress Gamma Prime and its orbiting prisms.*
+> *Captain Kestrel dives into the roaring thermonuclear corona of the Sun, enveloped in the protective gamma barrier of the Radiant Sword, charging the golden sunburst fortress Gamma Prime and its orbiting prisms.*
 
 ![Gamma Prime Corona Battle](img/gamma_prime_corona_battle.png)
 

@@ -1357,7 +1357,8 @@ end
   rem  builds its screen in RAM; this loop, in the fixed bank, plays: a track
   rem  plays from its own bank, switched in while it plays. Left and right
   rem  choose a track (playing: at once), button 1 plays or stops it, button
-  rem  2 goes back to the title.
+  rem  2 goes back to the title. A track played to its end gives way to the
+  rem  next.
   rem ======================================================================
 jukebox
   asm
@@ -1383,6 +1384,20 @@ jb_loop
   lda #0
   sta visibleover
   dec frameslost
+  ; a track played to its end: the next
+  lda jb_play
+  beq jb_stick
+  lda mus_loops
+  beq jb_stick
+  inc jb_track
+  lda jb_track
+  cmp #JB_N
+  bcc jb_next
+  lda #0
+  sta jb_track
+jb_next
+  jsr jb_start
+jb_stick
   ; the stick: a fresh push left or right
   lda SWCHA
   eor #$FF
@@ -1441,6 +1456,8 @@ jb_start
   sta $8000
   lda JB_TABLES+32,x
   jsr mus_play
+  lda #0
+  sta mus_loops
   lda #1
   sta jb_play
   ; the track's number, name and line, and whether it plays

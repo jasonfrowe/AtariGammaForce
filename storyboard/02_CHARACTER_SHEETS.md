@@ -4,7 +4,7 @@
 
 ---
 
-## 1. Captain Maya "Vanguard" Vance
+## 1. Captain Maya "Vanguard" Kestrel
 
 ```
        .---.
@@ -21,7 +21,7 @@
 * **Combat Philosophy:** "Keep your nose forward, read the terrain ahead, and let the sword drink the fire." Maya knows every inch of the Gamma Force, intuitively pacing her weapon cycles and maneuvering through impossible terrain bottlenecks.
 
 ### Key In-Flight & Sector Transition Dialogue
-* *"Catapult pressure green. Sword capacitor holding stable. Maya Vance rolling out!"*
+* *"Catapult pressure green. Sword capacitor holding stable. Maya Kestrel rolling out!"*
 * *(Approaching Neon Spires)*: *"I see the skyline. Those communications towers are massive—if I clip a wing on one of those spires, it’s all over. Weaving between buildings now."*
 * *(Approaching Iron Tide)*: *"Ocean channel sighted. Gunboats are swarming the open water. Time to sink some hulls."*
 * *(Approaching Scorched Sands)*: *"Look at the dust cloud over the dunes. That's not a convoy—it's an armored supply train on the railway. Setting intercept course."*
