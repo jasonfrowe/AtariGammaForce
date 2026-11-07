@@ -22,6 +22,11 @@ pixel to its nearest kept color), and cells that no palette fits take the
 closest one; check() says what it had to change.
 
     tools/cutscene7800.py check panel.png [--bg $00] [--out preview.png]
+    tools/cutscene7800.py previews [storyboard/panels]
+
+previews rewrites each picture's <name>_preview.png (4x, 2:1 pixels, as
+the 7800 shows it) in the panels folder: the full pictures and the
+portraits (32 x 48 ones).
 """
 
 import argparse
@@ -186,12 +191,25 @@ def preview(img, scale=3):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["check"])
-    ap.add_argument("png")
+    ap.add_argument("cmd", choices=["check", "previews"])
+    ap.add_argument("png", nargs="?", default=str(ROOT / "storyboard" / "panels"))
     ap.add_argument("--bg", help="the background color, a 7800 byte ($00); the commonest otherwise")
     ap.add_argument("--out", help="write the fitted picture's preview here")
     ap.add_argument("--portrait", action="store_true", help="a speaker's portrait (32 x 48, 2 palettes)")
     args = ap.parse_args()
+    if args.cmd == "previews":
+        folder = Path(args.png)
+        for f in sorted(folder.glob("*.png")):
+            if f.stem.endswith("_preview") or f.stem.startswith(("template", "grid", "atari7800")):
+                continue
+            size = Image.open(f).size
+            portrait = size in (PORTRAIT, (2 * PORTRAIT[0], PORTRAIT[1]))
+            img = load(f, PORTRAIT if portrait else (W, H))
+            fitted, bg, pals, which, notes = fit(img, 0 if portrait else None,
+                                                 PORTRAIT_NPAL if portrait else NPAL)
+            preview(fitted, 4).save(folder / f"{f.stem}_preview.png")
+            print(f"{f.name}: preview{'' if not notes else f' ({len(notes)} cells changed to fit)'}")
+        return
     img = load(args.png, PORTRAIT if args.portrait else (W, H))
     bg = int(args.bg.lstrip("$"), 16) if args.bg else None
     fitted, bg, pals, which, notes = fit(img, bg, PORTRAIT_NPAL if args.portrait else NPAL)
