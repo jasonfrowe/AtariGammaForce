@@ -99,6 +99,11 @@ hs_b2       = $22F3
 hs_x3       = $22F4
 titleidle   = $22F5 ; the title's time with nothing pressed (title.bas)
 hs_d        = $22F6 ; the table shown (the difficulty, 0-2)
+; the jukebox's (gammaforce.bas jukebox)
+jb_track    = $22F7 ; the track chosen (0 - JB_N-1)
+jb_play     = $22F8 ; nonzero while it plays
+jb_stk      = $22F9 ; the stick's left and right last frame (pressed: set)
+jb_prev     = $22FA ; the buttons last frame
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
 txtold      = $2560 ; [16] where each buffer's text was as last terminated ($FF: none)
 txtnow      = $2570 ; [15] where each zone's text is this frame ($FF: none)

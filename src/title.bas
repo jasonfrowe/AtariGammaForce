@@ -50,13 +50,23 @@ end
 end
   tpal = 3
   tzone = 2 : temp1 = TXT_ATARI : gosub text
-  rem the starting stage: left and right choose
+  rem the starting stage: left and right choose (and past the last, the
+  rem jukebox: its lines from gen/jbtitle.asm, in the results' RAM lines)
   tpal = 6
+  if selstage > NSTAGES then goto title_jb
   for k = 0 to 14 : rtline[k] = txt_sel1[k] : next
   rtline[10] = CH_0 + selstage * 2
   tzone = 9 : temp1 = TXT_SEL : gosub text
   tpal = 3
   tzone = 10 : temp1 = TXT_NAME1 + selstage - 1 : gosub text
+  goto title_jbdone
+title_jb
+  for k = 0 to 14 : rtline[k] = jb_sel[k] : next
+  for k = 0 to 15 : temp2 = k + 20 : rtline[temp2] = jb_room[k] : next
+  tzone = 9 : temp1 = TXT_SEL : gosub text
+  tpal = 3
+  tzone = 10 : temp1 = TXT_RESB : gosub text
+title_jbdone
   rem the difficulty: up and down choose
   rem (Expert in yellow, Normal in blue, Teddy Bear in the logo's colors)
   tpal = 6
@@ -82,7 +92,7 @@ end
   temp5 = (temp4 + 2) & 15 : P4C3 = temp5 * 16 + 13
   if selcd > 0 then selcd = selcd - 1 : goto title_fire
   if joy0left && selstage > 1 then selstage = selstage - 1 : selcd = 15
-  if joy0right && selstage < NSTAGES then selstage = selstage + 1 : selcd = 15
+  if joy0right && selstage <= NSTAGES then selstage = selstage + 1 : selcd = 15
   if joy0up && easy > 0 then easy = easy - 1 : selcd = 15
   if joy0down && easy < 2 then easy = easy + 1 : selcd = 15
 title_fire

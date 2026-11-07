@@ -31,3 +31,5 @@ cs11_font
   endif
 ; the entry: A = the scene
   jmp cs11_main
+; the jukebox's screen into RAM (tools/gen_jukebox.py)
+  jmp jb_setup

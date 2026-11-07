@@ -202,6 +202,13 @@ bank holds only the hooks, `cutscene` (a bank switch and `jsr $8800`) and
 the song table's entries: the three act breaks hold the same song at the
 same address, so one entry serves them.
 
+The jukebox (`tools/gen_jukebox.py`) has to switch in each track's bank
+to play it, so its screen is in no bank: bank 11 (its entry at $8803)
+builds a display list list, its lists and its text in RAM ($1900-$1FFF,
+the engine's idle ring buffers) in the game's font (the last bank's
+block), copies the track list there, and returns to the fixed bank's
+loop (`jukebox`), which switches in the bank a track needs and plays it.
+
 The high score table is bank 12's too (its entry at $8803): 7800basic's
 hiscore.asm, inlined in that bank's DMA hole without its high score font,
 leaves out its own display and keeps the device code (High Score Cart,

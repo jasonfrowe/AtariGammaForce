@@ -332,6 +332,7 @@ end
 
   rem the title's choice made (src/title.bas): the game starts
 title_go
+  if selstage > NSTAGES then goto jukebox
   stage = selstage : smsg = 180
   asm
   ifconst STAGE2TEST
@@ -1351,6 +1352,152 @@ cutscene
   endif
 end
   return
+  rem ======================================================================
+  rem  The jukebox (the title, past STAGE 9: tools/gen_jukebox.py). Bank 11
+  rem  builds its screen in RAM; this loop, in the fixed bank, plays: a track
+  rem  plays from its own bank, switched in while it plays. Left and right
+  rem  choose a track (playing: at once), button 1 plays or stops it, button
+  rem  2 goes back to the title.
+  rem ======================================================================
+jukebox
+  asm
+  jsr mus_stop
+  lda #9                  ; (bank 11: the screen into RAM)
+  sta $8000
+  jsr $8803
+  lda #0
+  sta jb_track
+  sta jb_play
+  lda sINPT1
+  and #$C0
+  sta jb_prev
+  lda SWCHA
+  eor #$FF
+  and #$C0
+  sta jb_stk
+  jsr jb_show
+jb_loop
+  jsr waitforvblankstart
+  lda #3                  ; (7800basic's NMI count: as pf_drawscreen)
+  sta interruptindex
+  lda #0
+  sta visibleover
+  dec frameslost
+  ; the stick: a fresh push left or right
+  lda SWCHA
+  eor #$FF
+  and #$C0
+  tax
+  eor jb_stk
+  stx jb_stk
+  and jb_stk
+  beq jb_buttons
+  and #$40                ; (left)
+  beq jb_right
+  dec jb_track
+  bpl jb_moved
+  lda #JB_N-1
+  sta jb_track
+  bne jb_moved
+jb_right
+  inc jb_track
+  lda jb_track
+  cmp #JB_N
+  bcc jb_moved
+  lda #0
+  sta jb_track
+jb_moved
+  lda jb_play             ; (playing: the new track at once)
+  beq jb_moved2
+  jsr jb_start
+  jmp jb_buttons
+jb_moved2
+  jsr jb_show
+jb_buttons
+  lda sINPT1
+  and #$C0
+  tax
+  eor jb_prev
+  stx jb_prev
+  and jb_prev
+  beq jb_loop
+  and #$80                ; button 1: play or stop (button 2: back)
+  beq jb_exit
+  lda jb_play
+  beq jb_go
+  jsr mus_stop
+  lda #0
+  sta jb_play
+  jsr jb_show
+  jmp jb_loop
+jb_go
+  jsr jb_start
+  jmp jb_loop
+  ; the track's bank in, its song
+jb_start
+  jsr mus_stop
+  ldx jb_track
+  lda JB_TABLES,x
+  sta $8000
+  lda JB_TABLES+32,x
+  jsr mus_play
+  lda #1
+  sta jb_play
+  ; the track's number, name and line, and whether it plays
+jb_show
+  ldx jb_track
+  lda JB_TABLES+64,x
+  sta pfp
+  lda JB_TABLES+96,x
+  sta pfp+1
+  ldy #JB_W*2-1           ; (its name and line, one after the other)
+jb_show1
+  lda (pfp),y
+  sta JB_NAMEROW,y
+  dey
+  bpl jb_show1
+  lda jb_track
+  clc
+  adc #1
+  ldx #0
+jb_tens
+  cmp #10
+  bcc jb_units
+  sbc #10
+  inx
+  bne jb_tens
+jb_units
+  asl                     ; (the font's digits: 2 apart, from 0)
+  sta JB_TRACKDIGIT+1
+  txa
+  asl
+  sta JB_TRACKDIGIT
+  ldy #0
+  lda jb_play
+  bne jb_show2
+  ldy #JB_W
+jb_show2
+  ldx #0
+jb_show3
+  lda JB_STATUS,y
+  sta JB_STATUSROW,x
+  iny
+  inx
+  cpx #JB_W
+  bne jb_show3
+  rts
+jb_exit
+  jsr mus_stop
+  jsr waitforvblankstart
+  lda #$70                ; (DMA off: the title rebuilds the screen)
+  sta CTRL
+  lda #>DLLMEM
+  sta DPPH
+  lda #<DLLMEM
+  sta DPPL
+end
+  goto title
+
   rem The high score table (bank 12's player): temp1 0 to show it, 1 to put
   rem the score in (initials, saved), then the title
 hiscores
@@ -1668,6 +1815,7 @@ end
   inline musicdata.asm
   incbasic boss1.bas
   incbasic title.bas
+  inline jbtitle.asm
   rem the title song, at $B700: bank 12 holds it at the same address, so it
   rem plays on into the high score table (gen_music.sh)
   inline titlepad.asm
@@ -1804,6 +1952,8 @@ end
   inline musiccut11.asm
   inline cut11b.asm
   incbasic gen/cutgfx11.bas
+  rem the jukebox's screen and track list (tools/gen_jukebox.py)
+  inline jukebox.asm
 
   rem ======================================================================
   rem  Bank 12: a cutscene bank (tools/gen_cutscenes.py: its font at $8000,

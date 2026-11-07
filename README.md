@@ -125,6 +125,7 @@ a7800 a7800 -cart build/gammaforce.a78
 | `docs/reference/` | Local copy of the 7800basic guide |
 | `storyboard/` | The story: narrative bible, storyboards, character sheets, the in-game script (`script.txt`), the cutscene pictures (`panels/`, with the rules for drawing them) |
 | `tools/gen_cutscenes.py` | The cutscenes (banks 11-16) from the script and the pictures |
+| `tools/gen_jukebox.py` | The jukebox's track list and screen |
 | `tools/cutscene7800.py` | Checks a cutscene picture against the 7800's rules and converts it |
 | `tools/generate_music.py`, `tools/musicgen/` | MegaGammaForce's OPL2 music generator (the story's tunes, `assets/music/`) |
 
@@ -152,6 +153,10 @@ without a device they last until power off). After a game over or the
 epilogue a score that makes the table takes three initials (up and down
 choose a letter, fire takes it); the title shows the table when left
 alone.
+
+The jukebox: on the title, right past STAGE 9 to JUKEBOX, then fire. Its
+22 tracks are all the game's music (left and right choose one, B1 plays
+or stops it, B2 goes back).
 
 Regenerating the art needs Python with Pillow and numpy:
 
