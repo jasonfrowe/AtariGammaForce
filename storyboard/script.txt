@@ -4,7 +4,8 @@
 #   == <scene> <kind> <picture or sector line>
 #      scene 1-9: before that stage; 10: the epilogue
 #      kind: "full" (a picture: storyboard/panels/<picture>.png) or
-#            "briefing" (the speaker's portrait, and two header lines:
+#            "briefing" (the speaker's portrait, and two header lines of
+#            at most 14 characters:
 #            after the kind, "SECTOR 2 | NEON SPIRES")
 #   >> <speaker>: <callsign line>   starts a page; speaker is maya,
 #      thorne or gamma (the briefings' portrait; ignored in full scenes)
@@ -75,7 +76,7 @@ ABOVE THEM ALL, HALO STATION. ITS CORE IS SHUT WHILE ITS GUN SATELLITES ORBIT.
 >> maya: CAPT. VANCE // GAMMA-1
 LEAVING THE BLUE BEHIND. BREAKING ORBIT!
 
-== 7 briefing SECTOR 7 | SEA OF TRANQUILITY
+== 7 briefing SECTOR 7 | TRANQUILITY
 >> thorne: DR. THORNE // SECTOR 7 HAZARD ALERT
 YOU'RE OVER THE MOON, MAYA, BUT WATCH YOUR BACK!
 

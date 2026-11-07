@@ -289,6 +289,7 @@ def bank_files(bank, scenes, pages_font):
             data += dll(f"dll{n}", "briefing", top)
             cols = [0] + [0] * 18
             for k, h in enumerate(sc["headers"]):
+                assert len(h) <= 14, f"scene {n}: header {h!r} is {len(h)} long (14 fit beside the portrait)"
                 data.append(f"{P}head{n}_{k} .byte " + ",".join(str(ga.char_index(ch)) for ch in h))
                 data.append(f"{P}headlen{n}_{k} = {len(h)}")
         cols += [AMBER, AMBER, AMBER] + [ga.nearest(c) for c in STRIPE]
@@ -379,6 +380,8 @@ P_found
      lda #$FF
      sta interrupthold
      endif
+     lda #0                  ; (stage 6's fade, still on after it: it would
+     sta fadeon              ; write palette 1 and the background each frame)
      lda sINPT1              ; (a button already held doesn't count)
      and #$C0
      sta cs_prev

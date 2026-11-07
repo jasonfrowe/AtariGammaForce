@@ -16,6 +16,8 @@ cs15_found
      lda #$FF
      sta interrupthold
      endif
+     lda #0                  ; (stage 6's fade, still on after it: it would
+     sta fadeon              ; write palette 1 and the background each frame)
      lda sINPT1              ; (a button already held doesn't count)
      and #$C0
      sta cs_prev

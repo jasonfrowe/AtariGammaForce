@@ -16,6 +16,8 @@ cs12_found
      lda #$FF
      sta interrupthold
      endif
+     lda #0                  ; (stage 6's fade, still on after it: it would
+     sta fadeon              ; write palette 1 and the background each frame)
      lda sINPT1              ; (a button already held doesn't count)
      and #$C0
      sta cs_prev
@@ -596,8 +598,8 @@ cs12_dll7
   .byte $4F,>cs12_dlnone,<cs12_dlnone
 cs12_head7_0 .byte 58,30,26,60,50,56,20,14
 cs12_headlen7_0 = 8
-cs12_head7_1 .byte 58,30,22,20,50,32,20,60,56,22,48,54,62,38,44,38,60,70
-cs12_headlen7_1 = 18
+cs12_head7_1 .byte 60,56,22,48,54,62,38,44,38,60,70
+cs12_headlen7_1 = 11
 cs12_por0pal .byte $01,$3B,$CA,$01,$02,$3B
 cs12_por0z0 .byte <(cut_thorne0+0),30,>(cut_thorne0+0),8,<(cut_thorne0+2),30,>(cut_thorne0+2),16,<(cut_thorne0+4),30,>(cut_thorne0+4),24,<(cut_thorne0+6),30,>(cut_thorne0+6),32
 cs12_por0z1 .byte <(cut_thorne1+0),30,>(cut_thorne1+0),8,<(cut_thorne1+2),30,>(cut_thorne1+2),16,<(cut_thorne1+4),30,>(cut_thorne1+4),24,<(cut_thorne1+6),30,>(cut_thorne1+6),32
