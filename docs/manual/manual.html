@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Atari Gamma Force Manual</title>
 <!--
-  The game's manual, a 16-page pocket booklet. tools/make_manual.py prints
+  The game's manual, a 24-page pocket booklet. tools/make_manual.py prints
   it to PDF at 5 x 7 and 4 x 6.5 inches (it rewrites the SIZE line and the
   @page rule for each). Open it in a browser to read or edit; everything is
   sized from --base, so it fits both page sizes.
@@ -105,6 +105,25 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
 .back .grid4 img { width: 100%; image-rendering: pixelated; display: block; border: 0.06em solid #000; }
 .back p { color: #cfd6ee; }
 .back .small { font-size: 0.8em; color: #9aa6c8; }
+.back .grid9 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.3em; margin: 0.5em 0 0.8em; }
+.back .grid9 img { width: 100%; image-rendering: pixelated; display: block; border: 0.06em solid #000; }
+
+/* the crew */
+.crew { display: grid; grid-template-columns: 5em 1fr; gap: 0.8em; align-items: start; padding: 0.55em 0; border-bottom: 0.06em solid #d8d3c6; }
+.crew:last-of-type { border-bottom: 0; }
+.crew img { width: 100%; image-rendering: pixelated; background: #000; border-radius: 0.3em; display: block; }
+.crew h3 { margin: 0 0 0.15em; }
+.crew h3 small { display: block; font-size: 0.72em; color: var(--muted); letter-spacing: .12em; }
+.crew p { margin: 0; font-size: 0.95em; }
+
+/* hazards */
+.haz h3 { margin: 0.75em 0 0.15em; display: flex; justify-content: space-between; }
+.haz h3 .where { color: var(--muted); font-weight: 400; letter-spacing: .02em; font-size: 0.85em; }
+.haz p { margin: 0; font-size: 0.95em; }
+
+/* notes */
+.lines { margin-top: 0.8em; }
+.lines div { border-bottom: 0.06em solid #c9c3b4; height: 1.9em; }
 </style>
 </head>
 <body>
@@ -125,16 +144,20 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   <div class="stripes"><i></i><i></i><i></i></div>
   <ul class="toc">
     <li><span>The Mission</span><span class="dots"></span><span>3</span></li>
-    <li><span>Getting Started</span><span class="dots"></span><span>4</span></li>
-    <li><span>Using the Controls</span><span class="dots"></span><span>5</span></li>
-    <li><span>The Screen</span><span class="dots"></span><span>6</span></li>
-    <li><span>Your Weapons</span><span class="dots"></span><span>7</span></li>
-    <li><span>The Hyper Sword</span><span class="dots"></span><span>8</span></li>
-    <li><span>The Chain</span><span class="dots"></span><span>9</span></li>
-    <li><span>The Enemy</span><span class="dots"></span><span>10</span></li>
-    <li><span>The Stages</span><span class="dots"></span><span>12</span></li>
-    <li><span>Scoring</span><span class="dots"></span><span>14</span></li>
-    <li><span>Helpful Hints</span><span class="dots"></span><span>15</span></li>
+    <li><span>The Crew</span><span class="dots"></span><span>4</span></li>
+    <li><span>Getting Started</span><span class="dots"></span><span>5</span></li>
+    <li><span>Using the Controls</span><span class="dots"></span><span>6</span></li>
+    <li><span>The Screen</span><span class="dots"></span><span>7</span></li>
+    <li><span>Your Weapons</span><span class="dots"></span><span>8</span></li>
+    <li><span>The Hyper Sword</span><span class="dots"></span><span>9</span></li>
+    <li><span>The Chain</span><span class="dots"></span><span>10</span></li>
+    <li><span>The Enemy</span><span class="dots"></span><span>11</span></li>
+    <li><span>Hazards</span><span class="dots"></span><span>13</span></li>
+    <li><span>The Stages</span><span class="dots"></span><span>14</span></li>
+    <li><span>Scoring</span><span class="dots"></span><span>19</span></li>
+    <li><span>High Scores</span><span class="dots"></span><span>20</span></li>
+    <li><span>The Jukebox</span><span class="dots"></span><span>21</span></li>
+    <li><span>Helpful Hints</span><span class="dots"></span><span>22</span></li>
   </ul>
   <div class="note" style="margin-top:2em">
     Read this booklet before you play, and keep it with your cartridge.
@@ -147,25 +170,49 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
 <section class="page">
   <h2>The Mission</h2>
   <div class="stripes"><i></i><i></i><i></i></div>
-  <p>The enemy came out of the dark between the stars. Their fortresses
-  hang in the sky above the cities, their battleships sail the seas, and
-  their armored trains roll across the deserts. One by one, the world's
-  defenses have fallen silent.</p>
+  <p>The enemy came out of the dark from beyond the stars: the
+  <b>Coronal Swarm</b>. Their fortresses hang in the sky above the cities,
+  their battleships sail the seas, and their armored trains roll across
+  the deserts. One by one, the world's defenses have fallen silent. And
+  the Swarm did not come for the Earth alone. It came for the Sun.</p>
   <p>One fighter is left: the <b>Gamma Force</b>. Its twin <b>Vulcan</b>
   cannons tear through enemy armor, and its <b>Radiant Sword</b>, a blade
-  of pure energy, can drink in the enemy's own fire and turn it into
+  of pure gamma energy, can absorb the enemy's own fire and turn it into
   power.</p>
-  <p>Your mission: fly the Gamma Force through four battlegrounds, from the
-  Sky Fortress to the Scorched Sands, and destroy the great war machine
-  that guards each one.</p>
+  <p>Your mission: fly the Gamma Force through nine battlegrounds, from the
+  Sky Fortress over the sea, out past the Moon, to the corona of the Sun
+  itself, and destroy the great divine beasts that guard each one.</p>
   <img class="shot" src="img/stage1.png" alt="The Sky Fortress">
   <div class="cap">Over the Sky Fortress.</div>
-  <p>Shoot fast, chain your kills, and remember: the pink bullets are your
-  friends, if your sword is out.</p>
+  <p>Shoot fast, chain your kills, and remember: use your sword to absorb pink bullets.</p>
   <div class="folio">3</div>
 </section>
 
-<!-- 4. GETTING STARTED -->
+<!-- 4. THE CREW -->
+<section class="page">
+  <h2>The Crew</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="crew"><img src="img/crew_maya.png" alt="">
+    <div><h3><small>Gamma-1, pilot</small>Captain Maya Vance</h3>
+    <p>Ace test pilot of Earth Defense Command, callsign <b>Vanguard</b>. When
+    the Swarm struck, she was the only pilot to slip through the burning
+    blockade and land the last fighter in the bunker beneath the sea.
+    Now she flies it, alone, all the way to the Sun.</p></div></div>
+  <div class="crew"><img src="img/crew_thorne.png" alt="">
+    <div><h3><small>EDC Tactical Operations</small>Dr. Nathan Thorne</h3>
+    <p>The engineer who built the Radiant Sword, and Maya's eyes on the
+    horizon. Before every stage he radios a briefing:
+    <b>listen to him</b>. He warns of what the next battleground holds.</p></div></div>
+  <div class="crew"><img src="img/crew_gamma.png" alt="">
+    <div><h3><small>The enemy</small>Gamma Prime</h3>
+    <p>The Swarm's mind, which speaks only in cold intercepted signals. Its
+    fortress waits in the corona, feeding on the Sun.</p></div></div>
+  <img class="shot" src="img/briefing.png" alt="A briefing" style="width:74%;margin:0.5em auto 0">
+  <div class="cap">A briefing. Press a button to read on.</div>
+  <div class="folio">4</div>
+</section>
+
+<!-- 5. GETTING STARTED -->
 <section class="page">
   <h2>Getting Started</h2>
   <div class="stripes"><i></i><i></i><i></i></div>
@@ -180,16 +227,18 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   <h3>On the title screen</h3>
   <ul>
     <li>Push the joystick <b>left or right</b> to choose the stage you start
-    on, 1 to 4.</li>
-    <li>Push it <b>up or down</b> to choose the mode: <span class="caps">Normal</span>,
-    or <span class="caps">Teddy Bear</span>, where the enemy fires about half
-    as many bullets.</li>
+    on, 1 to 9. Past stage 9 is the <span class="caps">Jukebox</span> (page 21).</li>
+    <li>Push it <b>up or down</b> to choose a mode:
+    <span class="caps">Expert</span>, the enemy at full fire;
+    <span class="caps">Normal</span>, about half as many bullets; or
+    <span class="caps">Teddy Bear</span>: half the bullets, five ships, and
+    armor that takes a hit for each ship.</li>
     <li>Press either <b>button</b> to start.</li>
   </ul>
-  <p>You begin with <b>3 ships</b>. When the last one is lost, the game is
-  over and you return to the title screen. After stage 4 the battle begins
-  again at stage 1, and your score keeps climbing.</p>
-  <div class="folio">4</div>
+  <p>You begin with <b>3 ships</b> (5 in Teddy Bear). When the last one is
+  lost, the game is over. Clear the ninth stage and the story ends. Either
+  way, a score good enough for the table is yours to sign (page 20).</p>
+  <div class="folio">5</div>
 </section>
 
 <!-- 5. CONTROLS -->
@@ -211,14 +260,18 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
     <b>absorbs pink bullets</b>.</div>
     <div class="key both">Both</div>
     <div><b>Hyper Sword.</b> When the sword gauge is full, press both
-    buttons together (see page 8).</div>
+    buttons together (see page 9).</div>
     <div class="key">Pause</div>
     <div>The console's <b>Pause</b> button stops the game. Press it again to
-    play on.</div>
+    continue play.</div>
   </div>
   <div class="note">With a one-button joystick, the button fires the Vulcan.
   You need two buttons for the swords.</div>
-  <div class="folio">5</div>
+  <h3>Between stages</h3>
+  <p>A briefing or a scene from the story plays before each stage. Press
+  either button to show the rest of a page at once, and again to turn
+  it.</p>
+  <div class="folio">6</div>
 </section>
 
 <!-- 6. THE SCREEN -->
@@ -236,8 +289,8 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   </div>
   <div class="legend">
     <span class="n">1</span><div><b>Score.</b></div>
-    <span class="n">2</span><div><b>The chain.</b> Three gems that light up in the color of the
-    enemies you are chaining (page 9).</div>
+    <span class="n">2</span><div><b>The chain.</b> Three gems that light up in the colour of the
+    enemies you are chaining (page 10).</div>
     <span class="n">3</span><div><b>Chain level.</b> How many sets of three you have
     chained.</div>
     <span class="n">4</span><div><b>Sword gauge.</b> Fills with every pink bullet your
@@ -252,7 +305,7 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   <h3>Extra ships</h3>
   <p>You earn an extra ship at <b>50,000</b> points, another at
   <b>100,000</b>, and one more for every 100,000 after that.</p>
-  <div class="folio">6</div>
+  <div class="folio">7</div>
 </section>
 
 <!-- 7. YOUR WEAPONS -->
@@ -277,7 +330,7 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   cannot: they pass straight through the blade, so get out of the way.</p>
   <img class="shot" src="img/sword.png" alt="The Radiant Sword" style="width:74%;margin:0.2em auto 0">
   <div class="cap">The Radiant Sword drinks in the pink bullets.</div>
-  <div class="folio">7</div>
+  <div class="folio">8</div>
 </section>
 
 <!-- 8. HYPER SWORD -->
@@ -299,16 +352,16 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   <div class="note">Save the Hyper Sword for when you need it most: a
   screen full of bullets, or a boss that has you cornered. Losing a ship
   empties the gauge.</div>
-  <div class="folio">8</div>
+  <div class="folio">9</div>
 </section>
 
 <!-- 9. THE CHAIN -->
 <section class="page">
   <h2>The Chain</h2>
   <div class="stripes"><i></i><i></i><i></i></div>
-  <p>Most enemies come in three colors: <b style="color:var(--red)">red</b>,
+  <p>Most enemies come in three colours: <b style="color:var(--red)">red</b>,
   <b style="color:var(--blue)">blue</b> and <b style="color:#b38f00">yellow</b>.
-  Destroy <b>three of one color in a row</b> to complete a set. Each set
+  Destroy <b>three of one colour in a row</b> to complete a set. Each set
   raises your <b>chain level</b> and pays a bonus, and the bonus grows
   with every set you chain.</p>
   <div style="display:flex;justify-content:center;gap:0.8em;margin:0.6em 0 0.8em">
@@ -318,8 +371,8 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   </div>
   <ul>
     <li>The gems on the status line light up as you build a set.</li>
-    <li>After a full set, start the next with any color you like.</li>
-    <li>Change color <b>before</b> a set is complete and the chain is
+    <li>After a full set, start the next with any colour you like.</li>
+    <li>Change colour <b>before</b> a set is complete and the chain is
     broken: your chain level drops back to zero.</li>
     <li>Gray enemies, like gunships, are not part of the chain. Shoot them
     whenever you like.</li>
@@ -328,12 +381,12 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   <table>
     <tr><th>Set</th><th class="num" style="text-align:right">Bonus</th></tr>
     <tr><td>1st</td><td class="num">100</td></tr>
-    <tr><td>2nd</td><td class="num">200</td></tr>
+    <tr><td>2nd</td><td class="num">250</td></tr>
     <tr><td>3rd</td><td class="num">500</td></tr>
     <tr><td>Each set after</td><td class="num">250 more each time</td></tr>
     <tr><td>Top bonus</td><td class="num">10,000 a set</td></tr>
   </table>
-  <div class="folio">9</div>
+  <div class="folio">10</div>
 </section>
 
 <!-- 10. THE ENEMY: in the air -->
@@ -355,7 +408,7 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   <div class="foe"><div class="pic"><img src="img/sp_gunship.png" alt=""></div>
     <div><h3>Gunship <span class="pts">2,000</span></h3><p>A heavy, armored craft that
     hangs over the battle and fills the sky with fire. Gray: no chain.</p></div></div>
-  <div class="folio">10</div>
+  <div class="folio">11</div>
 </section>
 
 <!-- 11. THE ENEMY: on the ground -->
@@ -374,13 +427,43 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
   <div class="foe"><div class="pic"><img src="img/sp_train.png" alt="" style="max-height:90%"><img src="img/sp_traincar.png" alt="" style="max-height:90%;margin-left:0.25em"></div>
     <div><h3>Armored train <span class="pts">800 a car</span></h3><p>A locomotive and its
     gun cars roll up the railway. Each car is tough.</p></div></div>
-  <div class="foe"><div class="pic"><img src="img/sp_tower.png" alt=""></div>
-    <div><h3>Tower</h3><p>The Neon Spires' towers can't be destroyed. They
-    block shots and bullets, and <b>flying into one costs you a ship</b>.</p></div></div>
-  <div class="folio">11</div>
+  <div class="folio">12</div>
 </section>
 
-<!-- 12. STAGES 1-2 -->
+<!-- 13. HAZARDS -->
+<section class="page">
+  <h2>Hazards</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <p>Some battlegrounds fight back on their own. Know them before you fly
+  in.</p>
+  <div class="haz">
+  <h3>Towers <span class="where">Neon Spires</span></h3>
+  <p>The Neon Spires' towers cannot be destroyed. They block shots and
+  bullets, and shove your ship: one can crush you against the bottom of
+  the screen. Fly around them.</p>
+  <h3>Icebergs and falling ice <span class="where">Frozen Strait</span></h3>
+  <p>Icebergs block your fire like towers, and slabs of ice fall from the
+  shelves, faster than the ice drifts.</p>
+  <h3>Blizzards <span class="where">Frozen Strait</span></h3>
+  <p>The wind shoves your ship off course. Lean into it.</p>
+  <h3>Dead satellites <span class="where">Ascent</span></h3>
+  <p>Wreckage drifts through low orbit. It shoves and crushes like a tower.</p>
+  <h3>Launch canisters <span class="where">Sea of Tranquility</span></h3>
+  <p>The Moon's rail bases fire canisters up <b>from behind you</b>. Listen
+  for the hiss and watch the bottom of the screen for the red and yellow
+  blink, then move: touching a rising canister costs a ship.</p>
+  <h3>Asteroids <span class="where">Deep Field</span></h3>
+  <p>Solid rock. They stop your shots and the enemy's bullets alike, and
+  flying into one costs a ship. Fly the gaps.</p>
+  <h3>Solar flares <span class="where">Corona</span></h3>
+  <p>Loops and tongues of fire lie dark on the Sun, then flicker, faster
+  and faster, and erupt in turns. Flying through a live flare costs a
+  ship.</p>
+  </div>
+  <div class="folio">13</div>
+</section>
+
+<!-- 14. STAGES 1-2 -->
 <section class="page">
   <h2>The Stages</h2>
   <div class="stripes"><i></i><i></i><i></i></div>
@@ -402,10 +485,10 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
     <p>Pods circle its core and shield it. Destroy every pod and the core
     opens.</p></div>
   </div>
-  <div class="folio">12</div>
+  <div class="folio">14</div>
 </section>
 
-<!-- 13. STAGES 3-4 -->
+<!-- 15. STAGES 3-4 -->
 <section class="page">
   <h2>The Stages</h2>
   <div class="stripes"><i></i><i></i><i></i></div>
@@ -423,14 +506,72 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
     <div><h3><small>Stage 4</small>Scorched Sands</h3>
     <p>Desert, oases, and armored trains on the railway.</p>
     <p class="boss"><b>Boss: Dune Wyrm.</b></p>
-    <p>A sandworm winding a figure eight. Its head can't be hurt until its
-    tail and every segment are gone, and when you hurt it, it turns and
+    <p>A sandworm winding a figure eight. Its head cannot be hurt until its
+    tail and segments are gone, and when you hurt it, it turns and
     gives chase!</p></div>
   </div>
-  <div class="folio">13</div>
+  <div class="folio">15</div>
 </section>
 
-<!-- 14. SCORING -->
+<!-- 16. STAGES 5-6 -->
+<section class="page">
+  <h2>The Stages</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="stage">
+    <div class="shots"><img class="shot" src="img/stage5.png" alt=""><img class="shot" src="img/boss5.png" alt=""></div>
+    <div><h3><small>Stage 5</small>Frozen Strait</h3>
+    <p>Pack ice, icebergs and polar blizzards. The wind pushes you, and ice falls from the shelves.</p>
+    <p class="boss"><b>Boss: Glacier Crawler.</b></p>
+    <p>A huge crawler grinding across the ice. Take its guns, its drill and its bridge, then chase it across the ice to the reactor at its heart.</p></div>
+  </div>
+  <div class="stage">
+    <div class="shots"><img class="shot" src="img/stage6.png" alt=""><img class="shot" src="img/boss6.png" alt=""></div>
+    <div><h3><small>Stage 6</small>Ascent</h3>
+    <p>Climb out of the atmosphere as the ocean darkens below, past the Earth's edge into space, among dead satellites.</p>
+    <p class="boss"><b>Boss: Halo Station.</b></p>
+    <p>A ring station. Four gun satellites orbit it, and its core stays shut until they fall. Now and then gunships come to guard it.</p></div>
+  </div>
+  <div class="folio">16</div>
+</section>
+
+<!-- 17. STAGES 7-8 -->
+<section class="page">
+  <h2>The Stages</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="stage">
+    <div class="shots"><img class="shot" src="img/stage7.png" alt=""><img class="shot" src="img/boss7.png" alt=""></div>
+    <div><h3><small>Stage 7</small>Sea of Tranquility</h3>
+    <p>The Moon: craters, domed bases and landing pads, rovers on the roads, and rail bases firing canisters up behind you.</p>
+    <p class="boss"><b>Boss: Mass Driver.</b></p>
+    <p>A hovering rail cannon that sways as it fires slugs down the screen. Its pods, muzzle and turrets guard the breech at its heart.</p></div>
+  </div>
+  <div class="stage">
+    <div class="shots"><img class="shot" src="img/stage8.png" alt=""><img class="shot" src="img/boss8.png" alt=""></div>
+    <div><h3><small>Stage 8</small>Deep Field</h3>
+    <p>Open space beyond the Moon, and drifts of solid asteroids.</p>
+    <p class="boss"><b>Boss: Hive Mothership.</b></p>
+    <p>An alien hive with a great eye. Its pods launch saucers and its mandibles fire fans of pink. The eye stays shut until a mandible falls.</p></div>
+  </div>
+  <div class="folio">17</div>
+</section>
+
+<!-- 18. STAGE 9 -->
+<section class="page">
+  <h2>The Stages</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="stage">
+    <div class="shots"><img class="shot" src="img/stage9.png" alt=""><img class="shot" src="img/boss9.png" alt=""></div>
+    <div><h3><small>Stage 9</small>Corona</h3>
+    <p>Low over the Sun, through solar flares that erupt in turn.</p>
+    <p class="boss"><b>Boss: Gamma Prime.</b></p>
+    <p>The Gamma Core's true form, ringed by prisms. Its core stays sealed: <b>only the Hyper Sword</b> can break the two nodes atop it. Break one and the core opens. Hurt it, and it seals again and its prisms grow back: break the other.</p></div>
+  </div>
+  <div class="note">A boss won't wait forever. Take too long and it escapes:
+  you keep what you destroyed, and fly its stage again.</div>
+  <div class="folio">18</div>
+</section>
+
+<!-- 19. SCORING -->
 <section class="page">
   <h2>Scoring</h2>
   <div class="stripes"><i></i><i></i><i></i></div>
@@ -452,12 +593,57 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
     <tr><td><span class="caps">Perfect destruction</span> (100%)</td><td class="num">10,000</td></tr>
   </table>
   <img class="shot" src="img/results.png" alt="The results" style="width:58%;margin:0 auto">
-  <div class="note">A boss won't wait forever. Take too long and it
-  escapes, and you keep only what you destroyed.</div>
-  <div class="folio">14</div>
+  <div class="folio">19</div>
 </section>
 
-<!-- 15. HINTS -->
+<!-- 20. HIGH SCORES -->
+<section class="page">
+  <h2>High Scores</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <p>Each mode keeps its own table of the five best scores.</p>
+  <img class="shot" src="img/hiscores.png" alt="The high scores" style="width:74%;margin:0.2em auto 0">
+  <div class="cap">The Teddy Bear table.</div>
+  <h3>Signing your score</h3>
+  <p>When a game ends, by losing your last ship or by clearing the ninth
+  stage, a score good enough for the table goes in, and you sign it with
+  three initials:</p>
+  <ul>
+    <li>Push the joystick <b>up or down</b> to choose a letter. Hold it to
+    run through them.</li>
+    <li>Press a <b>button</b> to take the letter and go on to the next.</li>
+  </ul>
+  <h3>Keeping them</h3>
+  <p>With an Atari <b>High Score Cartridge</b>, an <b>AtariVox</b> or a
+  <b>SaveKey</b>, the tables are saved for good. Without one, they last
+  until you turn the power off.</p>
+  <p>Leave the title screen alone for a few seconds and it shows the
+  tables, Teddy Bear, Normal and Expert in turn. Press a button to go
+  back.</p>
+  <div class="folio">20</div>
+</section>
+
+<!-- 21. THE JUKEBOX -->
+<section class="page">
+  <h2>The Jukebox</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <p>Every piece of music in the game, from the title to the last boss
+  and the story's own themes: 22 tracks.</p>
+  <img class="shot" src="img/jukebox.png" alt="The jukebox" style="width:74%;margin:0.2em auto 0">
+  <div class="cap">The Jukebox.</div>
+  <p>On the title screen, push the joystick <b>right</b> past stage 9 to
+  <span class="caps">Jukebox</span>, and press a button.</p>
+  <div class="keys">
+    <div class="key">Left · Right</div>
+    <div>Choose a track. If one is playing, the new one starts at once.</div>
+    <div class="key b1">Button 1</div>
+    <div>Play the track, or stop it.</div>
+    <div class="key b2">Button 2</div>
+    <div>Back to the title screen.</div>
+  </div>
+  <div class="folio">21</div>
+</section>
+
+<!-- 22. HINTS -->
 <section class="page">
   <h2>Helpful Hints</h2>
   <div class="stripes"><i></i><i></i><i></i></div>
@@ -467,7 +653,7 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
     <li><b>Watch for blue.</b> The sword can't stop blue rings. Dodge
     those, and let the sword take the rest.</li>
     <li><b>Chain the waves.</b> Darts and saucers come in groups of one
-    color. Finish a set before you switch.</li>
+    colour. Finish a set before you switch.</li>
     <li><b>Strip the boss first.</b> Destroy every part before the core
     for the 20,000-point bonus and a shot at perfect destruction.</li>
     <li><b>Stay low, but not too low.</b> You only fire upward. Keep room
@@ -476,27 +662,42 @@ td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-n
     tower.</li>
     <li><b>Outrun the Wyrm.</b> When the Dune Wyrm gives chase, keep
     moving: it is a little slower than you.</li>
+    <li><b>Save the Hyper Sword for Gamma Prime.</b> Its core opens only
+    when the Hyper Sword breaks a node atop it: come with a full gauge,
+    and keep the sword drinking pink to fill it again.</li>
+    <li><b>Read the flares.</b> A flare flickers before it erupts, faster
+    and faster. The two groups take turns: fly where the other one was.</li>
+    <li><b>Listen for the hiss.</b> On the Moon, a canister hisses before it
+    launches from behind you.</li>
     <li><b>New to shooters?</b> Choose <span class="caps">Teddy Bear</span>
-    mode on the title screen. The enemy fires about half as many bullets.</li>
+    mode on the title screen: about half as many bullets, five ships,
+    and armor that takes a hit for each.</li>
   </ul>
-  <div class="folio">15</div>
+  <div class="folio">22</div>
 </section>
 
-<!-- 16. BACK COVER -->
+<!-- 23. NOTES -->
+<section class="page">
+  <h2>Notes</h2>
+  <div class="stripes"><i></i><i></i><i></i></div>
+  <div class="lines"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="folio">23</div>
+</section>
+
+<!-- 24. BACK COVER -->
 <section class="page back">
   <h2>Gamma Force</h2>
   <div class="stripes"><i></i><i></i><i></i></div>
-  <div class="grid4">
-    <img src="img/boss1.png" alt=""><img src="img/boss2.png" alt="">
-    <img src="img/boss3.png" alt=""><img src="img/boss4.png" alt="">
+  <div class="grid9">
+    <img src="img/boss1.png" alt=""><img src="img/boss2.png" alt=""><img src="img/boss3.png" alt="">
+    <img src="img/boss4.png" alt=""><img src="img/boss5.png" alt=""><img src="img/boss6.png" alt="">
+    <img src="img/boss7.png" alt=""><img src="img/boss8.png" alt=""><img src="img/boss9.png" alt="">
   </div>
-  <p>Four battlegrounds. Four colossal bosses. One fighter with a sword of
-  light.</p>
+  <p>Nine battlegrounds. Nine colossal bosses. One fighter with a sword of
+  light, all the way to the Sun.</p>
   <p>Gamma Force is a demake of <b>MegaGammaForce</b> for the Picocomputer
-  6502, rebuilt for the Atari 7800 with smooth scrolling, POKEY music, and
-  the chain, the sword and the bosses of the original.</p>
-  <p class="small">Atari Gamma Force © 2026 Jason Rowe. Free software,
-  released under the GNU General Public License, version 3.<br>
+  6502, rebuilt for the Atari 7800.</p>
+  <p class="small">Atari Gamma Force © 2026 Jason Rowe.<br>
   Atari and Atari 7800 are trademarks of their owners. This is an
   independent game, not made or endorsed by Atari.</p>
 </section>

@@ -8,7 +8,7 @@
 
 The manual is a pocket booklet in the style of the old Atari manuals, laid
 out in docs/manual/manual.html (edit the text there) and printed by Chrome
-at two sizes: 5 x 7 inches and 4 x 6.5 inches (docs/manual/*.pdf). Its 16
+at two sizes: 5 x 7 inches and 4 x 6.5 inches (docs/manual/*.pdf). Its 24
 pages are a multiple of 4, for a folded, stapled booklet.
 
 The images in docs/manual/img: screenshots from the emulator (tools/play.sh,
@@ -45,25 +45,46 @@ GOLD_LOGO = [0x12, 0x17, 0x3D]                  # the title's logo, gold
 # Screenshots: (file, build defines, frame, script kind). Kinds: "title"
 # (no game started), "play" (fire held, weaving), "sword" (the sword held
 # from frame 1300, then both buttons for the Hyper Sword at 2400).
+# (the game's shots skip the cutscenes: NOCUT; several frames: the busiest)
+BOSSFRAMES = (1300, 1500, 1700, 1900, 2100, 2300)
 SHOTS = [
     ("title", "CHEAT", 200, "title"),
-    ("stage1", "CHEAT", 1500, "play"),
-    ("boss1", "CHEAT BOSSTEST", 1250, "play"),
-    ("stage2", "CHEAT STAGE2TEST", 1800, "play"),
-    ("boss2", "CHEAT BOSSTEST STAGE2TEST", 1450, "play"),
-    ("stage3", "CHEAT STAGE3TEST", 1900, "play"),
-    ("boss3", "CHEAT BOSSTEST STAGE3TEST", 1900, "play"),
-    ("stage4", "CHEAT STAGE4TEST", 1300, "play"),
-    ("boss4", "CHEAT BOSSTEST STAGE4TEST", 1900, "play"),
-    ("results", "CHEAT BOSSTEST", (2752, 2760), "play"),   # (the bonus figure blinks)
-    ("sword", "CHEAT BOSSTEST", 1900, "sword"),
-    ("hyper", "CHEAT BOSSTEST", 2450, "sword"),
+    ("stage1", "CHEAT NOCUT", 1500, "play"),
+    ("boss1", "CHEAT NOCUT BOSSTEST", 1250, "play"),
+    ("stage2", "CHEAT NOCUT STAGE2TEST", 1800, "play"),
+    ("boss2", "CHEAT NOCUT BOSSTEST STAGE2TEST", 1450, "play"),
+    ("stage3", "CHEAT NOCUT STAGE3TEST", 1900, "play"),
+    ("boss3", "CHEAT NOCUT BOSSTEST STAGE3TEST", 1900, "play"),
+    ("stage4", "CHEAT NOCUT STAGE4TEST", 1300, "play"),
+    ("boss4", "CHEAT NOCUT BOSSTEST STAGE4TEST", 1900, "play"),
+    ("stage5", "CHEAT NOCUT STAGE5TEST", (1500, 1700, 1900), "play"),
+    ("boss5", "CHEAT NOCUT BOSSTEST STAGE5TEST", BOSSFRAMES, "play"),
+    ("stage6", "CHEAT NOCUT STAGE6TEST", (2400, 2700, 3000), "play"),
+    ("boss6", "CHEAT NOCUT BOSSTEST STAGE6TEST", BOSSFRAMES, "play"),
+    ("stage7", "CHEAT NOCUT STAGE7TEST", (1500, 1700, 1900), "play"),
+    ("boss7", "CHEAT NOCUT BOSSTEST STAGE7TEST", BOSSFRAMES, "play"),
+    ("stage8", "CHEAT NOCUT STAGE8TEST", (1500, 1700, 1900), "play"),
+    ("boss8", "CHEAT NOCUT BOSSTEST STAGE8TEST", BOSSFRAMES, "play"),
+    ("stage9", "CHEAT NOCUT STAGE9TEST", (1500, 1700, 1900), "play"),
+    ("boss9", "CHEAT NOCUT BOSSTEST STAGE9TEST", BOSSFRAMES, "play"),
+    ("results", "CHEAT NOCUT BOSSTEST", (2752, 2760), "play"),   # (the bonus figure blinks)
+    ("sword", "CHEAT NOCUT BOSSTEST", 1900, "sword"),
+    ("hyper", "CHEAT NOCUT BOSSTEST", 2450, "sword"),
+    # the story, the high scores, the jukebox
+    ("cutscene", "", 700, "cutscene"),
+    ("briefing", "STAGE2TEST", 700, "cutscene"),
+    ("hiscores", "", 760, "title"),
+    ("jukebox", "", 800, "jukebox"),
 ]
 
 
 def script(kind, frames):
     lines = []
-    if kind != "title":
+    if kind == "jukebox":
+        # right, past stage 9, to the jukebox; open it; play the first track
+        lines += ["300 press P1 Right", "560 release P1 Right", "600 press P1 Button 1", "610 release P1 Button 1",
+                  "700 press P1 Button 1", "710 release P1 Button 1"]
+    elif kind != "title":
         lines += ["300 press P1 Button 2", "310 release P1 Button 2"]
     if kind == "play":
         lines.append("320 press P1 Button 1")
@@ -86,8 +107,9 @@ def shots():
             subprocess.run([str(ROOT / "tools" / "build.sh")], env={**os.environ, "GF_DEFINES": defines},
                            check=True, stdout=subprocess.DEVNULL)
             (tmp / f"{name}.txt").write_text(script(kind, frames))
+            rom = "gammaforce-test.a78" if defines else "gammaforce.a78"
             subprocess.run([str(ROOT / "tools" / "play.sh"), str(tmp / f"{name}.txt"), str(tmp / name)],
-                           env={**os.environ, "ROM": str(ROOT / "build" / "gammaforce-test.a78")},
+                           env={**os.environ, "ROM": str(ROOT / "build" / rom)},
                            check=True, stdout=subprocess.DEVNULL)
             # of several frames, the one with the most drawn on it
             ims = [Image.open(p).convert("RGB") for p in sorted((tmp / name / "a7800").glob("*.png"))]
@@ -165,6 +187,15 @@ def sprites():
             row.alpha_composite(i, (x, 0))
             x += i.width + 4
         big(row, 8).save(IMG / f"sp_{name}3.png")
+
+
+def crew():
+    """The briefings' portraits (storyboard/panels), as the 7800 shows them."""
+    import cutscene7800 as cs
+    for name in ("maya", "thorne", "gamma"):
+        img = cs.load(ROOT / "storyboard" / "panels" / f"{name}.png", cs.PORTRAIT)
+        fitted = cs.fit(img, 0, cs.PORTRAIT_NPAL)[0]
+        cs.preview(fitted, 6).save(IMG / f"crew_{name}.png")
 
 
 def logo():
@@ -252,6 +283,7 @@ def main():
     if args.shots:
         shots()
     sprites()
+    crew()
     logo()
     cover()
     if not args.no_pdf:
