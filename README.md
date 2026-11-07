@@ -144,7 +144,14 @@ picture or the speaker's portrait over 40-column teletype text (fire
 finishes a page, then turns it). `storyboard/script.txt` is the script;
 `tools/gen_cutscenes.py` makes the cutscene banks from it and the
 pictures in `storyboard/panels/`. Test builds for scripted play add
-`NOCUT` (no cutscenes).
+`NOCUT` (no cutscenes, no high score screens).
+
+High scores: a table of five for each difficulty, saved on a High Score
+Cart or an AtariVox/SaveKey (7800basic's hiscore.asm, game ID $4746;
+without a device they last until power off). After a game over or the
+epilogue a score that makes the table takes three initials (up and down
+choose a letter, fire takes it); the title shows the table when left
+alone.
 
 Regenerating the art needs Python with Pillow and numpy:
 

@@ -331,6 +331,495 @@ cs12_bottom
      sta P7C3
      rts
 
+; ---- the high score table ----
+cs12_hs
+     sta hs_mode
+     lda easy                ; (the difficulty: a table each)
+     sta gamedifficulty
+     jsr loaddifficultytable
+     ; an empty table (no save device, or nothing saved yet): the defaults
+     ldx #14
+     lda #0
+cs12_hsempty
+     ora HSRAMScores,x
+     dex
+     bpl cs12_hsempty
+     tax
+     bne cs12_hsfull
+     ldx #14
+cs12_hsdef
+     lda cs12_hsdefs,x
+     sta HSRAMScores,x
+     lda cs12_hsdefi,x
+     sta HSRAMInitials,x
+     dex
+     bpl cs12_hsdef
+cs12_hsfull
+     lda #$FF
+     sta hs_pos
+     lda hs_mode
+     beq cs12_hs1
+     jsr cs12_hsinsert
+cs12_hs1
+     lda #0
+     sta cs_idx              ; (the screen of this bank's first briefing)
+     sta hs_t
+     sta fadeon
+     lda #$FF
+     sta hs_rep
+     lda #0
+     ifconst interrupthold
+     lda #$FF
+     sta interrupthold
+     endif
+     lda sINPT1
+     and #$C0
+     sta cs_prev
+     lda #0
+     tax
+cs12_hsclr
+     sta $1900,x
+     sta $1A00,x
+     sta $1B00,x
+     inx
+     bne cs12_hsclr
+     ; the header (the game's font, centred): HIGH SCORES, the difficulty
+     ldx easy
+     lda #<cs12_hshead
+     sta $1C00
+     lda #$60
+     sta $1C01
+     sta $1C21
+     lda #>cs12_hshead
+     sta $1C02
+     lda #(cs12_hsheadw|(2<<5))
+     sta $1C03
+     lda #cs12_hsheadx
+     sta $1C04
+     lda cs12_hsmodelo,x
+     sta $1C20
+     lda cs12_hsmodehi,x
+     sta $1C22
+     lda cs12_hsmodew,x
+     ora #(3<<5)
+     sta $1C23
+     lda cs12_hsmodex,x
+     sta $1C24
+     lda #0
+     sta $1C05
+     sta $1C06
+     sta $1C25
+     sta $1C26
+     sta $1C40
+     sta $1C41
+     ; the texts: the title, and (entering) the prompt
+     ldx #0
+     lda #<cs12_hstitle
+     ldy #>cs12_hstitle
+     jsr cs12_hsline
+     lda hs_pos
+     bmi cs12_hs2
+     jsr cs12_hsprompt
+cs12_hs2
+     jsr waitforvblankstart
+     lda cs12_pallo
+     sta pfq
+     lda cs12_palhi
+     sta pfq+1
+     ldy #0
+     lda (pfq),y
+     sta cs_bg
+     sta BACKGRND
+     sta bgwant
+     ldx #0
+cs12_hspals
+     iny
+     lda (pfq),y
+     sta P0C1,x
+     inx
+     txa
+     and #3
+     cmp #3
+     bne cs12_hspaln
+     inx
+cs12_hspaln
+     cpx #32
+     bcc cs12_hspals
+     lda #$2A
+     sta P2C3
+     lda #$0F
+     sta P3C3
+     lda cs12_dlllo
+     sta DPPL
+     lda cs12_dllhi
+     sta DPPH
+     lda #<cs12_dli
+     sta cutvec
+     lda #>cs12_dli
+     sta cutvec+1
+     lda #<cs12_bottom
+     sta cutvec2
+     lda #>cs12_bottom
+     sta cutvec2+1
+     lda #$50
+     sta CTRL
+     lda #$C0
+     sta CHARBASE
+     lda #SONG_BRIEFING
+     jsr mus_play
+cs12_hsloop
+     jsr waitforvblankstart
+     lda #3
+     sta interruptindex
+     lda #0
+     sta visibleover
+     dec frameslost
+     inc hs_t
+     jsr cs12_hsrows
+     ; a fresh press of either button
+     lda sINPT1
+     and #$C0
+     tax
+     eor cs_prev
+     and #$C0
+     stx cs_prev
+     and cs_prev
+     sta hs_fire
+     lda hs_pos
+     bmi cs12_hsshow
+     ; entering: up and down choose the letter (repeating while held),
+     ; fire takes it
+     lda SWCHA
+     and #$30
+     cmp #$30
+     bne cs12_hsstick
+     lda #$FF                ; (released)
+     sta hs_rep
+     bne cs12_hsfire
+cs12_hsstick
+     lda hs_rep
+     bpl cs12_hsheld
+     lda #20                 ; a press: a letter, and 20 frames before it repeats
+     sta hs_rep
+     bne cs12_hsstep
+cs12_hsheld
+     dec hs_rep
+     bne cs12_hsfire
+     lda #8                  ; held: a letter every 8 frames
+     sta hs_rep
+cs12_hsstep
+     jsr cs12_hsletter
+     lda SWCHA
+     and #$10                ; up: the next letter
+     bne cs12_hsdown
+     lda (pfq),y
+     clc
+     adc #1
+     cmp #27
+     bcc cs12_hsput
+     lda #0
+     beq cs12_hsput
+cs12_hsdown
+     lda (pfq),y
+     sec
+     sbc #1
+     bcs cs12_hsput
+     lda #26
+cs12_hsput
+     sta (pfq),y
+cs12_hsfire
+     lda hs_fire
+     beq cs12_hsback
+     inc hs_cur
+     lda hs_cur
+     cmp #3
+     bcs cs12_hstaken
+cs12_hsback
+     jmp cs12_hsloop
+cs12_hstaken
+     ; the initials taken: saved, and the table shown a while
+     jsr savedifficultytable
+     lda #$FF
+     sta hs_pos
+     lda #0
+     sta hs_t
+     ldx #12
+     jsr cs12_hsblank
+     ldx #13
+     jsr cs12_hsblank
+     ldx #14
+     jsr cs12_hsblank
+     jmp cs12_hsloop
+cs12_hsshow
+     ; the table: until fire, or a while (hs_mode counts 250 frames to 3:
+     ; 12 seconds from the title, 8 after an entry)
+     lda hs_fire
+     bne cs12_hsdone
+     lda hs_t
+     cmp #250
+     bcc cs12_hsagain
+     inc hs_mode             ; (counting the 250s)
+     lda #0
+     sta hs_t
+     lda hs_mode
+     cmp #3
+     bcs cs12_hsdone
+cs12_hsagain
+     jmp cs12_hsloop
+cs12_hsdone
+     jmp cs12_exit
+
+; pfq/y: the initial being entered (HSRAMInitials, hs_pos * 3 + hs_cur)
+cs12_hsletter
+     lda hs_pos
+     asl
+     adc hs_pos
+     adc hs_cur
+     tay
+     lda #<HSRAMInitials
+     sta pfq
+     lda #>HSRAMInitials
+     sta pfq+1
+     rts
+
+; The five entries onto rows HS_ROW0 on: the place, the initials (the one
+; being entered blinking), the score (its six digits, and the 0 they
+; leave off)
+cs12_hsrows
+     ldx #0
+cs12_hsr
+     stx hs_x
+     txa
+     asl                     ; (every other row)
+     adc #2
+     tay
+     lda cs12_rowlo,y
+     sta pfq
+     lda cs12_rowhi,y
+     sta pfq+1
+     ldy #9
+     txa
+     clc
+     adc #2                  ; (the font's 1: its code 2)
+     sta (pfq),y
+     ; the initials
+     txa
+     asl
+     adc hs_x
+     tax                     ; (the entry's first initial)
+     ldy #13
+cs12_hsri
+     lda HSRAMInitials,x
+     cmp #27
+     bcc cs12_hsri1
+     lda #26
+cs12_hsri1
+     stx hs_y
+     tax
+     lda cs12_hsglyph,x
+     ldx hs_y
+     sta hs_c
+     ; (the one being entered blinks)
+     lda hs_pos
+     cmp hs_x
+     bne cs12_hsri2
+     tya
+     sec
+     sbc #13
+     cmp hs_cur
+     bne cs12_hsri2
+     lda hs_t
+     and #16
+     beq cs12_hsri2
+     lda #43
+     sta hs_c
+cs12_hsri2
+     lda hs_c
+     sta (pfq),y
+     inx
+     iny
+     cpy #16
+     bne cs12_hsri
+     ; the score
+     ldx hs_x
+     txa
+     asl
+     adc hs_x
+     tax
+     ldy #20
+cs12_hsrs
+     lda HSRAMScores,x
+     lsr
+     lsr
+     lsr
+     lsr
+     clc
+     adc #1                  ; (the font's digits from code 1)
+     sta (pfq),y
+     iny
+     lda HSRAMScores,x
+     and #$0F
+     clc
+     adc #1
+     sta (pfq),y
+     iny
+     inx
+     cpy #26
+     bne cs12_hsrs
+     lda #1                  ; (the 0 left off)
+     sta (pfq),y
+     ldx hs_x
+     inx
+     cpx #5
+     bcs cs12_hsrend
+     jmp cs12_hsr
+cs12_hsrend
+     rts
+
+; A text (A/Y: its address, $FF-ended) onto row X
+cs12_hsline
+     sta pfp
+     sty pfp+1
+     lda cs12_rowlo,x
+     sta pfq
+     lda cs12_rowhi,x
+     sta pfq+1
+     ldy #0
+cs12_hsl
+     lda (pfp),y
+     cmp #$FF
+     beq cs12_hsl2
+     sta (pfq),y
+     iny
+     bne cs12_hsl
+cs12_hsl2
+     rts
+
+; Row X cleared
+cs12_hsblank
+     lda cs12_rowlo,x
+     sta pfq
+     lda cs12_rowhi,x
+     sta pfq+1
+     lda #0
+     ldy #35
+cs12_hsb
+     sta (pfq),y
+     dey
+     bpl cs12_hsb
+     rts
+
+cs12_hsprompt
+     ldx #12
+     lda #<cs12_hsnew
+     ldy #>cs12_hsnew
+     jsr cs12_hsline
+     ldx #13
+     lda #<cs12_hshelp1
+     ldy #>cs12_hshelp1
+     jsr cs12_hsline
+     ldx #14
+     lda #<cs12_hshelp2
+     ldy #>cs12_hshelp2
+     jmp cs12_hsline
+
+; The score (its six digits past the first, three BCD bytes: the last
+; digit, always 0, left off) into the table if it beats an entry: the
+; entries below it move down; its initials start as AAA. hs_pos: its
+; place, or $FF.
+cs12_hsinsert
+     lda score_bcd
+     asl
+     asl
+     asl
+     asl
+     sta hs_b0
+     lda score_bcd+1
+     lsr
+     lsr
+     lsr
+     lsr
+     ora hs_b0
+     sta hs_b0
+     lda score_bcd+1
+     asl
+     asl
+     asl
+     asl
+     sta hs_b1
+     lda score_bcd+2
+     lsr
+     lsr
+     lsr
+     lsr
+     ora hs_b1
+     sta hs_b1
+     lda score_bcd+2
+     asl
+     asl
+     asl
+     asl
+     sta hs_b2
+     lda score_bcd+3
+     lsr
+     lsr
+     lsr
+     lsr
+     ora hs_b2
+     sta hs_b2
+     ldx #0                  ; (each entry's first score byte: 0, 3, ...)
+     ldy #0                  ; (its place)
+cs12_hsi
+     lda hs_b0
+     cmp HSRAMScores,x
+     bcc cs12_hsinext
+     bne cs12_hsiput
+     lda hs_b1
+     cmp HSRAMScores+1,x
+     bcc cs12_hsinext
+     bne cs12_hsiput
+     lda hs_b2
+     cmp HSRAMScores+2,x
+     bcc cs12_hsinext
+     bne cs12_hsiput
+cs12_hsinext
+     inx
+     inx
+     inx
+     iny
+     cpy #5
+     bne cs12_hsi
+     rts                     ; (not in the table)
+cs12_hsiput
+     sty hs_pos
+     stx hs_x3               ; (its first byte: its place * 3)
+     lda #0
+     sta hs_cur
+     ; the entries from its place down move down one (the last is lost)
+     ldx #11                 ; (the 4th entry's first byte: copied to the 5th's)
+cs12_hsmove
+     cpx hs_x3
+     bcc cs12_hsmoved
+     lda HSRAMScores,x
+     sta HSRAMScores+3,x
+     lda HSRAMInitials,x
+     sta HSRAMInitials+3,x
+     dex
+     bpl cs12_hsmove
+cs12_hsmoved
+     ldx hs_x3
+     lda hs_b0
+     sta HSRAMScores,x
+     lda hs_b1
+     sta HSRAMScores+1,x
+     lda hs_b2
+     sta HSRAMScores+2,x
+     lda #0
+     sta HSRAMInitials,x
+     sta HSRAMInitials+1,x
+     sta HSRAMInitials+2,x
+     rts
+
 cs12_pal2 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$2A,$2A,$2A,$35,$29,$EC
 cs12_pal3 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$2A,$2A,$2A,$35,$29,$EC
 cs12_pal4 .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$2A,$2A,$2A,$35,$29,$EC
@@ -630,6 +1119,23 @@ cs12_h0w .byte (-cs12_headlen2_0)&31,(-cs12_headlen3_0)&31,(-cs12_headlen4_0)&31
 cs12_h1lo .byte <cs12_head2_1,<cs12_head3_1,<cs12_head4_1,<cs12_head5_1,<cs12_head7_1
 cs12_h1hi .byte >cs12_head2_1,>cs12_head3_1,>cs12_head4_1,>cs12_head5_1,>cs12_head7_1
 cs12_h1w .byte (-cs12_headlen2_1)&31,(-cs12_headlen3_1)&31,(-cs12_headlen4_1)&31,(-cs12_headlen5_1)&31,(-cs12_headlen7_1)&31
+cs12_hstitle .byte 30,18,15,0,17,11,23,23,11,0,16,25,28,13,15,0,45,45,0,30,25,26,0,26,19,22,25,30,29,$FF ; THE GAMMA FORCE // TOP PILOTS
+cs12_hsnew .byte 24,15,33,0,18,19,17,18,0,29,13,25,28,15,39,$FF ; NEW HIGH SCORE!
+cs12_hshelp1 .byte 31,26,0,11,24,14,0,14,25,33,24,0,13,18,25,25,29,15,0,11,0,22,15,30,30,15,28,38,$FF ; UP AND DOWN CHOOSE A LETTER,
+cs12_hshelp2 .byte 16,19,28,15,0,30,11,21,15,29,0,19,30,37,$FF ; FIRE TAKES IT.
+cs12_hshead .byte 36,38,34,36,20,58,26,50,56,30,58
+cs12_hsheadw = (-11)&31
+cs12_hsheadx = 36
+cs12_hsmode0 .byte 30,68,52,30,56,60
+cs12_hsmode1 .byte 48,50,56,46,22,44
+cs12_hsmode2 .byte 60,30,28,28,70,20,24,30,22,56
+cs12_hsmodelo .byte <cs12_hsmode0,<cs12_hsmode1,<cs12_hsmode2
+cs12_hsmodehi .byte >cs12_hsmode0,>cs12_hsmode1,>cs12_hsmode2
+cs12_hsmodew .byte (-6)&31,(-6)&31,(-10)&31
+cs12_hsmodex .byte 56,56,40
+cs12_hsdefs .byte $01,$00,$00,$00,$80,$00,$00,$60,$00,$00,$40,$00,$00,$20,$00
+cs12_hsdefi .byte 12,0,24,13,0,19,4,3,2,18,14,11,6,5,23
+cs12_hsglyph .byte 11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,0
 cs12_text2
   .byte 0,14,28,37,0,30,18,25,28,24,15,0,45,45,0,29,15,13,30,25,28,0,3,0
   .byte 18,11,36,11,28,14,0,11,22,15,28,30,64,17,25,25,14,0,16,22,35,19,24,17

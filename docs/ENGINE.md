@@ -175,7 +175,7 @@ hole at $B000.
 | 8 | stage 7: header, map, MASS DRIVER's tables, graphics ($A000), the stage song and the boss tune's voice 0; the rest of the boss tune and MASS DRIVER's code (`src/boss7.bas`, $B000) |
 | 9 | stage 8: header, map (each row's solid columns after its objects), HIVE MOTHERSHIP's tables, the asteroids' code (`src/stage8.bas`), graphics ($A000), the stage song; the boss tune and HIVE MOTHERSHIP's code (`src/boss8.bas`, $B000) |
 | 10 | stage 9: header, map, the flares' tables, the ending's texts, the flares' code (`src/stage9.bas`), graphics ($A000), the boss tune (MegaGammaForce's Final) and the stage song's voice 0; the rest of the stage song and GAMMA PRIME's code (`src/boss9.bas`, $B000) |
-| 11-16 | the cutscenes (`tools/gen_cutscenes.py`): 11 the prologue, 12 the five briefings, 13-15 the act breaks, 16 the epilogue. Each: the 40-column font ($8000), the entry ($8800), its song, its player, script and display lists; its pictures ($A000) |
+| 11-16 | the cutscenes (`tools/gen_cutscenes.py`): 11 the prologue, 12 the five briefings and the high score table (with hiscore.asm in its DMA hole), 13-15 the act breaks, 16 the epilogue. Each: the 40-column font ($8000), the entry ($8800), its song, its player, script and display lists; its pictures ($A000) |
 | 17 ($C000, fixed) | graphics: stage 1's tiles and the font, the logo and LEVIATHAN's bays (in the character block's spare room), the shared sprites |
 
 ## Cutscenes
@@ -201,6 +201,14 @@ glyph line 7 - p in page p). A briefing's portrait zones' lists are in RAM
 bank holds only the hooks, `cutscene` (a bank switch and `jsr $8800`) and
 the song table's entries: the three act breaks hold the same song at the
 same address, so one entry serves them.
+
+The high score table is bank 12's too (its entry at $8803): 7800basic's
+hiscore.asm, inlined in that bank's DMA hole without its high score font,
+leaves out its own display and keeps the device code (High Score Cart,
+AtariVox/SaveKey: `loaddifficultytable`, `savedifficultytable`, a table
+of five a difficulty in `HSRAMInitials`/`HSRAMScores`), and the bank's
+player draws the table on a briefing's screen. A score is stored as the
+six BCD digits after its first (its last, always 0, left off).
 
 ## Wrecks under the ship
 

@@ -15,6 +15,10 @@
   set doublewide on
   set 7800header 'name Atari Gamma Force'
   set pokeysupport $450
+  rem High scores on a High Score Cart or an AtariVox/SaveKey (7800basic's
+  rem hiscore.asm, in bank 12 without its display: the cutscene player there
+  rem shows the table, tools/gen_cutscenes.py HISCORES). $4746 = 'GF'.
+  set hssupport $4746
 
   rem The scroll engine owns the playfield zones; 7800basic only manages
   rem zone 0 (the HUD), which gets $1880-$18FF. See docs/ENGINE.md.
@@ -442,7 +446,7 @@ main_step
   if overt > 1 then tpal = 4 : tzone = 6 : temp1 = TXT_OVER : gosub text
   if bstate = 5 then gosub results_text
   rem after the last stage: the epilogue, then the title
-  if bstate = 6 then temp1 = 10 : gosub cutscene : goto title
+  if bstate = 6 then temp1 = 10 : gosub cutscene : goto title_hs
   asm
   ifconst IDLELOG
   jsr il_take
@@ -475,7 +479,7 @@ main_wait
   endif
   jsr pf_drawscreen
 end
-  if overt = 1 then goto title
+  if overt = 1 then goto title_hs
   goto main
 
   rem One game step: 1/60 second of play, drawn unless pfnodraw
@@ -1337,6 +1341,25 @@ cutscene
   endif
 end
   return
+  rem The high score table (bank 12's player): temp1 0 to show it, 1 to put
+  rem the score in (initials, saved), then the title
+hiscores
+  asm
+  ifnconst NOCUT
+  jsr mus_stop
+  lda #10                 ; (bank 12)
+  sta $8000
+  lda temp1
+  jsr $8803
+  endif
+end
+  return
+title_hs
+  temp1 = 1 : gosub hiscores
+  goto title
+title_attract
+  temp1 = 0 : gosub hiscores
+  goto title
 topscreenroutine
   asm
   lda cutvec+1
@@ -1775,6 +1798,10 @@ end
   inline musiccut12.asm
   inline cut12b.asm
   incbasic gen/cutgfx12.bas
+  rem the high score table's storage (used from this bank only)
+  dmahole 0
+  inline hiscore.asm
+  inline 7800vox.asm
 
   rem ======================================================================
   rem  Bank 13: a cutscene bank (tools/gen_cutscenes.py: its font at $8000,

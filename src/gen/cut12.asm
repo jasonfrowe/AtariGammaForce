@@ -31,3 +31,5 @@ cs12_font
   endif
 ; the entry: A = the scene
   jmp cs12_main
+; the high score table's: A = 0 to show it, 1 to put a new score in
+  jmp cs12_hs

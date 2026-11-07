@@ -4,7 +4,11 @@
   rem  difficulty to choose, and on a fresh press of fire, back to the fixed
   rem  bank's title_go to start the game.
   rem ======================================================================
+  rem (engine.asm's: the title's time with nothing pressed)
+  dim titleidle = $22F5
+
 title2
+  titleidle = 0
   for i = 0 to NE1 : etype[i] = 0 : next
   for i = 0 to NB1 : bkind[i] = 0 : next
   for i = 0 to NS1 : shy[i] = 0 : next
@@ -19,6 +23,10 @@ end
   jsr mus_play
 end
 title_loop
+  rem left alone for about 8 seconds: the high score table
+  temp1 = tick & 1
+  if temp1 = 0 then titleidle = titleidle + 1
+  if titleidle >= 255 then titleidle = 0 : goto title_attract
   asm
   jsr pf_frame
 end
@@ -75,6 +83,9 @@ title_fire
   temp3 = 0
   if joy0fire0 then temp3 = 1
   if joy0fire1 then temp3 = 1
+  if temp3 then titleidle = 0
+  temp2 = SWCHA & $F0
+  if temp2 <> $F0 then titleidle = 0
   if temp3 = 0 && temp9 > 0 then temp9 = temp9 - 1
   if temp3 = 0 then goto title_loop
   if temp9 > 0 then goto title_loop
