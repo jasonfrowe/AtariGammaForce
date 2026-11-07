@@ -128,7 +128,20 @@ cs12_exit
      sta DPPH
      lda #<DLLMEM
      sta DPPL
-     jsr mus_stop
+     jmp mus_stop
+; (the high score table's: the title song plays on)
+cs12_exitkeep
+     jsr waitforvblankstart
+     lda #0
+     sta cutvec+1
+     sta cutvec2+1
+     sta bgwant
+     lda #$70
+     sta CTRL
+     lda #>DLLMEM
+     sta DPPH
+     lda #<DLLMEM
+     sta DPPL
      rts
 
 ; A new page: the rows clear, its portrait (a briefing's), typing from its
@@ -334,7 +347,26 @@ cs12_bottom
 ; ---- the high score table ----
 cs12_hs
      sta hs_mode
-     lda easy                ; (the difficulty: a table each)
+     ; the difficulty's table (from the title: Teddy Bear's, then Normal's,
+     ; then Expert's)
+     lda easy
+     ldx hs_mode
+     bne cs12_hs0
+     lda #2
+cs12_hs0
+     sta hs_d
+     jsr cs12_hsload
+     lda #$FF
+     sta hs_pos
+     lda hs_mode
+     beq cs12_hs1
+     jsr cs12_hsinsert
+cs12_hs1
+     jmp cs12_hsscreen
+
+; Table hs_d loaded (an empty one: the defaults)
+cs12_hsload
+     lda hs_d
      sta gamedifficulty
      jsr loaddifficultytable
      ; an empty table (no save device, or nothing saved yet): the defaults
@@ -355,12 +387,23 @@ cs12_hsdef
      dex
      bpl cs12_hsdef
 cs12_hsfull
-     lda #$FF
-     sta hs_pos
-     lda hs_mode
-     beq cs12_hs1
-     jsr cs12_hsinsert
-cs12_hs1
+     rts
+
+; The header's difficulty (hs_d) in zone 1
+cs12_hshdr
+     ldx hs_d
+     lda cs12_hsmodelo,x
+     sta $1C20
+     lda cs12_hsmodehi,x
+     sta $1C22
+     lda cs12_hsmodew,x
+     ora #(3<<5)
+     sta $1C23
+     lda cs12_hsmodex,x
+     sta $1C24
+     rts
+
+cs12_hsscreen
      lda #0
      sta cs_idx              ; (the screen of this bank's first briefing)
      sta hs_t
@@ -384,7 +427,6 @@ cs12_hsclr
      inx
      bne cs12_hsclr
      ; the header (the game's font, centred): HIGH SCORES, the difficulty
-     ldx easy
      lda #<cs12_hshead
      sta $1C00
      lda #$60
@@ -396,15 +438,7 @@ cs12_hsclr
      sta $1C03
      lda #cs12_hsheadx
      sta $1C04
-     lda cs12_hsmodelo,x
-     sta $1C20
-     lda cs12_hsmodehi,x
-     sta $1C22
-     lda cs12_hsmodew,x
-     ora #(3<<5)
-     sta $1C23
-     lda cs12_hsmodex,x
-     sta $1C24
+     jsr cs12_hshdr
      lda #0
      sta $1C05
      sta $1C06
@@ -465,7 +499,11 @@ cs12_hspaln
      sta CTRL
      lda #$C0
      sta CHARBASE
-     lda #SONG_BRIEFING
+     ; the title song (from the title it plays on: this bank holds it where
+     ; stage 1's does)
+     lda hs_mode
+     beq cs12_hsloop
+     lda #SONG_TITLE
      jsr mus_play
 cs12_hsloop
      jsr waitforvblankstart
@@ -551,14 +589,27 @@ cs12_hstaken
      jsr cs12_hsblank
      jmp cs12_hsloop
 cs12_hsshow
-     ; the table: until fire, or a while (hs_mode counts 250 frames to 3:
-     ; 12 seconds from the title, 8 after an entry)
+     ; the table: until fire, or a while: from the title, each table about 5
+     ; seconds, Teddy Bear's, Normal's, Expert's; after an entry, about 8
      lda hs_fire
      bne cs12_hsdone
+     lda hs_mode
+     bne cs12_hsafter
      lda hs_t
      cmp #250
      bcc cs12_hsagain
-     inc hs_mode             ; (counting the 250s)
+     lda #0
+     sta hs_t
+     dec hs_d                ; the next table
+     bmi cs12_hsdone
+     jsr cs12_hsload
+     jsr cs12_hshdr
+     jmp cs12_hsloop
+cs12_hsafter
+     lda hs_t
+     cmp #250
+     bcc cs12_hsagain
+     inc hs_mode             ; (counting the 250s: 2 of them)
      lda #0
      sta hs_t
      lda hs_mode
@@ -567,7 +618,7 @@ cs12_hsshow
 cs12_hsagain
      jmp cs12_hsloop
 cs12_hsdone
-     jmp cs12_exit
+     jmp cs12_exitkeep
 
 ; pfq/y: the initial being entered (HSRAMInitials, hs_pos * 3 + hs_cur)
 cs12_hsletter

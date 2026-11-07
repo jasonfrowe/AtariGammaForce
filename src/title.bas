@@ -19,8 +19,15 @@ title2
   jsr hud_hide
 end
   asm
+  lda mus_on              ; (playing on from the high score table: let it)
+  beq title_song
+  lda mus_song
+  cmp #SONG_TITLE
+  beq title_playing
+title_song
   lda #SONG_TITLE
   jsr mus_play
+title_playing
 end
 title_loop
   rem left alone for about 8 seconds: the high score table

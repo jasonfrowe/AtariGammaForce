@@ -128,7 +128,20 @@ cs13_exit
      sta DPPH
      lda #<DLLMEM
      sta DPPL
-     jsr mus_stop
+     jmp mus_stop
+; (the high score table's: the title song plays on)
+cs13_exitkeep
+     jsr waitforvblankstart
+     lda #0
+     sta cutvec+1
+     sta cutvec2+1
+     sta bgwant
+     lda #$70
+     sta CTRL
+     lda #>DLLMEM
+     sta DPPH
+     lda #<DLLMEM
+     sta DPPL
      rts
 
 ; A new page: the rows clear, its portrait (a briefing's), typing from its

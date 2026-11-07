@@ -98,6 +98,7 @@ hs_b1       = $22F2
 hs_b2       = $22F3
 hs_x3       = $22F4
 titleidle   = $22F5 ; the title's time with nothing pressed (title.bas)
+hs_d        = $22F6 ; the table shown (the difficulty, 0-2)
 hudtext     = $2240 ; [20] HUD characters, shown live in zone 0
 txtold      = $2560 ; [16] where each buffer's text was as last terminated ($FF: none)
 txtnow      = $2570 ; [15] where each zone's text is this frame ($FF: none)
@@ -637,6 +638,11 @@ pf_newstage
 pf_stage
      pha
      jsr mus_stop
+     pla
+; (pf_stage_keep: the same, the music playing on: the title song, which
+; banks 2 and 12 hold at the same address)
+pf_stage_keep
+     pha
      ; and the sound effects: a stage's own sound plays from its bank
      ; (stage 7's canisters), and the new bank holds other bytes there
      lda #0

@@ -538,7 +538,20 @@ P_exit
      sta DPPH
      lda #<DLLMEM
      sta DPPL
-     jsr mus_stop
+     jmp mus_stop
+; (the high score table's: the title song plays on)
+P_exitkeep
+     jsr waitforvblankstart
+     lda #0
+     sta cutvec+1
+     sta cutvec2+1
+     sta bgwant
+     lda #${CTRL_GAME | 0x20:02X}
+     sta CTRL
+     lda #>DLLMEM
+     sta DPPH
+     lda #<DLLMEM
+     sta DPPL
      rts
 
 ; A new page: the rows clear, its portrait (a briefing's), typing from its
@@ -746,7 +759,26 @@ HISCORES = f'''
 ; ---- the high score table ----
 P_hs
      sta hs_mode
-     lda easy                ; (the difficulty: a table each)
+     ; the difficulty's table (from the title: Teddy Bear's, then Normal's,
+     ; then Expert's)
+     lda easy
+     ldx hs_mode
+     bne P_hs0
+     lda #2
+P_hs0
+     sta hs_d
+     jsr P_hsload
+     lda #$FF
+     sta hs_pos
+     lda hs_mode
+     beq P_hs1
+     jsr P_hsinsert
+P_hs1
+     jmp P_hsscreen
+
+; Table hs_d loaded (an empty one: the defaults)
+P_hsload
+     lda hs_d
      sta gamedifficulty
      jsr loaddifficultytable
      ; an empty table (no save device, or nothing saved yet): the defaults
@@ -767,12 +799,23 @@ P_hsdef
      dex
      bpl P_hsdef
 P_hsfull
-     lda #$FF
-     sta hs_pos
-     lda hs_mode
-     beq P_hs1
-     jsr P_hsinsert
-P_hs1
+     rts
+
+; The header's difficulty (hs_d) in zone 1
+P_hshdr
+     ldx hs_d
+     lda P_hsmodelo,x
+     sta ${CUTPDL + 32:04X}
+     lda P_hsmodehi,x
+     sta ${CUTPDL + 32 + 2:04X}
+     lda P_hsmodew,x
+     ora #(3<<5)
+     sta ${CUTPDL + 32 + 3:04X}
+     lda P_hsmodex,x
+     sta ${CUTPDL + 32 + 4:04X}
+     rts
+
+P_hsscreen
      lda #0
      sta cs_idx              ; (the screen of this bank's first briefing)
      sta hs_t
@@ -796,7 +839,6 @@ P_hsclr
      inx
      bne P_hsclr
      ; the header (the game's font, centred): HIGH SCORES, the difficulty
-     ldx easy
      lda #<P_hshead
      sta ${CUTPDL:04X}
      lda #$60
@@ -808,15 +850,7 @@ P_hsclr
      sta ${CUTPDL + 3:04X}
      lda #P_hsheadx
      sta ${CUTPDL + 4:04X}
-     lda P_hsmodelo,x
-     sta ${CUTPDL + 32:04X}
-     lda P_hsmodehi,x
-     sta ${CUTPDL + 32 + 2:04X}
-     lda P_hsmodew,x
-     ora #(3<<5)
-     sta ${CUTPDL + 32 + 3:04X}
-     lda P_hsmodex,x
-     sta ${CUTPDL + 32 + 4:04X}
+     jsr P_hshdr
      lda #0
      sta ${CUTPDL + 5:04X}
      sta ${CUTPDL + 6:04X}
@@ -877,7 +911,11 @@ P_hspaln
      sta CTRL
      lda #${GAMEFONT:02X}
      sta CHARBASE
-     lda #SONG_X
+     ; the title song (from the title it plays on: this bank holds it where
+     ; stage 1's does)
+     lda hs_mode
+     beq P_hsloop
+     lda #SONG_TITLE
      jsr mus_play
 P_hsloop
      jsr waitforvblankstart
@@ -963,14 +1001,27 @@ P_hstaken
      jsr P_hsblank
      jmp P_hsloop
 P_hsshow
-     ; the table: until fire, or a while (hs_mode counts 250 frames to 3:
-     ; 12 seconds from the title, 8 after an entry)
+     ; the table: until fire, or a while: from the title, each table about 5
+     ; seconds, Teddy Bear's, Normal's, Expert's; after an entry, about 8
      lda hs_fire
      bne P_hsdone
+     lda hs_mode
+     bne P_hsafter
      lda hs_t
      cmp #250
      bcc P_hsagain
-     inc hs_mode             ; (counting the 250s)
+     lda #0
+     sta hs_t
+     dec hs_d                ; the next table
+     bmi P_hsdone
+     jsr P_hsload
+     jsr P_hshdr
+     jmp P_hsloop
+P_hsafter
+     lda hs_t
+     cmp #250
+     bcc P_hsagain
+     inc hs_mode             ; (counting the 250s: 2 of them)
      lda #0
      sta hs_t
      lda hs_mode
@@ -979,7 +1030,7 @@ P_hsshow
 P_hsagain
      jmp P_hsloop
 P_hsdone
-     jmp P_exit
+     jmp P_exitkeep
 
 ; pfq/y: the initial being entered (HSRAMInitials, hs_pos * 3 + hs_cur)
 P_hsletter

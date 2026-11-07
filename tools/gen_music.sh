@@ -38,7 +38,13 @@ G="$ROOT/src/gen"
     --to "$G/musicdata8.asm=boss8" --to "$G/musicdata8b.asm=stage8" \
     --to "$G/musicdata9.asm=stage9" --to "$G/musicdata9b.asm=boss9,stage9.v0" \
     --to "$G/musiccut11.asm=prologue" --to "$G/musiccut12.asm=briefing" \
-    --to "$G/musiccut13.asm=actbreak" --to "$G/musiccut16.asm=epilogue"
+    --to "$G/musiccut13.asm=actbreak" --to "$G/musiccut16.asm=epilogue" \
+    --to "$G/musictitle.asm=title"
+# The title song plays on into the high score table (bank 12): it is at
+# the same address ($B700: src/asm/titlepad.asm) in both banks, so it runs
+# on through the bank switch: bank 12 gets bank 2's copy, its labels
+# renamed.
+sed "s/mus_title_/mus_title12_/g" "$G/musictitle.asm" > "$G/musictitle12.asm"
 # The act breaks' banks (13-15) each hold the same song at the same
 # address (after the cutscene font and entry, gen_cutscenes.py), so one
 # song table entry serves all three: banks 14 and 15 get bank 13's copy,

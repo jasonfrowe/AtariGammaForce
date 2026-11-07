@@ -307,14 +307,24 @@ end
   rem ======================================================================
 title
   asm
-  ; the music first: it plays from the stage's bank, and once stage 1's
-  ; bank is in, the song's old addresses hold other bytes (a game over
-  ; comes here with the song still playing)
-  jsr mus_stop
+  ; the music stops first: it plays from the stage's bank, and once stage
+  ; 1's bank is in, the song's old addresses hold other bytes (a game over
+  ; comes here with the song still playing). But the title song (from the
+  ; high score table) plays on: banks 2 and 12 hold it at one address.
   lda #0
   sta pfspeed
+  lda mus_on
+  beq title_stop
+  lda mus_song
+  cmp #SONG_TITLE
+  bne title_stop
+  lda #1
+  jsr pf_stage_keep
+  jmp title_in
+title_stop
   lda #1
   jsr pf_stage
+title_in
   jsr pf_reset
 end
   rem the title itself is in stage 1's bank (src/title.bas), in now
@@ -1346,7 +1356,10 @@ end
 hiscores
   asm
   ifnconst NOCUT
+  lda temp1
+  beq hiscores_go         ; (from the title: its song plays on, bank 12 has it)
   jsr mus_stop
+hiscores_go
   lda #10                 ; (bank 12)
   sta $8000
   lda temp1
@@ -1655,6 +1668,10 @@ end
   inline musicdata.asm
   incbasic boss1.bas
   incbasic title.bas
+  rem the title song, at $B700: bank 12 holds it at the same address, so it
+  rem plays on into the high score table (gen_music.sh)
+  inline titlepad.asm
+  inline musictitle.asm
 
   rem ======================================================================
   rem  Bank 3: stage 2 (map, waves, music, and its graphics block at $A000)
@@ -1798,10 +1815,14 @@ end
   inline musiccut12.asm
   inline cut12b.asm
   incbasic gen/cutgfx12.bas
-  rem the high score table's storage (used from this bank only)
+  rem the title song (as bank 2's, at the same address: it plays on into
+  rem the table), and the high score table's storage (used from this bank
+  rem only)
   dmahole 0
   inline hiscore.asm
   inline 7800vox.asm
+  inline titlepad12.asm
+  inline musictitle12.asm
 
   rem ======================================================================
   rem  Bank 13: a cutscene bank (tools/gen_cutscenes.py: its font at $8000,
