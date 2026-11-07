@@ -2,8 +2,12 @@
 
 Five full pictures (the prologue, the three act breaks, the epilogue) and
 three portraits for the briefings. The PNGs here are placeholders drawn by
-`tools/story_placeholders.py`; draw over them, keep the file names, and
-the build picks yours up.
+`tools/story_placeholders.py`; draw over them and keep the file names.
+Only `<name>.png` is read: the `_preview.png` files are just enlarged
+previews (`tools/cutscene7800.py check ... --out` makes a fresh one).
+Then `.venv/bin/python tools/gen_cutscenes.py` and `tools/build.sh` put
+them in the game. (`story_placeholders.py` leaves a picture that is
+already here alone, unless given `--force`.)
 
 | File | Size | Scene |
 |---|---|---|

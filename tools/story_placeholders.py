@@ -4,8 +4,13 @@ the five full panels (160 x 96) and the briefings' three portraits
 (32 x 48), each fitted to the 7800's rules (tools/cutscene7800.py) so it
 is also a template of what they allow.
 
-    .venv/bin/python tools/story_placeholders.py   -> storyboard/panels/
+    .venv/bin/python tools/story_placeholders.py [--force]   -> storyboard/panels/
+
+A picture already there (drawn by hand) is left alone; --force redraws
+the placeholders over everything.
 """
+
+import sys
 
 import math
 from pathlib import Path
@@ -226,6 +231,9 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     for kind, table, npal in (("panel", PANELS, cs.NPAL), ("portrait", PORTRAITS, cs.PORTRAIT_NPAL)):
         for name, draw in table.items():
+            if (OUT / f"{name}.png").exists() and "--force" not in sys.argv:
+                print(f"{kind} {name}: there already (left alone; --force to redraw)")
+                continue
             img = cs.snap(draw().rgb())
             fitted, bg, pals, which, notes = cs.fit(img, npal=npal)
             rgb = cs.PAL7800[fitted].astype(np.uint8)
