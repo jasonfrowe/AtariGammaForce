@@ -208,6 +208,13 @@ builds a display list list, its lists and its text in RAM ($1900-$1FFF,
 the engine's idle ring buffers) in the game's font (the last bank's
 block), copies the track list there, and returns to the fixed bank's
 loop (`jukebox`), which switches in the bank a track needs and plays it.
+Each frame the loop calls `jb_anim`, which bank 11 copies into RAM too
+($1F20; it uses only relative branches, so it runs from anywhere, and
+keeps its tables and variables at $19E4): three meters, the music's lead,
+bass and drums, from each voice's next envelope volume (the drums' next
+AUDC), drawn as 1-line zones that share one display list per bar,
+reading a line of $FF bytes; and, on each drum hit, a step of the title's
+hue and a flash of the background.
 
 The high score table is bank 12's too (its entry at $8803): 7800basic's
 hiscore.asm, inlined in that bank's DMA hole without its high score font,

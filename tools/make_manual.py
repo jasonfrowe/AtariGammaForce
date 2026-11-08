@@ -74,16 +74,19 @@ SHOTS = [
     ("cutscene", "", 700, "cutscene"),
     ("briefing", "STAGE2TEST", 700, "cutscene"),
     ("hiscores", "", 760, "title"),
-    ("jukebox", "", 800, "jukebox"),
+    ("jukebox", "", (1200, 1206, 1212, 1218), "jukebox"),
 ]
 
 
 def script(kind, frames):
     lines = []
     if kind == "jukebox":
-        # right, past stage 9, to the jukebox; open it; play the first track
-        lines += ["300 press P1 Right", "560 release P1 Right", "600 press P1 Button 1", "610 release P1 Button 1",
-                  "700 press P1 Button 1", "710 release P1 Button 1"]
+        # right, past stage 9, to the jukebox; open it; on to track 4 (GAMMA
+        # CORE: all three voices, so all three meters), and play it
+        lines += ["300 press P1 Right", "560 release P1 Right", "600 press P1 Button 1", "610 release P1 Button 1"]
+        for f in (640, 660, 680):
+            lines += [f"{f} press P1 Right", f"{f + 5} release P1 Right"]
+        lines += ["720 press P1 Button 1", "730 release P1 Button 1"]
     elif kind != "title":
         lines += ["300 press P1 Button 2", "310 release P1 Button 2"]
     if kind == "play":

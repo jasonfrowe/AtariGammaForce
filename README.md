@@ -156,7 +156,7 @@ alone.
 
 The jukebox: on the title, right past STAGE 9 to JUKEBOX, then fire. Its
 22 tracks are all the game's music (left and right choose one, B1 plays
-or stops it, B2 goes back).
+or stops it, B2 goes back), with meters for the lead, bass and drums.
 
 Regenerating the art needs Python with Pillow and numpy:
 

@@ -24,6 +24,13 @@ jb_copy
      sta $1F00,x
      inx
      bne jb_copy
+     ldx #0                  ; jb_anim into RAM
+jb_copyc
+     lda jb_code,x
+     sta $1F20,x
+     inx
+     cpx #jb_code_end-jb_code
+     bne jb_copyc
      ldx #JB_N-1
 jb_tab
      lda jb_banks,x
@@ -37,6 +44,7 @@ jb_tab
      sta BACKGRND
      lda #$0F
      sta P3C3
+     sta P7C3
      lda #$9B
      sta P5C3
      lda #$2B
@@ -57,15 +65,120 @@ jb_tab
      sta CTRL
      rts
 
+; jb_anim: runs at $1F20 (copied by jb_setup)
+jb_code
+     inc $19F6
+     ldx #2
+ja_voice
+     lda #0
+     ldy mus_on
+     beq ja_level
+     lda mus_envlo,x         ; (voices 0, 1: the envelope's next volume;
+     sta temp1               ; the drums: their next AUDC)
+     lda mus_envhi,x
+     sta temp2
+     ldy #0
+     lda (temp1),y
+     and #$0F
+ja_level
+     sta temp3               ; the bar's width: 3 bytes a step of volume, up
+     asl                     ; to 30 (most of the tunes play at 2-8 of 15)
+     adc temp3
+     cmp #30
+     bcc ja_width
+     lda #30
+ja_width
+     sta $19F7,x
+     cmp $19F0,x            ; up at once, down a byte a frame
+     bcs ja_set
+     lda $19F0,x
+     sbc #0                  ; (carry clear: less 1)
+ja_set
+     sta $19F0,x
+     sta temp3
+     ldy $19E7,x          ; Y = the bar's display list
+     lda temp3
+     beq ja_hide
+     eor #$FF                ; palette X, width -w
+     clc
+     adc #1
+     and #$1F
+     ora $19ED,x
+     sta $19C1,y
+     lda temp3               ; x = 80 - 2w: the middle
+     asl
+     eor #$FF
+     sec
+     adc #80
+     sta $19C3,y
+     bne ja_color
+ja_hide
+     lda #160
+     sta $19C3,y
+ja_color
+     ldy $19EA,x           ; its color: brighter with its level
+     lda temp3
+     lsr
+     lsr
+     clc
+     adc #4
+     ora $19E4,x
+     sta P0C3,y
+     dex
+     bpl ja_voice
+     lda $19F9              ; a drum hit: up by 6 or more since last frame
+     tax
+     sec
+     sbc $19F3
+     stx $19F3
+     bcc ja_nohit
+     cmp #6
+     bcc ja_nohit
+     inc $19F4
+     lda #4
+     sta $19F5
+ja_nohit
+     lda mus_on              ; (stopped: the title's hue drifts)
+     bne ja_title
+     lda $19F6
+     and #15
+     bne ja_title
+     inc $19F4
+ja_title
+     lda $19F4              ; (not hue 0: grey)
+     and #15
+     bne ja_title2
+     inc $19F4
+     lda #1
+ja_title2
+     asl
+     asl
+     asl
+     asl
+     ora #$0A
+     clc
+     adc $19F5
+     sta P7C3
+     lda $19F5
+     beq ja_bg
+     dec $19F5
+ja_bg
+     lda $19F5            ; the background: a flash on the hit
+     lsr
+     clc
+     adc #$A0
+     sta BACKGRND
+     rts
+jb_code_end
 jb_ram0
-  .byte 70,25,240,64,25,240,64,25,240,143,25,240,15,25,80,15,25,240,15,25,88,15,25,240,15,25,96,15,25,104,15,25
-  .byte 240,15,25,112,15,25,240,15,25,120,15,25,128,15,25,136,15,25,240,195,25,240,207,25,240,79,25,240,79,25,240,79
-  .byte 25,240,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,96,26,204,0,0,0,0,20,96,26,108,0,0,0,0
-  .byte 40,96,26,172,0,0,0,0,60,96,26,108,0,0,0,0,80,96,26,204,0,0,0,0,100,96,26,108,0,0,0,0
-  .byte 120,96,26,108,0,0,0,0,140,96,26,108,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  .byte 70,25,224,64,25,224,64,25,224,143,25,224,15,25,128,15,25,224,15,25,136,15,25,224,15,25,144,15,25,152,15,25
+  .byte 224,15,25,160,8,25,224,0,25,192,0,25,192,0,25,192,0,25,192,0,25,192,2,25,224,0,25,198,0,25,198,0
+  .byte 25,198,0,25,198,0,25,198,2,25,224,0,25,204,0,25,204,0,25,204,0,25,204,0,25,204,1,25,224,15,25,168
+  .byte 15,25,176,15,25,184,195,25,224,207,25,224,79,25,224,79,25,224,79,25,224,0,0,0,0,0,0,0,0,0,0,0
+  .byte 0,96,26,236,0,0,0,0,20,96,26,108,0,0,0,0,40,96,26,172,0,0,0,0,60,96,26,108,0,0,0,0
+  .byte 80,96,26,204,0,0,0,0,100,96,26,108,0,0,0,0,120,96,26,108,0,0,0,0,140,96,26,108,0,0,0,0
+  .byte 0,31,31,160,0,0,0,63,31,160,0,0,0,95,31,160,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  .byte 0,0,0,0,64,144,16,0,6,12,0,4,8,0,32,64,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 jb_ram1
   .byte 20,20,20,20,20,20,40,62,42,30,24,50,68,20,20,20,20,20,20,20,20,20,20,60,56,22,26,42,20,0,0,20
   .byte 50,32,20,4,4,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20
@@ -109,24 +222,29 @@ jb_ram5
   .byte 50,56,50,48,22,20,20,20,20,20,20,20,20,20,20,20,20,20,58,60,22,34,30,20,18,20,20,20,20,20,20,20
   .byte 20,20,20,20,34,22,46,46,22,20,52,56,38,46,30,20,20,20,20,20,20,20,20,20,20,32,38,48,22,44,20,24
   .byte 50,58,58,20,20,20,20,20,60,36,30,20,58,62,48,20,24,62,56,48,58,20,26,44,30,22,48,20,20,20,20,20
-  .byte 20,20,30,52,38,44,50,34,62,30,20,20,20,20,20,20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  .byte 20,20,30,52,38,44,50,34,62,30,20,20,20,20,20,20,20,20,20,20,20,20,52,44,22,70,38,48,34,20,20,20
+  .byte 20,20,20,20,20,20,20,20,20,20,58,60,50,52,52,30,28,20,20,20,20,20,20,20,0,0,0,0,0,0,0,0
 jb_ram6
+  .byte 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  .byte 20,20,20,20,20,20,52,44,22,70,38,48,34,20,20,20,20,20,20,20,20,20,20,20,20,20,58,60,50,52,52,30
-  .byte 28,20,20,20,20,20,20,20,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 ; each track's bank (as SuperGame's bank select wants it: bank - 2), its song
 jb_banks .byte 0,9,0,0,10,1,2,2,3,3,4,4,11,5,5,6,6,7,7,8,8,14
 jb_songs .byte SONG_TITLE,SONG_PROLOGUE,SONG_STAGE1,SONG_BOSS,SONG_BRIEFING,SONG_STAGE2,SONG_STAGE3,SONG_BOSS3,SONG_STAGE4,SONG_BOSS4,SONG_STAGE5,SONG_BOSS5,SONG_ACTBREAK,SONG_STAGE6,SONG_BOSS6,SONG_STAGE7,SONG_BOSS7,SONG_STAGE8,SONG_BOSS8,SONG_STAGE9,SONG_BOSS9,SONG_EPILOGUE
 JB_N = 22
+JB_ANIM = $1F20
+ if jb_code_end - jb_code > $E0
+   echo "ERROR: jb_anim is too long for its RAM"
+   err
+ endif
 JB_TABLES = $1AA0
 JB_ROWS = $1A00
-JB_STATUS = $1F80
+JB_STATUS = $1ED0
 JB_W = 20
 JB_TRACKDIGIT = $1A1D
 JB_COUNTDIGIT = $1A23

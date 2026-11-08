@@ -1384,6 +1384,7 @@ jb_loop
   lda #0
   sta visibleover
   dec frameslost
+  jsr JB_ANIM             ; (the meters and colors: in RAM, gen_jukebox.py)
   ; a track played to its end: the next
   lda jb_play
   beq jb_stick
