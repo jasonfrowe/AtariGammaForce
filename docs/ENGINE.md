@@ -214,7 +214,7 @@ keeps its tables and variables at $19E4): three meters, the music's lead,
 bass and drums, from each voice's next envelope volume (the drums' next
 AUDC), drawn as 1-line zones that share one display list per bar,
 reading a line of $FF bytes; and, on each drum hit, a step of the title's
-hue and a flash of the background.
+hue.
 
 The high score table is bank 12's too (its entry at $8803): 7800basic's
 hiscore.asm, inlined in that bank's DMA hole without its high score font,

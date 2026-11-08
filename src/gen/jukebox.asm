@@ -160,14 +160,9 @@ ja_title2
      adc $19F5
      sta P7C3
      lda $19F5
-     beq ja_bg
+     beq ja_done
      dec $19F5
-ja_bg
-     lda $19F5            ; the background: a flash on the hit
-     lsr
-     clc
-     adc #$A0
-     sta BACKGRND
+ja_done
      rts
 jb_code_end
 jb_ram0

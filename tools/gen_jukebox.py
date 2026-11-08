@@ -90,11 +90,11 @@ def anim_code():
     the music's three voices (each one's volume, times 3: its envelope's next value;
     the drums': their next AUDC), growing out from the middle and falling
     back a step a frame, brighter as they rise; a drum hit steps the
-    title's hue and flashes it and the background. Copied to CODE: only
-    relative branches, and its tables are in RAM."""
+    title's hue and brightens it for a moment (not the background: a
+    flash there is hard on the eyes). Copied to CODE: only relative
+    branches, and its tables are in RAM."""
     lev, raw2, hue, flash, tick, tgt = VARS, VARS + 3, VARS + 4, VARS + 5, VARS + 6, VARS + 7
     assert PALB + 3 <= VARS and tgt + 3 <= ROWS and EMPTY + 2 <= HUES
-    bg = ga.nearest((0, 20, 60))
     return f"""; jb_anim: runs at ${CODE:04X} (copied by jb_setup)
 jb_code
      inc ${tick:04X}
@@ -190,14 +190,9 @@ ja_title2
      adc ${flash:04X}
      sta P7C3
      lda ${flash:04X}
-     beq ja_bg
+     beq ja_done
      dec ${flash:04X}
-ja_bg
-     lda ${flash:04X}            ; the background: a flash on the hit
-     lsr
-     clc
-     adc #${bg:02X}
-     sta BACKGRND
+ja_done
      rts
 jb_code_end
 """.splitlines()
