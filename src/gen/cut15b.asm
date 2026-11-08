@@ -440,7 +440,11 @@ cs15_dlpic9_3
   .byte 0,0
 cs15_dlpic9_4
   .byte <(cut_act34+0),24,>(cut_act34+0),0
-  .byte <(cut_act34+8),40,>(cut_act34+8),32
+  .byte <(cut_act34+8),62,>(cut_act34+8),32
+  .byte <(cut_act34+10),126,>(cut_act34+10),40
+  .byte <(cut_act34+12),50,>(cut_act34+12),48
+  .byte <(cut_act34+26),124,>(cut_act34+26),104
+  .byte <(cut_act34+30),62,>(cut_act34+30),120
   .byte <(cut_act34+32),24,>(cut_act34+32),128
   .byte 0,0
 cs15_dlpic9_5
