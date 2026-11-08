@@ -484,8 +484,8 @@ cs13_dll6
   .byte $07,>cs13_dlrow11,<cs13_dlrow11
   .byte $07,>cs13_dlrow12,<cs13_dlrow12
   .byte $03,>cs13_dlnone,<cs13_dlnone
-  .byte $C3,>cs13_dlnone,<cs13_dlnone
-  .byte $CF,>cs13_dlnone,<cs13_dlnone
+  .byte $C7,>cs13_dlnone,<cs13_dlnone
+  .byte $CB,>cs13_dlnone,<cs13_dlnone
   .byte $4F,>cs13_dlnone,<cs13_dlnone
   .byte $4F,>cs13_dlnone,<cs13_dlnone
   .byte $4F,>cs13_dlnone,<cs13_dlnone

@@ -486,8 +486,8 @@ cs16_dll10
   .byte $07,>cs16_dlrow11,<cs16_dlrow11
   .byte $07,>cs16_dlrow12,<cs16_dlrow12
   .byte $03,>cs16_dlnone,<cs16_dlnone
-  .byte $C3,>cs16_dlnone,<cs16_dlnone
-  .byte $CF,>cs16_dlnone,<cs16_dlnone
+  .byte $C7,>cs16_dlnone,<cs16_dlnone
+  .byte $CB,>cs16_dlnone,<cs16_dlnone
   .byte $4F,>cs16_dlnone,<cs16_dlnone
   .byte $4F,>cs16_dlnone,<cs16_dlnone
   .byte $4F,>cs16_dlnone,<cs16_dlnone

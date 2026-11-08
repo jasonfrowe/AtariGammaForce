@@ -478,8 +478,8 @@ cs11_dll1
   .byte $07,>cs11_dlrow11,<cs11_dlrow11
   .byte $07,>cs11_dlrow12,<cs11_dlrow12
   .byte $03,>cs11_dlnone,<cs11_dlnone
-  .byte $C3,>cs11_dlnone,<cs11_dlnone
-  .byte $CF,>cs11_dlnone,<cs11_dlnone
+  .byte $C7,>cs11_dlnone,<cs11_dlnone
+  .byte $CB,>cs11_dlnone,<cs11_dlnone
   .byte $4F,>cs11_dlnone,<cs11_dlnone
   .byte $4F,>cs11_dlnone,<cs11_dlnone
   .byte $4F,>cs11_dlnone,<cs11_dlnone

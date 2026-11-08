@@ -482,8 +482,8 @@ cs15_dll9
   .byte $07,>cs15_dlrow11,<cs15_dlrow11
   .byte $07,>cs15_dlrow12,<cs15_dlrow12
   .byte $03,>cs15_dlnone,<cs15_dlnone
-  .byte $C3,>cs15_dlnone,<cs15_dlnone
-  .byte $CF,>cs15_dlnone,<cs15_dlnone
+  .byte $C7,>cs15_dlnone,<cs15_dlnone
+  .byte $CB,>cs15_dlnone,<cs15_dlnone
   .byte $4F,>cs15_dlnone,<cs15_dlnone
   .byte $4F,>cs15_dlnone,<cs15_dlnone
   .byte $4F,>cs15_dlnone,<cs15_dlnone

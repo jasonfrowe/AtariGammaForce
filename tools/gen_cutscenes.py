@@ -290,7 +290,10 @@ def bank_files(bank, scenes, pages_font):
             k = min(rest, 16)
             e.append((k - 1, "dlnone"))
             rest -= k
-        e += [(0xC3, "dlnone"), (0xCF, "dlnone"), (0x4F, "dlnone"), (0x4F, "dlnone"), (0x4F, "dlnone")]
+        # (the NMIs 8 and 12 lines on, not 7800basic's 4 and 16: the third,
+        # userinterrupt, sets the picture's background, and 4 lines after
+        # the screen it showed on its last lines; 8 more is too late)
+        e += [(0xC7, "dlnone"), (0xCB, "dlnone"), (0x4F, "dlnone"), (0x4F, "dlnone"), (0x4F, "dlnone")]
         out = [f"{P}{name}"]
         for flags, label in e:
             lab = label if label.startswith(("$", "cs")) else f"{P}{label}"

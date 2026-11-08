@@ -979,8 +979,8 @@ cs12_dll2
   .byte $07,>cs12_dlrow15,<cs12_dlrow15
   .byte $0F,>cs12_dlnone,<cs12_dlnone
   .byte $0B,>cs12_dlnone,<cs12_dlnone
-  .byte $C3,>cs12_dlnone,<cs12_dlnone
-  .byte $CF,>cs12_dlnone,<cs12_dlnone
+  .byte $C7,>cs12_dlnone,<cs12_dlnone
+  .byte $CB,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
@@ -1017,8 +1017,8 @@ cs12_dll3
   .byte $07,>cs12_dlrow15,<cs12_dlrow15
   .byte $0F,>cs12_dlnone,<cs12_dlnone
   .byte $0B,>cs12_dlnone,<cs12_dlnone
-  .byte $C3,>cs12_dlnone,<cs12_dlnone
-  .byte $CF,>cs12_dlnone,<cs12_dlnone
+  .byte $C7,>cs12_dlnone,<cs12_dlnone
+  .byte $CB,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
@@ -1055,8 +1055,8 @@ cs12_dll4
   .byte $07,>cs12_dlrow15,<cs12_dlrow15
   .byte $0F,>cs12_dlnone,<cs12_dlnone
   .byte $0B,>cs12_dlnone,<cs12_dlnone
-  .byte $C3,>cs12_dlnone,<cs12_dlnone
-  .byte $CF,>cs12_dlnone,<cs12_dlnone
+  .byte $C7,>cs12_dlnone,<cs12_dlnone
+  .byte $CB,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
@@ -1093,8 +1093,8 @@ cs12_dll5
   .byte $07,>cs12_dlrow15,<cs12_dlrow15
   .byte $0F,>cs12_dlnone,<cs12_dlnone
   .byte $0B,>cs12_dlnone,<cs12_dlnone
-  .byte $C3,>cs12_dlnone,<cs12_dlnone
-  .byte $CF,>cs12_dlnone,<cs12_dlnone
+  .byte $C7,>cs12_dlnone,<cs12_dlnone
+  .byte $CB,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
@@ -1131,8 +1131,8 @@ cs12_dll7
   .byte $07,>cs12_dlrow15,<cs12_dlrow15
   .byte $0F,>cs12_dlnone,<cs12_dlnone
   .byte $0B,>cs12_dlnone,<cs12_dlnone
-  .byte $C3,>cs12_dlnone,<cs12_dlnone
-  .byte $CF,>cs12_dlnone,<cs12_dlnone
+  .byte $C7,>cs12_dlnone,<cs12_dlnone
+  .byte $CB,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone
   .byte $4F,>cs12_dlnone,<cs12_dlnone

@@ -474,8 +474,8 @@ cs14_dll8
   .byte $07,>cs14_dlrow11,<cs14_dlrow11
   .byte $07,>cs14_dlrow12,<cs14_dlrow12
   .byte $03,>cs14_dlnone,<cs14_dlnone
-  .byte $C3,>cs14_dlnone,<cs14_dlnone
-  .byte $CF,>cs14_dlnone,<cs14_dlnone
+  .byte $C7,>cs14_dlnone,<cs14_dlnone
+  .byte $CB,>cs14_dlnone,<cs14_dlnone
   .byte $4F,>cs14_dlnone,<cs14_dlnone
   .byte $4F,>cs14_dlnone,<cs14_dlnone
   .byte $4F,>cs14_dlnone,<cs14_dlnone
