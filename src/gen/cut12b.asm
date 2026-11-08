@@ -1144,7 +1144,7 @@ cs12_por0pal .byte $02,$3B,$CA,$00,$00,$00
 cs12_por0z0 .byte <(cut_thorne0+0),30,>(cut_thorne0+0),8,<(cut_thorne0+2),30,>(cut_thorne0+2),16,<(cut_thorne0+4),30,>(cut_thorne0+4),24,<(cut_thorne0+6),30,>(cut_thorne0+6),32
 cs12_por0z1 .byte <(cut_thorne1+0),30,>(cut_thorne1+0),8,<(cut_thorne1+2),30,>(cut_thorne1+2),16,<(cut_thorne1+4),30,>(cut_thorne1+4),24,<(cut_thorne1+6),30,>(cut_thorne1+6),32
 cs12_por0z2 .byte <(cut_thorne2+0),30,>(cut_thorne2+0),8,<(cut_thorne2+2),30,>(cut_thorne2+2),16,<(cut_thorne2+4),30,>(cut_thorne2+4),24,<(cut_thorne2+6),30,>(cut_thorne2+6),32
-cs12_por1pal .byte $36,$3C,$EC,$02,$36,$EC
+cs12_por1pal .byte $36,$3C,$EC,$02,$36,$3B
 cs12_por1z0 .byte <(cut_maya0+0),30,>(cut_maya0+0),8,<(cut_maya0+2),30,>(cut_maya0+2),16,<(cut_maya0+4),30,>(cut_maya0+4),24,<(cut_maya0+6),30,>(cut_maya0+6),32
 cs12_por1z1 .byte <(cut_maya1+0),30,>(cut_maya1+0),8,<(cut_maya1+2),62,>(cut_maya1+2),16,<(cut_maya1+4),62,>(cut_maya1+4),24,<(cut_maya1+6),30,>(cut_maya1+6),32
 cs12_por1z2 .byte <(cut_maya2+0),62,>(cut_maya2+0),8,<(cut_maya2+2),62,>(cut_maya2+2),16,<(cut_maya2+4),62,>(cut_maya2+4),24,<(cut_maya2+6),62,>(cut_maya2+6),32
