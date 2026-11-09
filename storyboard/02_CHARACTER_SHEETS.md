@@ -68,9 +68,9 @@
 * **Pre-Stage 8 (Deep Field Warning — Asteroid Fields):**  
   > *"Entering the Deep Field void. Warning: dense asteroid fields ahead! These asteroids are solid iron-nickel—they will stop your Vulcan fire dead and crush the Gamma Force on contact. Use your Radiant Sword to cut safely near the rock faces and watch for alien bio-forms lurking in the drift!"*
 * **Pre-Stage 9 (Corona Warning — Dangerous Solar Flares):**  
-  > *"This is it, Maya—the solar corona! Temperatures exceed two million degrees. Massive thermonuclear solar flares erupt across the chromosphere in alternating cycles. Watch the warning flickers on the surface—if you're caught in an erupting solar prominence, the heat will incinerate you instantly! Dodge the flares and destroy Gamma Prime!"*
+  > *"This is it, Maya—the solar corona! The gas is over a million degrees but too thin to heat you; the glare from below is what burns. Gamma Prime is winding the Sun's magnetic field tight to tap its energy, and when a loop snaps, a flare erupts. Watch the warning flickers on the surface—if you're caught in an erupting solar prominence, the heat will incinerate you instantly! Dodge the flares and destroy Gamma Prime!"*
 * **Post-Stage 9 (Ending Briefing):**  
-  > *"Sensors show total collapse of the alien siphon citadel. Solar output has stabilized. All systems clear. You did it, Maya... Earth is safe. Bring her home."*
+  > *"Sensors show total collapse of the alien siphon citadel. The Sun's magnetic field is relaxing. All systems clear. You did it, Maya... Earth is safe. Bring her home."*
 
 ---
 

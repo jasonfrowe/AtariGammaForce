@@ -151,7 +151,7 @@ High scores: a table of five for each difficulty, saved on a High Score
 Cart or an AtariVox/SaveKey (7800basic's hiscore.asm, game ID $4746;
 without a device they last until power off). After a game over or the
 epilogue a score that makes the table takes three initials (up and down
-choose a letter, fire takes it); the title shows the table when left
+choose a letter, fire locks it in); the title shows the table when left
 alone.
 
 The jukebox: on the title, right past STAGE 9 to JUKEBOX, then fire. Its

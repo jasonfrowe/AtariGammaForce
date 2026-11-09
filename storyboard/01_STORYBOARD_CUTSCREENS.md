@@ -37,7 +37,7 @@ flowchart TD
     CS2 --> S8["STAGE 8: DEEP FIELD"]
     S8 --> CS3["CUT SCREEN 3: POINT OF NO RETURN\n'The Corona Beckons'\n[Prep for Stg 9: Lethal Solar Flares]"]
     CS3 --> S9["STAGE 9: CORONA"]
-    S9 --> CS4["CUT SCREEN 4: EPILOGUE & CREDITS\n'The Sun Burns Clean'"]
+    S9 --> CS4["CUT SCREEN 4: EPILOGUE & CREDITS\n'A Quiet Sun'"]
 ```
 
 ---
@@ -318,7 +318,7 @@ flowchart TD
 **Placement:** Between Stage 8 (Deep Field) and Stage 9 (Corona).
 
 #### Visual Composition
-* **Panel A:** Sol fills the entire screen—an overwhelming, roiling wall of thermonuclear plasma. Prominences loop thousands of miles into space.
+* **Panel A:** Sol fills the entire screen—an overwhelming, roiling wall of magnetized plasma. Prominences loop thousands of miles into space.
 * **Panel B:** Anchored in the center of the inferno sits **Gamma Prime**, a golden sunburst fortress with orbiting prisms siphoning solar fury.
 * **Panel C:** Maya’s cockpit illuminated in blazing amber and crimson light. The Radiant Sword field envelopes the hull in an auroral energy bubble.
 
@@ -340,7 +340,7 @@ flowchart TD
 +--------------------------------------------------------+
 | DR. THORNE // SECTOR 9 HAZARD CRITICAL:                |
 | "Maya, extreme danger! You are inside the solar corona!|
-| Thermonuclear solar flares erupt across the surface    |
+| Magnetic solar flares erupt across the surface         |
 | in alternating waves. Watch the warning flickers—one   |
 | touch of an active flare will vaporize the ship!       |
 | Break their prisms and destroy Gamma Prime!"           |
@@ -353,7 +353,7 @@ flowchart TD
 
 ---
 
-### CUT SCREEN 4: EPILOGUE & CREDITS — "THE SUN BURNS CLEAN"
+### CUT SCREEN 4: EPILOGUE & CREDITS — "A QUIET SUN"
 **Placement:** Plays after destroying Gamma Prime in Stage 9.
 
 #### Visual Composition
@@ -379,9 +379,9 @@ flowchart TD
 | [YELLOW] --------------------------------------------- |
 +--------------------------------------------------------+
 | MISSION RESULTS // ALL SYSTEMS NOMINAL:                |
-| "GAMMA PRIME COLLAPSED. SOLAR OUTPUT NORMALIZING.      |
+| "GAMMA PRIME COLLAPSED. SOLAR FIELD RELAXING.          |
 |                                                        |
-| ALL CLEAR. GAMMA CORE IS DEAD. THE SUN BURNS CLEAN."   |
+| ALL CLEAR. GAMMA CORE IS DEAD. THE SUN IS QUIET."     |
 |                                                        |
 | DR. THORNE:                                            |
 | "Telemetry is clean, Maya. Earth is waiting for you.   |

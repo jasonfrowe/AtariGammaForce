@@ -173,7 +173,7 @@ def act3():
 
 
 def epilogue():
-    """THE SUN BURNS CLEAN: the ship turning for home, the Earth's crescent
+    """A QUIET SUN: the ship turning for home, the Earth's crescent
     ahead, the Sun quiet and warm behind."""
     p = Pic(160, 96, (0, 0, 20))
     p.stars(50, 5)

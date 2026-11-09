@@ -412,7 +412,7 @@ def hs_data(P):
     the prompt's; the game font's, the header's)."""
     out = []
     for label, text in (("hstitle", "THE GAMMA FORCE // TOP PILOTS"), ("hsnew", "NEW HIGH SCORE!"),
-                        ("hshelp1", "UP AND DOWN CHOOSE A LETTER,"), ("hshelp2", "FIRE TAKES IT.")):
+                        ("hshelp1", "UP AND DOWN CHOOSE A LETTER,"), ("hshelp2", "FIRE LOCKS IT IN.")):
         out.append(f"{P}{label} .byte " + ",".join(str(v) for v in encode(text)) + f",$FF ; {text}")
     head = "HIGH SCORES"
     out.append(f"{P}hshead .byte " + ",".join(str(ga.char_index(ch)) for ch in head))
@@ -970,7 +970,7 @@ P_hsloop
      lda hs_pos
      bmi P_hsshow
      ; entering: up and down choose the letter (repeating while held),
-     ; fire takes it
+     ; fire locks it in
      lda SWCHA
      and #$30
      cmp #$30

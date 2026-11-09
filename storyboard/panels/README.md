@@ -15,7 +15,7 @@ already here alone, unless given `--force`.)
 | `act1.png` | 160 x 96 | Atmospheric Breakout (before stage 6) |
 | `act2.png` | 160 x 96 | Into the Deep Field (before stage 8) |
 | `act3.png` | 160 x 96 | The Solar Corona (before stage 9) |
-| `epilogue.png` | 160 x 96 | The Sun Burns Clean (after GAMMA PRIME) |
+| `epilogue.png` | 160 x 96 | A Quiet Sun (after GAMMA PRIME) |
 | `maya.png`, `thorne.png`, `gamma.png` | 32 x 48 | the briefings' speakers |
 
 ## The rules

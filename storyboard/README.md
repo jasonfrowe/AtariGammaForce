@@ -34,7 +34,7 @@ This suite documents the narrative arc, visual storyboard, static cut screens, c
 ---
 
 ### 3. Climax Concept Art: The Solar Corona & Gamma Prime
-> *Captain Kestrel dives into the roaring thermonuclear corona of the Sun, enveloped in the protective gamma barrier of the Radiant Sword, charging the golden sunburst fortress Gamma Prime and its orbiting prisms.*
+> *Captain Kestrel dives into the roaring magnetic storms of the Sun's corona, enveloped in the protective gamma barrier of the Radiant Sword, charging the golden sunburst fortress Gamma Prime and its orbiting prisms.*
 
 ![Gamma Prime Corona Battle](img/gamma_prime_corona_battle.png)
 

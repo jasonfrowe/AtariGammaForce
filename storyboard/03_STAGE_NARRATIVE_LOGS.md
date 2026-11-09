@@ -121,7 +121,7 @@ This dossier details the narrative progression across all 9 stages from Earth to
   > **Dr. Thorne:** *"This is the final destination, Maya—the solar corona! The surface of the Sun is roaring at millions of degrees. Massive solar flares erupt across the chromosphere in alternating cycles. Watch for the warning flickers on the surface—if you fly into an erupting flare, the ship will be incinerated in a fraction of a second! Dodge the flares and take out Gamma Prime!"*  
   > **Captain Kestrel:** *"The canopy is glowing red-hot, but the Radiant Sword containment field is holding! I see the golden citadel feeding on the flares. For Earth and Sol... THIS ENDS NOW!"*
 * **Boss: GAMMA PRIME**
-  * *Threat Profile:* The ultimate form of the Gamma Core: a colossal golden sunburst citadel feeding directly on solar flares. Protected by four orbiting crystalline prisms, twin ring-cannons, and a concentrated beam emitter.
+  * *Threat Profile:* The ultimate form of the Gamma Core: a colossal golden sunburst citadel feeding on the Sun's magnetic field, whose snapping loops are the flares. Protected by four orbiting crystalline prisms, twin ring-cannons, and a concentrated beam emitter.
   * *Tactical Directive:* Shatter all four orbiting prisms to drop the golden armor of the core, neutralize the needle beam emitter, and pierce the red-hot core before the solar flares consume the battlefield!
 * **Mission Ending Sequence:**
-  * *"ALL CLEAR. GAMMA CORE IS DEAD. THE SUN BURNS CLEAN."*
+  * *"ALL CLEAR. GAMMA CORE IS DEAD. THE SUN IS QUIET AGAIN."*

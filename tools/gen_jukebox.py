@@ -43,7 +43,7 @@ TRACKS = [
     ("SONG_BOSS8", 9, "HIVE MOTHERSHIP", "STAGE 8 BOSS"),
     ("SONG_STAGE9", 10, "CORONA", "STAGE 9"),
     ("SONG_BOSS9", 10, "GAMMA PRIME", "FINAL BOSS"),
-    ("SONG_EPILOGUE", 16, "THE SUN BURNS CLEAN", "EPILOGUE"),
+    ("SONG_EPILOGUE", 16, "A QUIET SUN", "EPILOGUE"),
 ]
 
 # RAM (the ring buffers: idle with the game's screen gone)

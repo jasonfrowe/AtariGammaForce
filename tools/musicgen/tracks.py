@@ -71,7 +71,7 @@ TRACKS: list = [
     ),
     TrackSpec(
         resource="Epilogue",
-        description="Cutscene: The Sun Burns Clean (after GAMMA PRIME)",
+        description="Cutscene: A Quiet Sun (after GAMMA PRIME)",
         aliases=["epilogue", "ending"],
         # Warm and major: going home.
         mood=MoodPreset(key_root=2, scale="major", bpm=96, intensity=0.35, target_seconds=60.0, lead_octave=5),
