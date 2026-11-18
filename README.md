@@ -7,7 +7,9 @@ Sword; a color chain; weapons that level up; bosses taken apart piece by
 piece. Written in [7800basic](https://github.com/7800-devtools/7800basic)
 with an assembly display engine for smooth vertical scrolling.
 
-![Atari Gamma Force: the title, four stages and their bosses](docs/gameplay.gif)
+[![Atari Gamma Force: the title, four stages and their bosses; click to play it in your browser](docs/gameplay.gif)](https://jasonfrowe.github.io/AtariGammaForce/)
+
+**[▶ Play it in your browser](https://jasonfrowe.github.io/AtariGammaForce/)** (keyboard or gamepad), or on [jasonrowe.org](https://jasonrowe.org/Atari7800/gammaforce/). It runs in [js7800_astrocart](https://github.com/jasonfrowe/js7800_astrocart), an Atari 7800 emulator with the AstroCart's math unit and second POKEY.
 
 **Status:** playable through all nine stages, to the ending. Stage 1 (the
 fortress at sea, and the GAMMA CORE), stage 2 (NEON SPIRES, a city at
