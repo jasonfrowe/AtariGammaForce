@@ -1,0 +1,24 @@
+{
+  "slug": "gammaforce",
+  "title": "Atari Gamma Force",
+  "title_accent": "Gamma Force",
+  "tagline": "A vertical shooter for the Atari 7800",
+  "rom": "build/gammaforce.a78",
+  "build": "tools/build.sh",
+  "ready": "Press Z to start. Click or press a key for sound.",
+  "controls": [
+    ["Move", "the arrow keys"],
+    ["Vulcan", "hold [Z]"],
+    ["Radiant Sword", "[X]: cuts, and absorbs pink bullets"],
+    ["Hyper Sword", "[Z] and [X] together when the gauge is full"],
+    ["Pause", "[F4]"],
+    ["Title: stage / mode", "[←] [→] choose the stage, [↑] [↓] the mode"]
+  ],
+  "about": [
+    "A demake of MegaGammaForce for the Picocomputer 6502: nine stages, from a fortress at sea to a flight low over the Sun, each with a boss taken apart piece by piece.",
+    "Two weapons: the Vulcan, and the Radiant Sword that cuts through enemies and absorbs pink bullets. Absorb 36 to charge the Hyper Sword. A color chain and weapon levels raise the score.",
+    "Three modes: EXPERT has all the enemy's fire, NORMAL about half, and TEDDY BEAR adds five ships with armor. The music is MegaGammaForce's, converted to POKEY."
+  ],
+  "repo": "https://github.com/jasonfrowe/AtariGammaForce",
+  "image": "docs/screenshots/title.png"
+}
